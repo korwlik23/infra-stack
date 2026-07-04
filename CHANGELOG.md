@@ -3,6 +3,18 @@
 All notable changes to InfraStack are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](https://semver.org/).
 
+## [2.1.1] - 2026-07-04
+
+### Fixed — จากการติดตั้งจริงครั้งแรก (fresh-install จะไม่เจอปัญหาพวกนี้แล้ว)
+- `alertmanager.yml` default เปลี่ยนเป็น receiver "none" ที่ start ผ่านทันที
+  (เดิมเป็น CHANGE_ME/chat_id 0 → restart loop แกะกล่อง) — Telegram เป็นบล็อกคอมเมนต์
+- `beszel-agent` คอมเมนต์ไว้ default (เดิม start โดยไม่มี KEY → restart loop)
+- `install.sh` sync `ACME_EMAIL` จาก .env เข้า `traefik.yml` อัตโนมัติ
+  (Let's Encrypt ปฏิเสธ @example.com — ลืมแก้ = ไม่มี cert ทั้งเครื่อง)
+- เพิ่ม `.gitattributes` บังคับ LF — กัน Windows checkout ทำ script พังบน Linux
+- `docker/README.md`: คำเตือน --remove-orphans + วิธี git pull บนเซิร์ฟเวอร์
+- `docs/05`: วิธีหา Portainer setup token จาก log
+
 ## [2.1.0] - 2026-07-04
 
 ### Added — Zero-Downtime Deployment

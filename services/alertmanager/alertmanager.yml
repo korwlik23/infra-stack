@@ -1,22 +1,27 @@
-# Alertmanager — ส่ง alert จาก Prometheus เข้า Telegram
+# Alertmanager — รับ alert จาก Prometheus
 #
-# ⚠️ แก้ค่า CHANGE_ME "บนเซิร์ฟเวอร์เท่านั้น" — อย่า commit token จริงกลับเข้า Git
-#    (bot token จาก @BotFather, chat_id จาก https://api.telegram.org/bot<token>/getUpdates)
+# ค่าเริ่มต้น: receiver "none" (ยังไม่ส่งไปไหน) เพื่อให้ start ผ่านทันทีบนเครื่องใหม่
+# เปิดใช้ Telegram: แก้ route.receiver เป็น telegram + uncomment บล็อกล่าง
+# ⚠️ แก้ "บนเซิร์ฟเวอร์เท่านั้น" — อย่า commit token จริงกลับเข้า Git
+#    (กันพลาด: git update-index --skip-worktree services/alertmanager/alertmanager.yml)
 
 global:
   resolve_timeout: 5m
 
 route:
-  receiver: telegram
+  receiver: none
   group_by: ["alertname"]
   group_wait: 30s
   group_interval: 5m
   repeat_interval: 4h
 
 receivers:
-  - name: telegram
-    telegram_configs:
-      - bot_token: "CHANGE_ME"
-        chat_id: 0            # ← ใส่ chat id (ตัวเลข)
-        parse_mode: ""
-        send_resolved: true
+  - name: none
+
+  # ── เปิด Telegram: เปลี่ยน route.receiver ข้างบนเป็น telegram แล้วเอา # ออกจากบล็อกนี้ ──
+  # - name: telegram
+  #   telegram_configs:
+  #     - bot_token: "CHANGE_ME"   # จาก @BotFather (/newbot)
+  #       chat_id: 0               # ตัวเลขจาก https://api.telegram.org/bot<token>/getUpdates
+  #       parse_mode: ""
+  #       send_resolved: true

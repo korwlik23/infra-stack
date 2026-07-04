@@ -66,6 +66,16 @@ else
   echo "[4/6] .env already exists — keeping it."
 fi
 
+# Sync ACME email จาก .env เข้า traefik config อัตโนมัติ
+# (Let's Encrypt ปฏิเสธ @example.com — ถ้าลืมแก้จะไม่ได้ cert ทั้งเครื่อง)
+ACME_EMAIL_VAL="$(grep -E '^ACME_EMAIL=' .env | head -1 | cut -d= -f2- | tr -d ' ')"
+if [ -n "$ACME_EMAIL_VAL" ] && [ "$ACME_EMAIL_VAL" != "admin@example.com" ]; then
+  sed -i "s|^\( *email:\).*|\1 $ACME_EMAIL_VAL|" services/traefik/traefik.yml
+  echo "      Traefik ACME email → $ACME_EMAIL_VAL"
+else
+  echo "⚠️  ACME_EMAIL ใน .env ยังเป็นค่า default — Let's Encrypt จะไม่ออก cert ให้"
+fi
+
 # ── 5. Traefik ACME storage ──────────────────────────
 echo "[5/6] Preparing Traefik certificate storage…"
 touch services/traefik/acme.json
