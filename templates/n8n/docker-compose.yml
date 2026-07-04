@@ -1,0 +1,40 @@
+services:
+  __PROJECT__:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: __PROJECT__
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ:-Asia/Bangkok}
+      - GENERIC_TIMEZONE=${TZ:-Asia/Bangkok}
+      - N8N_HOST=${APP_DOMAIN:?set in .env}
+      - N8N_PROTOCOL=https
+      - WEBHOOK_URL=https://${APP_DOMAIN}/
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:?set in .env}
+      # PostgreSQL แทน SQLite (production)
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=${DB_DATABASE:-n8n_db}
+      - DB_POSTGRESDB_USER=${DB_USERNAME:?set in .env}
+      - DB_POSTGRESDB_PASSWORD=${DB_PASSWORD:?set in .env}
+    volumes:
+      - __PROJECT___data:/home/node/.n8n
+    networks:
+      - proxy
+      - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.__PROJECT__.rule=Host(`${APP_DOMAIN}`)"
+      - "traefik.http.routers.__PROJECT__.entrypoints=websecure"
+      - "traefik.http.routers.__PROJECT__.tls.certresolver=letsencrypt"
+      - "traefik.http.services.__PROJECT__.loadbalancer.server.port=5678"
+
+volumes:
+  __PROJECT___data:
+
+networks:
+  proxy:
+    external: true
+  backend:
+    external: true
+    name: backend

@@ -1,0 +1,6 @@
+# Core stack — Traefik + Portainer
+# Run from repo root:
+#   docker compose --env-file .env -f docker/docker-compose.core.yml up -d
+include:
+  - ../services/traefik/docker-compose.yml
+  - ../services/portainer/docker-compose.yml

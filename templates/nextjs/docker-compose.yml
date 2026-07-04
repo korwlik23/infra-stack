@@ -1,0 +1,22 @@
+services:
+  __PROJECT__:
+    image: ${APP_IMAGE:?set in .env}
+    container_name: __PROJECT__
+    restart: unless-stopped
+    env_file: .env
+    networks:
+      - proxy
+      - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.__PROJECT__.rule=Host(`${APP_DOMAIN:?set in .env}`)"
+      - "traefik.http.routers.__PROJECT__.entrypoints=websecure"
+      - "traefik.http.routers.__PROJECT__.tls.certresolver=letsencrypt"
+      - "traefik.http.services.__PROJECT__.loadbalancer.server.port=3000"
+
+networks:
+  proxy:
+    external: true
+  backend:
+    external: true
+    name: backend

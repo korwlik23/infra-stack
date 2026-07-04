@@ -1,0 +1,34 @@
+groups:
+  - name: infra-basic
+    rules:
+      - alert: HighCpuUsage
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU > 90% for 10 minutes"
+
+      - alert: HighMemoryUsage
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 > 90
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Memory > 90% for 10 minutes"
+
+      - alert: DiskAlmostFull
+        expr: (1 - node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 > 85
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Root disk > 85% full"
+
+      - alert: ContainerDown
+        expr: absent(container_last_seen{name="traefik"}) or absent(container_last_seen{name="postgres"})
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Core container (traefik/postgres) not running"

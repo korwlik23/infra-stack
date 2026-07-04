@@ -1,0 +1,12 @@
+# Reusable middleware — attach with:
+#   traefik.http.routers.<name>.middlewares=security-headers@file
+http:
+  middlewares:
+    security-headers:
+      headers:
+        frameDeny: true
+        contentTypeNosniff: true
+        browserXssFilter: true
+        referrerPolicy: strict-origin-when-cross-origin
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true

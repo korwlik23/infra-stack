@@ -1,0 +1,18 @@
+services:
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - TZ=${TZ:-Asia/Bangkok}
+      # อัปเดตเฉพาะ container ที่ติด label opt-in เท่านั้น (ปลอดภัยกว่าอัปเดตหมด)
+      - WATCHTOWER_LABEL_ENABLE=true
+      - WATCHTOWER_CLEANUP=true
+      # เช็คทุกวัน 04:00
+      - WATCHTOWER_SCHEDULE=0 0 4 * * *
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+networks: {}

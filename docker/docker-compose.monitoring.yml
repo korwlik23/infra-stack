@@ -1,0 +1,11 @@
+# Monitoring stack — Netdata, Prometheus (+exporters), Grafana,
+# Uptime Kuma, Dozzle, Watchtower
+# Run from repo root:
+#   docker compose --env-file .env -f docker/docker-compose.monitoring.yml up -d
+include:
+  - ../services/netdata/docker-compose.yml
+  - ../services/prometheus/docker-compose.yml
+  - ../services/grafana/docker-compose.yml
+  - ../services/uptime-kuma/docker-compose.yml
+  - ../services/dozzle/docker-compose.yml
+  - ../services/watchtower/docker-compose.yml

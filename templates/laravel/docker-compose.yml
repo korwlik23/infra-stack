@@ -1,0 +1,40 @@
+services:
+  __PROJECT__-app:
+    image: ${APP_IMAGE:?set in .env}
+    container_name: __PROJECT__-app
+    restart: unless-stopped
+    env_file: .env
+    networks:
+      - proxy
+      - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.__PROJECT__.rule=Host(`${APP_DOMAIN:?set in .env}`)"
+      - "traefik.http.routers.__PROJECT__.entrypoints=websecure"
+      - "traefik.http.routers.__PROJECT__.tls.certresolver=letsencrypt"
+      - "traefik.http.services.__PROJECT__.loadbalancer.server.port=8080"
+
+  __PROJECT__-queue:
+    image: ${APP_IMAGE}
+    container_name: __PROJECT__-queue
+    restart: unless-stopped
+    command: php artisan queue:work redis --sleep=3 --tries=3 --max-time=3600
+    env_file: .env
+    networks:
+      - backend
+
+  __PROJECT__-scheduler:
+    image: ${APP_IMAGE}
+    container_name: __PROJECT__-scheduler
+    restart: unless-stopped
+    command: sh -c "while true; do php artisan schedule:run --verbose --no-interaction; sleep 60; done"
+    env_file: .env
+    networks:
+      - backend
+
+networks:
+  proxy:
+    external: true
+  backend:
+    external: true
+    name: backend

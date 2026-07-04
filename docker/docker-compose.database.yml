@@ -1,0 +1,6 @@
+# Database stack — PostgreSQL + Redis
+# Run from repo root:
+#   docker compose --env-file .env -f docker/docker-compose.database.yml up -d
+include:
+  - ../services/postgres/docker-compose.yml
+  - ../services/redis/docker-compose.yml

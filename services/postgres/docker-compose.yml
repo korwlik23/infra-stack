@@ -1,0 +1,33 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - TZ=${TZ:-Asia/Bangkok}
+      - POSTGRES_USER=${POSTGRES_USER:?set in .env}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?set in .env}
+      - POSTGRES_DB=${POSTGRES_DB:-infra}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # ไม่ expose port ออก internet — ทุก app ต่อผ่าน network `backend`
+    # ถ้าจำเป็นต้องต่อจากเครื่องนอกจริง ๆ ให้เปิดเฉพาะ 127.0.0.1:
+    # ports:
+    #   - "127.0.0.1:5432:5432"
+
+volumes:
+  postgres_data:
+
+networks:
+  backend:
+    name: backend

@@ -1,0 +1,39 @@
+# ── Secrets — NEVER COMMIT ──────────────────────────
+.env
+*.env
+!.env.example
+!*/.env.example
+!**/.env.example
+
+# SSH / private keys
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+*.pem
+*.key
+*.crt
+*.p12
+
+# API tokens
+cloudflare_api_token*
+openai_api_key*
+aws_secret_key*
+*token*.txt
+*secret*.txt
+
+# ── Runtime data ────────────────────────────────────
+services/traefik/acme.json
+services/**/data/
+projects/**/data/
+backup/archives/
+*.dump
+*.sql.gz
+*.tar.gz
+
+# ── OS / editor noise ───────────────────────────────
+.DS_Store
+Thumbs.db
+*.log
+.idea/
+.vscode/
