@@ -1,11 +1,18 @@
 services:
   __PROJECT__:
     image: ${APP_IMAGE:?set in .env}
-    container_name: __PROJECT__
+    # ไม่ใส่ container_name — เพื่อให้ rolling deploy รัน 2 ตัวคู่กันได้ (docs/25)
     restart: unless-stopped
     # build บนเครื่องแทน registry: clone app ไว้ที่ ./src แล้วเปิดบรรทัดล่าง (ดู docs/19-cicd.md)
     # build: ./src
     env_file: .env
+    healthcheck:
+      # ใช้ fetch ของ Node 18+ — ไม่ต้องพึ่ง curl/wget ใน image
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3000${HEALTHCHECK_PATH:-/}').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
     networks:
       - proxy
       - backend
@@ -15,6 +22,9 @@ services:
       - "traefik.http.routers.__PROJECT__.entrypoints=websecure"
       - "traefik.http.routers.__PROJECT__.tls.certresolver=letsencrypt"
       - "traefik.http.services.__PROJECT__.loadbalancer.server.port=3000"
+      # Traefik ส่ง traffic เฉพาะ replica ที่ health ผ่าน
+      - "traefik.http.services.__PROJECT__.loadbalancer.healthcheck.path=${HEALTHCHECK_PATH:-/}"
+      - "traefik.http.services.__PROJECT__.loadbalancer.healthcheck.interval=10s"
 
 networks:
   proxy:

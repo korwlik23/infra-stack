@@ -19,10 +19,14 @@ nano projects/zennuaflow/.env    # APP_KEY, domain, DB, Redis, R2
 # 5. Start + migrate
 cd projects/zennuaflow
 docker compose up -d
-docker exec zennuaflow-app php artisan migrate --force
+docker compose exec zennuaflow-app php artisan migrate --force
 ```
 
-ได้ 3 containers: `-app` (HTTP), `-queue` (worker), `-scheduler` (cron)
+ได้ 3 containers: `-app` (HTTP, ไม่มี container_name — เพื่อ rolling deploy),
+`-queue` (worker), `-scheduler` (cron)
+
+Deploy ครั้งถัดไป: `./scripts/deploy.sh zennuaflow` — zero-downtime อัตโนมัติ
+(ดู [25-zero-downtime.md](25-zero-downtime.md))
 
 ## Image มาจากไหน
 
@@ -32,13 +36,13 @@ Template ใช้ pre-built image (`ghcr.io/...`) — build จาก CI ขอ
 ## ⚠️ ระวัง
 
 - `APP_DEBUG=false` เสมอใน production
-- migrate ก่อนสลับ traffic ถ้า schema เปลี่ยนแบบ breaking
-- queue worker ต้อง `docker restart zennuaflow-queue` หลัง deploy โค้ดใหม่
-  (ไม่งั้นรันโค้ดเก่าค้างใน memory)
+- migration ต้องเป็นแบบ expand/contract (backward-compatible) —
+  ดู [25-zero-downtime.md](25-zero-downtime.md)
+- queue/scheduler ถูก recreate อัตโนมัติโดย deploy.sh เมื่อ image เปลี่ยน
 
 ## 🧪 ทดสอบ
 
 ```bash
-curl -I https://zennuaflow.<domain>                          # 200
-docker exec zennuaflow-app php artisan queue:monitor redis   # queue ทำงาน
+curl -I https://zennuaflow.<domain>                                   # 200
+docker compose exec zennuaflow-app php artisan queue:monitor redis    # queue ทำงาน
 ```

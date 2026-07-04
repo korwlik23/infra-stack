@@ -25,6 +25,12 @@
 - [x] AI Worker template
 - [x] Beszel — monitor หลาย server จากจอเดียว
 
+## v2.1.0 — ✅ เสร็จแล้ว
+
+- [x] Zero-downtime rolling deploy (`docker rollout` + healthcheck gate) — [25-zero-downtime.md](25-zero-downtime.md)
+- [x] `rollback.sh` — กลับเวอร์ชันเก่าแบบ rolling
+- [x] Templates: healthcheck + Traefik healthcheck labels
+
 ## ถัดไป (v2.x)
 
 - [ ] **Deploy จริงบน Contabo Singapore** ตาม [00-introduction.md](00-introduction.md) ← ทำอันนี้ก่อน

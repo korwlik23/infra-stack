@@ -41,6 +41,9 @@ crontab -e
 
 `auto-deploy.sh` วนทุก project ที่มี `src/` → fetch → ถ้ามี commit ใหม่ → `deploy.sh`
 
+`deploy.sh` เป็น **zero-downtime rolling deploy** อัตโนมัติ (เปิดตัวใหม่รอ healthy
+ก่อนถอดตัวเก่า — ของพังไม่ได้รับ traffic) — ดู [25-zero-downtime.md](25-zero-downtime.md)
+
 ## Deploy key (read-only — ปลอดภัยกว่าใช้ key ส่วนตัว)
 
 ```bash

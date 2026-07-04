@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
-# Deploy project หนึ่งตัว — CI/CD แบบไม่ใช้ GitHub Actions (build บนเครื่องเอง ฟรี)
+# Deploy project — zero-downtime rolling deploy อัตโนมัติเมื่อทำได้
+# (ดู docs/25-zero-downtime.md) — CI/CD ฟรี ไม่ใช้ GitHub Actions
 # ใช้: ./scripts/deploy.sh <project>
 #
-# สองโหมดอัตโนมัติ:
-#   1. มี projects/<name>/src/ (git clone ของ app) → git pull + docker compose build
-#   2. ไม่มี src/ → docker compose pull (ใช้ pre-built image จาก registry)
+# โหมด image:
+#   - มี projects/<name>/src/ (git clone ของ app) → git pull + build บนเครื่อง
+#   - ไม่มี src/ → docker compose pull จาก registry
+# โหมด deploy:
+#   - .env มี ROLLOUT_SERVICE + มี docker-rollout plugin → rolling (เว็บไม่ดับ)
+#   - ไม่งั้น → docker compose up -d (ดับสั้น ๆ ตอน recreate)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -14,12 +18,15 @@ DIR="projects/$NAME"
 
 cd "$DIR"
 
+ROLLOUT_SERVICE="$(grep -E '^ROLLOUT_SERVICE=' .env 2>/dev/null | head -1 | cut -d= -f2- || true)"
+
+# ── 1. เตรียม image ใหม่ ─────────────────────────────
 if [ -d src/.git ]; then
   echo "[deploy:$NAME] pulling source…"
-  BEFORE="$(git -C src rev-parse HEAD)"
+  BEFORE="$(git -C src rev-parse --short HEAD)"
   git -C src pull --ff-only
-  AFTER="$(git -C src rev-parse HEAD)"
-  echo "[deploy:$NAME] $BEFORE → $AFTER"
+  AFTER="$(git -C src rev-parse --short HEAD)"
+  echo "[deploy:$NAME] source $BEFORE → $AFTER"
   echo "[deploy:$NAME] building image on server…"
   docker compose build
 else
@@ -27,13 +34,23 @@ else
   docker compose pull
 fi
 
-echo "[deploy:$NAME] restarting…"
-docker compose up -d
+# ── 2. สลับเวอร์ชัน ──────────────────────────────────
+if [ -n "$ROLLOUT_SERVICE" ] && docker rollout --help >/dev/null 2>&1; then
+  echo "[deploy:$NAME] rolling deploy '$ROLLOUT_SERVICE' (zero downtime)…"
+  # เปิดตัวใหม่คู่ตัวเก่า → รอ healthcheck ผ่าน → ถอดตัวเก่า
+  # ถ้าตัวใหม่ไม่ healthy: rollout ล้ม ตัวเก่ายังรับ traffic ต่อ (เว็บไม่ดับ)
+  docker rollout "$ROLLOUT_SERVICE"
+else
+  if [ -n "$ROLLOUT_SERVICE" ]; then
+    echo "[deploy:$NAME] ⚠️ docker-rollout plugin not found — falling back to restart deploy"
+    echo "               (install: rerun ./install.sh or see docs/25-zero-downtime.md)"
+  fi
+fi
 
-# queue/scheduler containers รันโค้ดเก่าค้างใน memory — force restart
-for C in "$NAME-queue" "$NAME-scheduler"; do
-  docker ps -q -f "name=^${C}$" | grep -q . && docker restart "$C" >/dev/null && echo "[deploy:$NAME] restarted $C"
-done || true
+# ── 3. อัปเดต service ที่เหลือ (queue/scheduler ฯลฯ) ─
+# ตัวที่ rollout ไปแล้ว config ตรง compose อยู่แล้ว → up -d ไม่แตะซ้ำ
+echo "[deploy:$NAME] updating remaining services…"
+docker compose up -d
 
 docker image prune -f >/dev/null
 echo "✅ [deploy:$NAME] done — $(date '+%F %T')"

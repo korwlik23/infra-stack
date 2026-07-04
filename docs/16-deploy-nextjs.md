@@ -31,6 +31,9 @@ cd projects/myweb && docker compose up -d
 ## 🧪 ทดสอบ
 
 ```bash
-curl -I https://myweb.<domain>        # 200
-docker logs myweb --tail 20           # "Ready in …"
+curl -I https://myweb.<domain>                        # 200
+cd projects/myweb && docker compose logs --tail 20    # "Ready in …"
 ```
+
+Deploy ครั้งถัดไป: `./scripts/deploy.sh myweb` — zero-downtime อัตโนมัติ
+(ดู [25-zero-downtime.md](25-zero-downtime.md))

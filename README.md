@@ -1,6 +1,6 @@
 # InfraStack
 
-Production Infrastructure Stack — v2.0.0
+Production Infrastructure Stack — v2.1.0
 
 ## Goal
 
@@ -55,8 +55,9 @@ Three layers:
 - RabbitMQ (message queue) + MinIO (self-hosted S3) — v2.0
 - Backup & restore scripts (PostgreSQL + Docker volumes → R2)
 - CI/CD ฟรีไม่ใช้ GitHub Actions — build-on-server + auto-deploy (cron git poll)
+- **Zero-downtime deployment** — rolling deploy + healthcheck gate + `rollback.sh`
 - Project templates (Laravel, Next.js, n8n, AI Worker) + `create-project.sh`
-- Full documentation under `docs/` (00–24)
+- Full documentation under `docs/` (00–25)
 
 ## Repository Structure
 
@@ -115,5 +116,6 @@ roadmap in [docs/roadmap.md](docs/roadmap.md).
 ## Versioning
 
 Infrastructure is versioned like software — see [CHANGELOG.md](CHANGELOG.md).
-Current: **v2.0.0** — RabbitMQ, MinIO, Loki, Alertmanager→Telegram, Beszel,
-AI Worker template, CI/CD without GitHub Actions.
+Current: **v2.1.0** — zero-downtime rolling deployment + rollback, on top of
+v2.0 (RabbitMQ, MinIO, Loki, Alertmanager→Telegram, Beszel, AI Worker,
+CI/CD without GitHub Actions).

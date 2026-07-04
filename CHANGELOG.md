@@ -3,6 +3,24 @@
 All notable changes to InfraStack are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](https://semver.org/).
 
+## [2.1.0] - 2026-07-04
+
+### Added — Zero-Downtime Deployment
+- `scripts/deploy.sh`: rolling deploy ด้วย `docker rollout` — เปิด container ใหม่
+  รอ healthcheck ผ่านก่อนถอดตัวเก่า; ตัวใหม่พัง = deploy ล้มเฉย ๆ เว็บไม่ดับ
+- `scripts/rollback.sh <project> <tag>`: กลับ image tag เก่าแบบ rolling (มี confirmation)
+- `install.sh`: ติดตั้ง docker-rollout plugin อัตโนมัติ
+- Templates laravel/nextjs: เอา `container_name` ออกจาก service ที่รับ traffic,
+  เพิ่ม Docker healthcheck + Traefik healthcheck labels,
+  เพิ่ม `ROLLOUT_SERVICE` / `HEALTHCHECK_PATH` ใน .env.example
+- `docs/25-zero-downtime.md`: rolling deploy, expand/contract migration, rollback,
+  ข้อยกเว้น (n8n/queue/worker), วิธีทดสอบ
+
+### Changed
+- `deploy.sh` เลิก restart queue/scheduler ด้วยชื่อ container —
+  ใช้ compose recreate ตาม image ที่เปลี่ยนแทน
+- docs/15, 16, 19 อัปเดตคำสั่งเป็น `docker compose exec/logs`
+
 ## [2.0.0] - 2026-07-04
 
 ### Added — Database Tools
