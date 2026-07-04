@@ -30,3 +30,27 @@ docker compose --env-file .env -f docker/docker-compose.core.yml up -d
 docker logs traefik --tail 50 | grep -i acme   # ออก cert สำเร็จ
 curl -I https://portainer.<BASE_DOMAIN>        # ได้ 200/302 พร้อม TLS
 ```
+
+## 🩹 ปัญหาที่เจอจริง (2026-07): ทุกโดเมนเป็น "404 page not found"
+
+**อาการ:** DNS ถูก, Host rule ถูก, container อยู่ network proxy ครบ แต่ 404 ทุกโดเมน
+**เช็ค:** `docker logs traefik` — ถ้าเห็น
+
+```text
+ERR ... client version 1.24 is too old. Minimum supported API version is 1.40
+```
+
+**สาเหตุ:** Traefik รุ่นเก่า (เช่น v3.1) คุยกับ Docker Engine รุ่นใหม่ (29+) ไม่ได้
+เพราะ Docker ตัด API เวอร์ชันเก่าทิ้ง → Traefik มองไม่เห็น container เลย
+จึงไม่มี router เกิดขึ้นแม้ config จะถูกทุกอย่าง
+
+**วิธีแก้:** ใช้ image `traefik:v3` (pin แค่ major) แล้ว pull + recreate:
+
+```bash
+docker compose --env-file .env -f docker/docker-compose.core.yml pull
+docker compose --env-file .env -f docker/docker-compose.core.yml up -d
+```
+
+**วิธีแยกปัญหาแบบนี้เร็ว ๆ:** ยิงตรงเข้า Traefik ข้าม Cloudflare —
+`curl -sk -H "Host: portainer.<BASE_DOMAIN>" https://localhost -o /dev/null -w "%{http_code}"`
+ได้ 404 = ปัญหาที่ Traefik/labels, ได้ 200/307 = ปัญหาอยู่ชั้น Cloudflare/browser cache
