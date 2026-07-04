@@ -5,20 +5,15 @@ services:
     restart: unless-stopped
     # build บนเครื่องแทน registry: clone app ไว้ที่ ./src แล้วเปิดบรรทัดล่าง (ดู docs/19-cicd.md)
     # build: ./src
+    command: ${WORKER_COMMAND:?set in .env}
     env_file: .env
     networks:
-      - proxy
       - backend
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.__PROJECT__.rule=Host(`${APP_DOMAIN:?set in .env}`)"
-      - "traefik.http.routers.__PROJECT__.entrypoints=websecure"
-      - "traefik.http.routers.__PROJECT__.tls.certresolver=letsencrypt"
-      - "traefik.http.services.__PROJECT__.loadbalancer.server.port=3000"
+    # Worker AI กิน RAM ได้เยอะ — จำกัดไว้กันลากทั้งเครื่อง (ปรับตามงาน)
+    mem_limit: ${WORKER_MEM_LIMIT:-2g}
+    cpus: ${WORKER_CPUS:-2}
 
 networks:
-  proxy:
-    external: true
   backend:
     external: true
     name: backend

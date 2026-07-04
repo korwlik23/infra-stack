@@ -1,6 +1,6 @@
 # InfraStack
 
-Production Infrastructure Stack — v1.0.0
+Production Infrastructure Stack — v2.0.0
 
 ## Goal
 
@@ -39,21 +39,24 @@ Three layers:
 
 | Layer | Contents |
 |-------|----------|
-| **Infrastructure** | Ubuntu, Docker, Traefik, PostgreSQL, Redis, Cloudflare, R2 |
-| **Platform** | Portainer, Netdata, Grafana, Prometheus, Uptime Kuma, Dozzle, Watchtower, Backup |
-| **Application** | Laravel, Next.js, n8n and every project under `projects/` |
+| **Infrastructure** | Ubuntu, Docker, Traefik, PostgreSQL, Redis, Cloudflare, R2, MinIO |
+| **Platform** | Portainer, Netdata, Grafana, Prometheus, Alertmanager, Loki, Uptime Kuma, Dozzle, Watchtower, Beszel, pgAdmin, Redis Insight, RabbitMQ, Backup, CI/CD |
+| **Application** | Laravel, Next.js, n8n, AI Workers and every project under `projects/` |
 
 ## Features
 
 - Docker + Docker Compose (modular — one compose file per service)
 - Traefik (HTTPS, reverse proxy, automatic Let's Encrypt)
-- Portainer (Docker management UI)
-- PostgreSQL 16 + Redis 7
-- Netdata, Grafana, Prometheus, Uptime Kuma, Dozzle (monitoring & logs)
-- Watchtower (automatic image updates)
-- Backup & restore scripts (PostgreSQL + Docker volumes)
-- Project templates (Laravel, Next.js, n8n) + `create-project.sh`
-- Full documentation under `docs/`
+- Portainer (Docker management UI) + pgAdmin + Redis Insight
+- PostgreSQL 16 + Redis 7 (+ postgres/redis exporters)
+- Netdata, Grafana, Prometheus, Alertmanager→Telegram, Uptime Kuma (monitoring)
+- Loki + Promtail (ค้น log ย้อนหลัง) + Dozzle (log สด)
+- Beszel (multi-server monitoring) + Watchtower (auto image updates)
+- RabbitMQ (message queue) + MinIO (self-hosted S3) — v2.0
+- Backup & restore scripts (PostgreSQL + Docker volumes → R2)
+- CI/CD ฟรีไม่ใช้ GitHub Actions — build-on-server + auto-deploy (cron git poll)
+- Project templates (Laravel, Next.js, n8n, AI Worker) + `create-project.sh`
+- Full documentation under `docs/` (00–24)
 
 ## Repository Structure
 
@@ -89,6 +92,11 @@ docker compose --env-file .env -f docker/docker-compose.monitoring.yml up -d
 # 5. Create a project from a template
 ./scripts/create-project.sh myapp laravel
 cd projects/myapp && docker compose up -d
+
+# Optional stacks (v2.0)
+docker compose --env-file .env -f docker/docker-compose.tools.yml up -d      # pgAdmin, Redis Insight
+docker compose --env-file .env -f docker/docker-compose.messaging.yml up -d  # RabbitMQ
+docker compose --env-file .env -f docker/docker-compose.storage.yml up -d    # MinIO
 ```
 
 ## Security Rules
@@ -107,4 +115,5 @@ roadmap in [docs/roadmap.md](docs/roadmap.md).
 ## Versioning
 
 Infrastructure is versioned like software — see [CHANGELOG.md](CHANGELOG.md).
-Current: **v1.0.0**. Future versions may add RabbitMQ, MinIO, ELK, AI Workers.
+Current: **v2.0.0** — RabbitMQ, MinIO, Loki, Alertmanager→Telegram, Beszel,
+AI Worker template, CI/CD without GitHub Actions.

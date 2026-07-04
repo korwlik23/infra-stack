@@ -1,0 +1,21 @@
+services:
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: redis-exporter
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - REDIS_ADDR=redis://redis:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    networks:
+      - backend
+      - monitoring
+
+networks:
+  backend:
+    external: true
+    name: backend
+  monitoring:
+    external: true
+    name: monitoring

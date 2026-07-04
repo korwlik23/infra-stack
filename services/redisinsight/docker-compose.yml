@@ -1,0 +1,34 @@
+services:
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: redisinsight
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - TZ=${TZ:-Asia/Bangkok}
+    volumes:
+      - redisinsight_data:/data
+    networks:
+      - proxy
+      - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.redisinsight.rule=Host(`redis.${BASE_DOMAIN}`)"
+      - "traefik.http.routers.redisinsight.entrypoints=websecure"
+      - "traefik.http.routers.redisinsight.tls.certresolver=letsencrypt"
+      - "traefik.http.services.redisinsight.loadbalancer.server.port=5540"
+      - "traefik.http.routers.redisinsight.middlewares=redisinsight-auth"
+      # RedisInsight ไม่มี login ของตัวเอง — บังคับ basicauth ที่ Traefik
+      # htpasswd -nb admin <password> — เปลี่ยนก่อนใช้
+      - "traefik.http.middlewares.redisinsight-auth.basicauth.users=admin:$$apr1$$CHANGE_ME$$CHANGE_ME"
+
+volumes:
+  redisinsight_data:
+
+networks:
+  proxy:
+    external: true
+  backend:
+    external: true
+    name: backend

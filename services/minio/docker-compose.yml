@@ -1,0 +1,47 @@
+services:
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      - TZ=${TZ:-Asia/Bangkok}
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:?set in .env}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:?set in .env}
+      - MINIO_BROWSER_REDIRECT_URL=https://minio.${BASE_DOMAIN}
+    volumes:
+      - minio_data:/data
+    networks:
+      - backend
+      - proxy
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    labels:
+      - "traefik.enable=true"
+      # S3 API — s3.<domain>
+      - "traefik.http.routers.minio-s3.rule=Host(`s3.${BASE_DOMAIN}`)"
+      - "traefik.http.routers.minio-s3.entrypoints=websecure"
+      - "traefik.http.routers.minio-s3.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.minio-s3.service=minio-s3"
+      - "traefik.http.services.minio-s3.loadbalancer.server.port=9000"
+      # Console UI — minio.<domain>
+      - "traefik.http.routers.minio-console.rule=Host(`minio.${BASE_DOMAIN}`)"
+      - "traefik.http.routers.minio-console.entrypoints=websecure"
+      - "traefik.http.routers.minio-console.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.minio-console.service=minio-console"
+      - "traefik.http.services.minio-console.loadbalancer.server.port=9001"
+
+volumes:
+  minio_data:
+
+networks:
+  backend:
+    external: true
+    name: backend
+  proxy:
+    external: true

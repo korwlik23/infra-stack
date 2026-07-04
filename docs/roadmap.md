@@ -1,6 +1,6 @@
 # Roadmap
 
-## 8 Phases
+## 8 Phases (v1.0.0)
 
 | Phase | งาน | สถานะ |
 |-------|-----|-------|
@@ -11,22 +11,31 @@
 | 5 | Core Services — Traefik, Portainer, PostgreSQL, Redis | ✅ |
 | 6 | Monitoring — Netdata, Prometheus, Grafana, Uptime Kuma, Dozzle | ✅ |
 | 7 | Automation — install, harden, update, backup, restore, create-project | ✅ |
-| 8 | Documentation — คู่มือ 00–18 | ✅ v1.0.0 |
+| 8 | Documentation — คู่มือ 00–18 | ✅ |
 
-## v1.x (ถัดไป)
+## v2.0.0 — ✅ เสร็จแล้ว
 
-- [ ] Deploy จริงบน Contabo Singapore ตาม [00-introduction.md](00-introduction.md)
-- [ ] pgAdmin + Redis Insight (DB UI)
-- [ ] postgres-exporter + redis-exporter → Grafana dashboards
-- [ ] Alertmanager → Telegram
-- [ ] CI/CD: GitHub Actions auto deploy ([13-backup.md](13-backup.md), docs/17)
-- [ ] เก็บ Grafana dashboard JSON เข้า Git
+- [x] pgAdmin + Redis Insight (tools stack)
+- [x] postgres-exporter + redis-exporter → Grafana dashboards
+- [x] Alertmanager → Telegram
+- [x] CI/CD ไม่ใช้ GitHub Actions — deploy.sh + auto-deploy.sh ([19-cicd.md](19-cicd.md))
+- [x] RabbitMQ (messaging stack)
+- [x] MinIO (storage stack — ทางหนีถ้า R2 แพง)
+- [x] Loki + Promtail (เลือกแทน ELK — ประหยัด RAM ~20 เท่า)
+- [x] AI Worker template
+- [x] Beszel — monitor หลาย server จากจอเดียว
 
-## v2.0 (อนาคต)
+## ถัดไป (v2.x)
 
-- [ ] RabbitMQ (message queue)
-- [ ] MinIO (self-hosted S3 — ทางหนีถ้า R2 แพง)
-- [ ] ELK / Loki stack (log aggregation จริงจัง)
-- [ ] AI Worker containers
-- [ ] Beszel — monitor หลาย server จากจอเดียว
-- [ ] Stage 2: แยก Database Server
+- [ ] **Deploy จริงบน Contabo Singapore** ตาม [00-introduction.md](00-introduction.md) ← ทำอันนี้ก่อน
+- [ ] เปลี่ยน basicauth hash ทุกจุด (traefik/netdata/dozzle/redisinsight)
+- [ ] ตั้ง Telegram bot + ใส่ token ใน alertmanager.yml (บนเซิร์ฟเวอร์)
+- [ ] Import Grafana dashboards (1860, 193, 9628, 11835) แล้ว export JSON เก็บเข้า Git
+- [ ] ซ้อม restore backup ครั้งแรก + จับเวลา disaster recovery
+- [ ] วัด baseline การใช้ RAM/CPU เพื่อรู้จุด "ตึง" ก่อนถึง Stage 2
+
+## v3.0 (อนาคตไกล)
+
+- [ ] Stage 2: แยก Database Server / AI Worker Server ([18-scale.md](18-scale.md))
+- [ ] ELK stack ถ้าย้ายไปเครื่องใหญ่และต้อง log analytics จริงจัง
+- [ ] Kubernetes (Stage 4 — อีกหลายปีค่อยคิด)

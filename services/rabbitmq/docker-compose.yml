@@ -1,0 +1,38 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - TZ=${TZ:-Asia/Bangkok}
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER:?set in .env}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD:?set in .env}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - backend
+      - proxy
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    labels:
+      - "traefik.enable=true"
+      # Management UI เท่านั้นที่ออก internet — AMQP (5672) อยู่ใน backend network
+      - "traefik.http.routers.rabbitmq.rule=Host(`mq.${BASE_DOMAIN}`)"
+      - "traefik.http.routers.rabbitmq.entrypoints=websecure"
+      - "traefik.http.routers.rabbitmq.tls.certresolver=letsencrypt"
+      - "traefik.http.services.rabbitmq.loadbalancer.server.port=15672"
+
+volumes:
+  rabbitmq_data:
+
+networks:
+  backend:
+    external: true
+    name: backend
+  proxy:
+    external: true

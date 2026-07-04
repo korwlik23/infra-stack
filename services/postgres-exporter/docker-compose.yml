@@ -1,0 +1,20 @@
+services:
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:latest
+    container_name: postgres-exporter
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - DATA_SOURCE_NAME=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/postgres?sslmode=disable
+    networks:
+      - backend
+      - monitoring
+
+networks:
+  backend:
+    external: true
+    name: backend
+  monitoring:
+    external: true
+    name: monitoring

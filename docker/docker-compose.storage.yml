@@ -1,0 +1,5 @@
+# Storage stack — MinIO self-hosted S3 (v2.0)
+# Run from repo root:
+#   docker compose --env-file .env -f docker/docker-compose.storage.yml up -d
+include:
+  - ../services/minio/docker-compose.yml

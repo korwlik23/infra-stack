@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # สร้าง project ใหม่จาก template
-# ใช้: ./scripts/create-project.sh <name> <laravel|nextjs|n8n>
+# ใช้: ./scripts/create-project.sh <name> <laravel|nextjs|n8n|ai-worker>
 # ผลลัพธ์: projects/<name>/ พร้อม docker-compose.yml + .env (แก้ค่าแล้ว up ได้เลย)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-NAME="${1:?usage: create-project.sh <name> <laravel|nextjs|n8n>}"
-TEMPLATE="${2:?usage: create-project.sh <name> <laravel|nextjs|n8n>}"
+NAME="${1:?usage: create-project.sh <name> <laravel|nextjs|n8n|ai-worker>}"
+TEMPLATE="${2:?usage: create-project.sh <name> <laravel|nextjs|n8n|ai-worker>}"
 
 [[ "$NAME" =~ ^[a-z0-9-]+$ ]] || { echo "ERROR: name must be lowercase [a-z0-9-]" >&2; exit 1; }
 [ -d "templates/$TEMPLATE" ] || { echo "ERROR: unknown template '$TEMPLATE' (have: $(ls templates))" >&2; exit 1; }

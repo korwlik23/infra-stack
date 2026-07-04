@@ -3,6 +3,8 @@ services:
     image: ${APP_IMAGE:?set in .env}
     container_name: __PROJECT__-app
     restart: unless-stopped
+    # build บนเครื่องแทน registry: clone app ไว้ที่ ./src แล้วเปิดบรรทัดล่าง (ดู docs/19-cicd.md)
+    # build: ./src
     env_file: .env
     networks:
       - proxy
