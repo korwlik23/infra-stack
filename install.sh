@@ -22,6 +22,16 @@ else
   echo "[1/6] Docker already installed: $(docker --version)"
 fi
 
+# ให้ user ปัจจุบันใช้ docker ได้โดยไม่ต้อง sudo (สิทธิ์มีผลหลัง login ใหม่)
+if [ "$(id -u)" -ne 0 ] && ! id -nG "$USER" | grep -qw docker; then
+  echo "Adding $USER to docker group…"
+  sudo usermod -aG docker "$USER"
+  echo ""
+  echo "⚠️  สิทธิ์ group docker มีผลตอน login ใหม่เท่านั้น:"
+  echo "    exit → ssh เข้ามาใหม่ → cd /opt/infra-stack && ./install.sh"
+  exit 0
+fi
+
 if ! docker compose version >/dev/null 2>&1; then
   echo "ERROR: docker compose plugin missing. Install docker-compose-plugin first." >&2
   exit 1
