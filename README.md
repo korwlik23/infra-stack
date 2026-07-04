@@ -108,6 +108,9 @@ docker compose --env-file .env -f docker/docker-compose.storage.yml up -d    # M
 
 ## Documentation
 
+**มือใหม่ / ได้ repo นี้มาแล้วงง เริ่มที่ [GUIDE.md](GUIDE.md)** — อธิบายว่าแต่ละตัวคืออะไร
+ใช้ยังไง ทำอะไรได้บ้าง แบบไม่ต้องมีพื้นฐาน
+
 Start at [docs/00-introduction.md](docs/00-introduction.md).
 Architecture details in [docs/architecture.md](docs/architecture.md),
 requirements in [docs/requirements.md](docs/requirements.md),
