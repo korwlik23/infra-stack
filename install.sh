@@ -49,9 +49,10 @@ else
 fi
 
 # ── 3. Shared networks ───────────────────────────────
-echo "[3/6] Creating shared networks (proxy, backend)…"
+echo "[3/6] Creating shared networks (proxy, backend, monitoring)…"
 docker network inspect proxy >/dev/null 2>&1 || docker network create proxy
 docker network inspect backend >/dev/null 2>&1 || docker network create backend
+docker network inspect monitoring >/dev/null 2>&1 || docker network create monitoring
 
 # ── 4. Environment file ──────────────────────────────
 if [ ! -f .env ]; then

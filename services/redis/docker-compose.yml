@@ -8,6 +8,8 @@ services:
     command: ["redis-server", "/usr/local/etc/redis/redis.conf", "--requirepass", "${REDIS_PASSWORD:?set in .env}"]
     environment:
       - TZ=${TZ:-Asia/Bangkok}
+      # ต้องมีใน container ด้วย — healthcheck ใช้ $REDIS_PASSWORD ตอนรัน redis-cli
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?set in .env}
     volumes:
       - redis_data:/data
       - ./redis.conf:/usr/local/etc/redis/redis.conf:ro

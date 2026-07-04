@@ -45,7 +45,10 @@ volumes:
   prometheus_data:
 
 networks:
+  # external เหมือน proxy/backend — สร้างโดย install.sh
+  # (ถ้าประกาศแบบไม่ external ที่นี่ จะชนกับ external ของ service อื่นตอน include รวม stack)
   monitoring:
+    external: true
     name: monitoring
   proxy:
     external: true
