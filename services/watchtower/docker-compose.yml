@@ -7,6 +7,9 @@ services:
       - no-new-privileges:true
     environment:
       - TZ=${TZ:-Asia/Bangkok}
+      # Watchtower default ใช้ Docker API 1.25 ซึ่ง Docker 29+ เลิกรองรับ
+      # ("client version 1.25 is too old") — บังคับเวอร์ชันใหม่กว่า
+      - DOCKER_API_VERSION=1.40
       # อัปเดตเฉพาะ container ที่ติด label opt-in เท่านั้น (ปลอดภัยกว่าอัปเดตหมด)
       - WATCHTOWER_LABEL_ENABLE=true
       - WATCHTOWER_CLEANUP=true
