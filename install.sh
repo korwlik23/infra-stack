@@ -38,7 +38,10 @@ if ! docker compose version >/dev/null 2>&1; then
 fi
 
 # ── 2. docker-rollout plugin (zero-downtime deploy) ──
-if docker rollout --help >/dev/null 2>&1; then
+# ห้ามเช็คด้วย `docker rollout --help` — Docker 29 พิมพ์ help รวมแล้ว exit 0
+# ทั้งที่ไม่มี plugin (เจอจริงตอน deploy ครั้งแรก) → เช็คไฟล์ตรง ๆ
+ROLLOUT_PLUGIN="$HOME/.docker/cli-plugins/docker-rollout"
+if [ -x "$ROLLOUT_PLUGIN" ]; then
   echo "[2/6] docker-rollout already installed"
 else
   echo "[2/6] Installing docker-rollout plugin (zero-downtime deploy)…"

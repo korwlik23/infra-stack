@@ -13,6 +13,14 @@
 
 ## ⚙️ ตั้ง cron
 
+⚠️ **ต้องสร้างไฟล์ log ก่อน** — user `deploy` เขียนไฟล์ใหม่ใน `/var/log` เองไม่ได้
+(เจอจริง: cron ล้มเงียบ ๆ ทุกคืนโดยไม่มีใครรู้):
+
+```bash
+sudo touch /var/log/infra-backup.log /var/log/infra-deploy.log
+sudo chown deploy:deploy /var/log/infra-backup.log /var/log/infra-deploy.log
+```
+
 ```bash
 crontab -e
 ```
@@ -36,3 +44,15 @@ Offsite: ตั้ง rclone remote `r2` ([12-r2.md](12-r2.md)) → postgres bac
 1. **Backup ที่ไม่เคยซ้อม restore = ไม่มี backup** — ซ้อมเดือนละครั้ง
 2. เช็ค log + ขนาดไฟล์ว่าไม่เป็น 0 byte (`ls -lh backup/archives/postgres/`)
 3. Disaster drill: VPS ใหม่ → `install.sh` → restore → app ขึ้น — จับเวลาไว้
+
+## 🩹 สิ่งที่เจอตอนซ้อม restore ครั้งแรก (ปกติ ไม่ใช่ error จริง)
+
+restore ทับ database ที่ยังมีอยู่ จะเห็นบรรทัดแบบนี้เต็มจอ:
+
+```text
+ERROR:  role "infra" already exists
+ERROR:  database "n8n_db" already exists
+```
+
+**ปกติครับ** — `pg_dumpall` พยายามสร้าง role/database ที่มีอยู่แล้ว ข้ามแล้วไปเทข้อมูลต่อ
+จบด้วย `[postgres-restore] done.` = สำเร็จ (ถ้าจะพิสูจน์: query ตารางหลังจบ)

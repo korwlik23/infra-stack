@@ -8,6 +8,7 @@
 | `restore.sh [file]` | restore PostgreSQL (default = ล่าสุด) | เขียนทับข้อมูล — มี confirmation |
 | `create-project.sh <name> <template>` | สร้าง project จาก template (laravel/nextjs/n8n/ai-worker) | — |
 | `deploy.sh <project>` | **zero-downtime rolling deploy** (build-on-server หรือ pull) — ของพังไม่ได้รับ traffic | migration ต้อง expand/contract (docs/25) |
+| `artisan.sh <project> <args>` | รัน artisan ใน container จากที่ไหนก็ได้ (เช่น `migrate --force`) | — |
 | `rollback.sh <project> <tag>` | กลับ image tag เก่า แบบ rolling | ต้อง tag เวอร์ชันเสมอ ไม่ใช่ :latest |
 | `auto-deploy.sh` | cron: poll git ทุก project → deploy เมื่อมี commit ใหม่ | ดู docs/19-cicd.md |
 

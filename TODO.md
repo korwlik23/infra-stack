@@ -12,15 +12,15 @@
 
 ### A1. 🔴 Revoke Telegram token (5 นาที — token เก่าหลุดในภาพแคปแล้ว)
 
-- [ ] เปิด Telegram → คุยกับ `@BotFather` → พิมพ์ `/revoke` → เลือก bot → ได้ token ใหม่
-- [ ] เอา token ใหม่ใส่แทนตัวเก่า:
+- [x] เปิด Telegram → คุยกับ `@BotFather` → พิมพ์ `/revoke` → เลือก bot → ได้ token ใหม่
+- [x] เอา token ใหม่ใส่แทนตัวเก่า:
 
 ```bash
 nano services/alertmanager/alertmanager.yml   # แก้บรรทัด bot_token: "..."
 docker restart alertmanager
 ```
 
-- [ ] ทดสอบว่ายังส่งได้:
+- [x] ทดสอบว่ายังส่งได้:
 
 ```bash
 docker exec alertmanager wget -qO- --post-data='[{"labels":{"alertname":"TestAlert","severity":"info"}}]' --header='Content-Type: application/json' http://localhost:9093/api/v2/alerts
@@ -28,7 +28,7 @@ docker exec alertmanager wget -qO- --post-data='[{"labels":{"alertname":"TestAle
 
 → ต้องมีข้อความเข้า Telegram ภายใน ~30 วินาที
 
-- [ ] กันเผลอ commit token:
+- [x] กันเผลอ commit token:
 
 ```bash
 git update-index --skip-worktree services/alertmanager/alertmanager.yml
@@ -36,16 +36,19 @@ git update-index --skip-worktree services/alertmanager/alertmanager.yml
 
 ### A2. 🔴 ตั้ง cron backup (10 นาที — สำคัญที่สุดในลิสต์นี้)
 
-- [ ] ทดลองรัน backup มือก่อน 1 ครั้ง:
+- [x] ทดลองรัน backup มือก่อน 1 ครั้ง:
 
 ```bash
 ./scripts/backup.sh
 ls -lh backup/archives/postgres/    # ต้องมีไฟล์ all_*.sql.gz ขนาด > 0
 ```
 
-- [ ] ตั้ง cron:
+- [x] ตั้ง cron:
 
 ```bash
+# ⚠️ ต้องทำก่อน — deploy เขียนไฟล์ใหม่ใน /var/log ไม่ได้ cron จะล้มเงียบ
+sudo touch /var/log/infra-backup.log /var/log/infra-deploy.log
+sudo chown deploy:deploy /var/log/infra-backup.log /var/log/infra-deploy.log
 crontab -e
 ```
 
@@ -56,22 +59,22 @@ crontab -e
 30 3 * * 0 /opt/infra-stack/backup/scripts/volumes-backup.sh  >> /var/log/infra-backup.log 2>&1
 ```
 
-- [ ] เช้าวันถัดไป เช็คว่า cron ทำงานจริง:
+- [x] เช้าวันถัดไป เช็คว่า cron ทำงานจริง:
 
 ```bash
 ls -lh backup/archives/postgres/ && tail /var/log/infra-backup.log
 ```
 
-- [ ] 🔁 **ภายในเดือนนี้**: ซ้อม restore 1 ครั้ง (`./scripts/restore.sh` — มี confirmation ก่อนเขียนทับ)
+- [x] 🔁 **ภายในเดือนนี้**: ซ้อม restore 1 ครั้ง (`./scripts/restore.sh` — มี confirmation ก่อนเขียนทับ)
   กฎ: backup ที่ไม่เคยลอง restore = ไม่มี backup ([docs/13](docs/13-backup.md))
 
 ### A3. 🟠 Uptime Kuma — ตั้ง monitor + แจ้งเตือน (15 นาที)
 
-- [ ] เปิด `https://uptime.tewarach-dev.me` → login
-- [ ] Settings → Notifications → Setup Notification → **Telegram**
+- [x] เปิด `https://uptime.tewarach-dev.me` → login
+- [x] Settings → Notifications → Setup Notification → **Telegram**
   → ใส่ bot token (ตัวใหม่จาก A1) + chat ID → Test → Save
   → ติ๊ก **Default enabled** (monitor ใหม่จะผูกอัตโนมัติ)
-- [ ] Add New Monitor ทีละตัว (Type: HTTP(s), Interval: 60s):
+- [x] Add New Monitor ทีละตัว (Type: HTTP(s), Interval: 60s):
 
 | Friendly Name | URL |
 |---|---|
@@ -79,14 +82,14 @@ ls -lh backup/archives/postgres/ && tail /var/log/infra-backup.log
 | Grafana | `https://grafana.tewarach-dev.me` |
 | ZennuaFlow (เครื่องเก่า) | `https://zennuaflow.tewarach-dev.me` |
 
-- [ ] ทดสอบ: ปิด grafana ชั่วคราว `docker stop grafana` → รอ ~2 นาที → ต้องมีแจ้งเตือน
+- [x] ทดสอบ: ปิด grafana ชั่วคราว `docker stop grafana` → รอ ~2 นาที → ต้องมีแจ้งเตือน
   → `docker start grafana` → ต้องมีข้อความ "Up" ตามมา
 
 ### A4. 🟠 เปลี่ยน basicauth ของ netdata / dozzle (10 นาที)
 
 ตอนนี้ 2 ตัวนี้ login ไม่ได้เพราะ hash ยังเป็น `CHANGE_ME`
 
-- [ ] สร้าง hash (บนเซิร์ฟเวอร์):
+- [x] สร้าง hash (บนเซิร์ฟเวอร์):
 
 ```bash
 sudo apt install -y apache2-utils
@@ -94,9 +97,9 @@ htpasswd -nb admin 'รหัสผ่านที่ต้องการ'
 # ได้ผลลัพธ์แบบ: admin:$apr1$xxxx$yyyyyyyy
 ```
 
-- [ ] ⚠️ ก่อนวางใน compose ต้องเปลี่ยน `$` ทุกตัวเป็น `$$` เช่น
+- [x] ⚠️ ก่อนวางใน compose ต้องเปลี่ยน `$` ทุกตัวเป็น `$$` เช่น
   `admin:$apr1$ab12$cd34` → `admin:$$apr1$$ab12$$cd34`
-- [ ] แก้ 2 ไฟล์ (บรรทัด `basicauth.users=`):
+- [x] แก้ 2 ไฟล์ (บรรทัด `basicauth.users=`):
 
 ```bash
 nano services/netdata/docker-compose.yml
@@ -104,13 +107,13 @@ nano services/dozzle/docker-compose.yml
 docker compose --env-file .env -f docker/docker-compose.monitoring.yml up -d netdata dozzle
 ```
 
-- [ ] ทดสอบ: เปิด `https://netdata.tewarach-dev.me` และ `https://logs.tewarach-dev.me`
+- [x] ทดสอบ: เปิด `https://netdata.tewarach-dev.me` และ `https://logs.tewarach-dev.me` -> 
   → ใส่ admin + รหัส → เข้าได้
 
 ### A5. 🟡 Grafana — import dashboards (10 นาที)
 
-- [ ] เปิด `https://grafana.tewarach-dev.me` → Dashboards → New → **Import**
-- [ ] Import ทีละ ID (ช่อง datasource เลือก **Prometheus**):
+- [x] เปิด `https://grafana.tewarach-dev.me` → Dashboards → New → **Import**
+- [x] Import ทีละ ID (ช่อง datasource เลือก **Prometheus**):
 
 | ID | ชื่อ | ดูอะไร |
 |----|------|--------|
@@ -119,7 +122,7 @@ docker compose --env-file .env -f docker/docker-compose.monitoring.yml up -d net
 | 9628 | PostgreSQL Database | postgres (exporter มีแล้ว) |
 | 11835 | Redis Dashboard | redis (exporter มีแล้ว) |
 
-- [ ] เปิด dashboard 1860 ดูค่า baseline ตอนเครื่องว่าง แล้วจดไว้:
+- [x] เปิด dashboard 1860 ดูค่า baseline ตอนเครื่องว่าง แล้วจดไว้:
   RAM ใช้ไป ~___ GB, CPU ~___% (ไว้เทียบตอนเครื่อง "ตึง" — [docs/18](docs/18-scale.md))
 
 ---
@@ -131,19 +134,19 @@ docker compose --env-file .env -f docker/docker-compose.monitoring.yml up -d net
 
 ### B1. 🟢 n8n (30 นาที — ง่ายสุด เริ่มตัวนี้ DNS ก็ชี้รออยู่แล้ว)
 
-- [ ] สร้าง project:
+- [x] สร้าง project:
 
 ```bash
 ./scripts/create-project.sh n8n n8n
 ```
 
-- [ ] สร้าง encryption key แล้วเก็บใน password manager **เดี๋ยวนี้** (หาย = credentials ทุก workflow กู้ไม่ได้):
+- [x] สร้าง encryption key แล้วเก็บใน password manager **เดี๋ยวนี้** (หาย = credentials ทุก workflow กู้ไม่ได้):
 
 ```bash
 openssl rand -hex 24
 ```
 
-- [ ] ตั้งค่า:
+- [x] ตั้งค่า:
 
 ```bash
 nano projects/n8n/.env
@@ -157,7 +160,7 @@ DB_USERNAME=infra          # ตาม POSTGRES_USER ใน /opt/infra-stack/.en
 DB_PASSWORD=<POSTGRES_PASSWORD จาก /opt/infra-stack/.env>
 ```
 
-- [ ] Start + เช็ค:
+- [x] Start + เช็ค:
 
 ```bash
 cd projects/n8n && docker compose up -d
@@ -165,9 +168,9 @@ docker compose logs -f    # รอเห็น "Editor is now accessible" แล
 cd ../..
 ```
 
-- [ ] เปิด `https://n8n.tewarach-dev.me` → สร้าง owner account
-- [ ] ทดสอบ workflow แรก: Webhook trigger → Execute → ยิง curl ตาม URL ที่มันให้ → เห็น execution สำเร็จ
-- [ ] เพิ่ม monitor `https://n8n.tewarach-dev.me` ใน Uptime Kuma
+- [x] เปิด `https://n8n.tewarach-dev.me` → สร้าง owner account
+- [x] ทดสอบ workflow แรก: Webhook trigger → Execute → ยิง curl ตาม URL ที่มันให้ → เห็น execution สำเร็จ
+- [x] เพิ่ม monitor `https://n8n.tewarach-dev.me` ใน Uptime Kuma
 
 ### B2. 🟢 Laravel — ZennuaFlow ย้ายมาเครื่องนี้ (2-4 ชั่วโมง เผื่อเวลา)
 

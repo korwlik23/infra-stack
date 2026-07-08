@@ -44,5 +44,31 @@ Template ใช้ pre-built image (`ghcr.io/...`) — build จาก CI ขอ
 
 ```bash
 curl -I https://zennuaflow.<domain>                                   # 200
-docker compose exec zennuaflow-app php artisan queue:monitor redis    # queue ทำงาน
+./scripts/artisan.sh zennuaflow queue:monitor redis                   # queue ทำงาน
+```
+
+💡 คำสั่ง artisan ทุกตัวใช้ทางลัดนี้ได้ (รันจากที่ไหนก็ได้ ไม่ต้องจำ compose):
+`./scripts/artisan.sh <project> <คำสั่ง>` เช่น `migrate --force`, `db:seed --force`
+
+## 🩹 ปัญหาที่เจอจริงตอน deploy Laravel ครั้งแรก (2026-07)
+
+**1. `Class "Redis" not found`** — image ไม่มี PHP extension `phpredis`
+ทางแก้ (เลือกหนึ่ง):
+- เร็วสุด: ใน `.env` ตั้ง `REDIS_CLIENT=predis` (ต้องมี package `predis/predis` ใน composer)
+- ถูกต้องระยะยาว: เพิ่ม `pecl install redis && docker-php-ext-enable redis` ใน Dockerfile
+
+**2. `ERR unknown command 'FLUSHDB'` ตอน `cache:clear`/`optimize:clear`** —
+redis.conf เวอร์ชันเก่าของ stack ปิด FLUSHDB ไว้ → แก้แล้วใน v2.1.2
+(เครื่องเดิม: ลบบรรทัด `rename-command FLUSHDB ""` ใน `services/redis/redis.conf`
+แล้ว `docker restart redis`)
+
+**3. ย้ายเว็บจากเครื่องเก่า — อย่าตั้ง APP_DOMAIN เป็นโดเมนจริงก่อนสลับ DNS**
+เพราะ Traefik จะขอ cert ของโดเมนที่ยังชี้เครื่องเก่า → fail ซ้ำจนโดน
+Let's Encrypt rate limit ทำแบบนี้แทน:
+
+```text
+1. เพิ่ม A record ชั่วคราว: zennuaflow-new.<domain> → เครื่องใหม่
+2. ตั้ง APP_DOMAIN=zennuaflow-new.<domain> → deploy → ทดสอบจนพอใจ
+3. วันสลับ: แก้ APP_DOMAIN เป็นโดเมนจริง + สลับ DNS record → deploy อีกรอบ
+4. ลบ record ชั่วคราว
 ```

@@ -54,3 +54,15 @@ docker compose --env-file .env -f docker/docker-compose.core.yml up -d
 **วิธีแยกปัญหาแบบนี้เร็ว ๆ:** ยิงตรงเข้า Traefik ข้าม Cloudflare —
 `curl -sk -H "Host: portainer.<BASE_DOMAIN>" https://localhost -o /dev/null -w "%{http_code}"`
 ได้ 404 = ปัญหาที่ Traefik/labels, ได้ 200/307 = ปัญหาอยู่ชั้น Cloudflare/browser cache
+
+## 🩹 log เต็มไปด้วย "NXDOMAIN … Unable to obtain ACME certificate" + โดน 429 rate limit
+
+**สาเหตุ:** มี service ที่ติด traefik labels แต่**ยังไม่ได้สร้าง DNS record**
+(เช่น `traefik.`, `servers.`, `redis.` subdomain) — Traefik พยายามขอ cert ซ้ำ ๆ
+จน Let's Encrypt แบน 1 ชั่วโมง (`429 too many failed authorizations`)
+
+**วิธีแก้ (เลือกหนึ่งต่อ service):**
+1. สร้าง A record ของ subdomain นั้นชี้มาเครื่อง → error หายเอง (rate limit หมดอายุใน ~1 ชม.)
+2. ยังไม่ใช้ service นั้น → ปิด router: แก้ compose เป็น `traefik.enable=false` แล้ว up -d
+
+**กฎ:** เปิด service ที่มี traefik labels เมื่อไหร่ → สร้าง DNS record ทันทีทุกครั้ง

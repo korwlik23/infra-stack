@@ -31,7 +31,10 @@ cd ../.. && ./scripts/deploy.sh zennuaflow
 
 ## ⚙️ เปิด auto deploy
 
+⚠️ สร้างไฟล์ log ก่อน (deploy เขียนไฟล์ใหม่ใน /var/log เองไม่ได้ — cron จะล้มเงียบ):
+
 ```bash
+sudo touch /var/log/infra-deploy.log && sudo chown deploy:deploy /var/log/infra-deploy.log
 crontab -e
 ```
 

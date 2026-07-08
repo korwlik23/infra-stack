@@ -3,6 +3,26 @@
 All notable changes to InfraStack are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](https://semver.org/).
 
+## [2.1.2] - 2026-07-07
+
+### Fixed — จากการ deploy Laravel จริงครั้งแรก
+- ตัวเช็ค docker-rollout ใช้ `docker rollout --help` ซึ่ง exit 0 แม้ไม่มี plugin
+  (Docker 29 พิมพ์ help รวม) → install/deploy/rollback เช็คไฟล์ plugin ตรง ๆ แทน
+- pgAdmin: Traefik ชี้ port 80 แต่ pgAdmin ย้ายตัวเองไป 8080 เพราะ
+  no-new-privileges → แก้ label เป็น 8080
+- redis.conf: เลิกปิด FLUSHDB — Laravel `cache:clear`/`optimize:clear` ต้องใช้
+  (FLUSHALL/CONFIG ยังปิดอยู่)
+- docs/13, 19, TODO: cron ต้อง `sudo touch/chown` ไฟล์ log ใน /var/log ก่อน
+  ไม่งั้น cron ล้มเงียบเพราะ deploy เขียนไฟล์ใหม่ใน /var/log ไม่ได้
+- docs/13: อธิบาย "already exists" ตอน restore = ปกติ
+- docs/15: troubleshooting — Class "Redis" not found (phpredis/predis),
+  FLUSHDB, และวิธีย้ายเว็บด้วย temp domain กัน Let's Encrypt rate limit
+- docs/04: NXDOMAIN cert spam จาก router ที่ไม่มี DNS record + ทางแก้
+
+### Added
+- `scripts/artisan.sh <project> <args>` — รัน artisan จากที่ไหนก็ได้
+  (แทน alias ที่หายทุกครั้งที่ ssh ใหม่)
+
 ## [2.1.1] - 2026-07-04
 
 ### Fixed — จากการติดตั้งจริงครั้งแรก (fresh-install จะไม่เจอปัญหาพวกนี้แล้ว)

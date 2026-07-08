@@ -30,7 +30,7 @@ sed -i "s|^APP_IMAGE=.*|APP_IMAGE=$TARGET|" .env
 docker compose pull 2>/dev/null || true
 
 ROLLOUT_SERVICE="$(grep -E '^ROLLOUT_SERVICE=' .env 2>/dev/null | head -1 | cut -d= -f2- || true)"
-if [ -n "$ROLLOUT_SERVICE" ] && docker rollout --help >/dev/null 2>&1; then
+if [ -n "$ROLLOUT_SERVICE" ] && [ -x "$HOME/.docker/cli-plugins/docker-rollout" ]; then
   echo "[rollback:$NAME] rolling back '$ROLLOUT_SERVICE' (zero downtime)…"
   docker rollout "$ROLLOUT_SERVICE"
 fi
