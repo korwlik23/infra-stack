@@ -1,7 +1,8 @@
 # ✅ TODO — งานที่เหลือหลังติดตั้ง (เครื่อง 217.216.32.198)
 
-> สถานะ ณ 2026-07-04: core + database + monitoring ขึ้นครบ 18 ตัว,
-> Alertmanager→Telegram ทำงานแล้ว, Grafana/Uptime Kuma สร้าง admin แล้ว
+> สถานะ ณ 2026-07-08: **Phase A เสร็จครบ** · n8n ✅ · automation-ai-seller-chat ✅ (rolling deploy)
+> · zennuaflow รันบน temp domain รอย้ายข้อมูล+สลับ DNS · auto-deploy cron เปิดแล้ว
+> · server อยู่บน v2.1.2 · FLUSHDB/cron log/cert spam แก้หมดแล้ว (ยืนยัน 2026-07-08)
 >
 > ทุกคำสั่งรันที่ `/opt/infra-stack` ด้วย user `deploy` เว้นแต่บอกไว้
 > ติ๊ก `[x]` เมื่อเสร็จ แล้ว commit ไฟล์นี้กลับเข้า Git ได้เลย (ไม่มี secret)
@@ -174,44 +175,38 @@ cd ../..
 
 ### B2. 🟢 Laravel — ZennuaFlow ย้ายมาเครื่องนี้ (2-4 ชั่วโมง เผื่อเวลา)
 
+> 📌 **สถานะ 2026-07-08:** app (repo `accounting-saas`) build + rolling deploy
+> **สำเร็จแล้ว** รันอยู่บน temp domain — เหลือ: ตรวจ APP_KEY, ย้ายข้อมูล, สลับ DNS
+
 > เช็คก่อน: ZennuaFlow มี Dockerfile หรือยัง? ถ้ายัง ต้องเพิ่มใน repo ของ app ก่อน
 > (แนะนำ php-fpm + nginx หรือ FrankenPHP, expose port 8080, มี `curl` ใน image)
 
 **เตรียม (ครั้งเดียว):**
 
-- [ ] สร้าง deploy key แบบ read-only บนเซิร์ฟเวอร์:
+- [x] ~~deploy key แยกต่อ repo~~ → ใช้ SSH key ของ account (`~/.ssh/id_ed25519`
+  ผูกกับ GitHub account) แทน — ใช้ได้ แต่ key เดียวเข้าได้ทุก repo
+  ⚠️ อยากจำกัดสิทธิ์เมื่อไหร่ ค่อยเปลี่ยนเป็น deploy key read-only ตามสูตรเดิม:
 
 ```bash
 ssh-keygen -t ed25519 -f ~/.ssh/deploy_zennuaflow -N ""
 cat ~/.ssh/deploy_zennuaflow.pub
-```
-
-- [ ] GitHub → repo zennuaflow → Settings → Deploy keys → Add key (ไม่ติ๊ก write)
-- [ ] ตั้ง ssh alias:
-
-```bash
-nano ~/.ssh/config
-```
-
-```text
-Host github.com-zennuaflow
-    HostName github.com
-    User git
-    IdentityFile ~/.ssh/deploy_zennuaflow
+# GitHub → repo → Settings → Deploy keys → Add (ไม่ติ๊ก write)
+# + ตั้ง alias ใน ~/.ssh/config (Host github.com-zennuaflow …)
 ```
 
 **Deploy:**
 
-- [ ] สร้าง project + clone source:
+- [x] สร้าง project + clone source (repo จริงชื่อ `accounting-saas`):
 
 ```bash
 ./scripts/create-project.sh zennuaflow laravel
 cd projects/zennuaflow
-git clone git@github.com-zennuaflow:korwlik23/zennuaflow.git src
+git clone git@github.com:korwlik23/accounting-saas.git src
 ```
 
-- [ ] เปิดโหมด build-on-server: `nano docker-compose.yml` → เอา `#` ออกหน้า `build: ./src` (บรรทัดเดียว ใน service `-app`)
-- [ ] ตั้งค่า `nano .env` — จุดสำคัญ:
+- [x] เปิดโหมด build-on-server: เอา `#` ออกหน้า `build: ./src`
+- [x] ตั้งค่า `.env` — ใช้ temp domain `zennuaflow-new.tewarach-dev.me` ระหว่างทดสอบ
+  ⚠️ **ก่อนย้ายข้อมูล: เช็คว่า APP_KEY เป็นตัวเดียวกับเครื่องเก่า** — จุดสำคัญ:
 
 ```env
 APP_DOMAIN=zennuaflow.tewarach-dev.me   # ⚠️ ยังไม่สลับ DNS — ดูข้อถัดไป
@@ -232,27 +227,41 @@ scp <user>@20.63.219.103:/tmp/zennuaflow.sql.gz /tmp/
 gunzip -c /tmp/zennuaflow.sql.gz | docker exec -i postgres psql -U infra -d zennuaflow_db
 ```
 
-- [ ] Build + start + migrate:
+- [x] Build + start — **rolling deploy ผ่านแล้ว** (2026-07-08); migrate รันตอนย้ายข้อมูลจริง:
 
 ```bash
 cd /opt/infra-stack && ./scripts/deploy.sh zennuaflow
-docker compose --project-directory projects/zennuaflow exec zennuaflow-app php artisan migrate --force
+./scripts/artisan.sh zennuaflow migrate --force
 ```
 
-- [ ] ทดสอบก่อนสลับ DNS (ยิงตรงเข้าเครื่องใหม่):
+- [ ] ทดสอบบน temp domain ให้ครบ (login, หน้าหลัก) ก่อนวันสลับ:
 
 ```bash
-curl -sk -H "Host: zennuaflow.tewarach-dev.me" https://localhost -o /dev/null -w "%{http_code}\n"   # ต้อง 200
+curl -s -o /dev/null -w "%{http_code}\n" https://zennuaflow-new.tewarach-dev.me   # ต้อง 200
 ```
 
-- [ ] **สลับ DNS**: Cloudflare → แก้ A record `zennuaflow` จาก `20.63.219.103` → `217.216.32.198`
+- [ ] **วันสลับจริง**: แก้ `.env` → `APP_DOMAIN=zennuaflow.tewarach-dev.me` →
+  Cloudflare สลับ A record `zennuaflow`: `20.63.219.103` → `217.216.32.198` →
+  `./scripts/deploy.sh zennuaflow` → ลบ record `zennuaflow-new`
 - [ ] เปิดเว็บจริง ทดสอบ login / งานหลัก / queue:
 
 ```bash
-docker compose --project-directory projects/zennuaflow exec zennuaflow-app php artisan queue:monitor redis
+./scripts/artisan.sh zennuaflow queue:monitor redis
 ```
 
 - [ ] เก็บเครื่องเก่าไว้ 1 สัปดาห์ก่อนปิด (เผื่อ rollback DNS กลับ)
+
+### B2.5 🟢 automation-ai-seller-chat (Laravel) — ✅ เสร็จแล้ว 2026-07-08
+
+> ทำเพิ่มนอกแผนเดิม — deploy ด้วย pattern เดียวกับ B2 (build-on-server + rolling)
+
+- [x] project + src + `build: ./src` + database `automation_ai_seller_chat_db`
+- [x] migrate + seed ครบ (RolePermission, Plan, DemoTenant, SupportTicket, AiSellerDemo)
+- [x] rolling deploy ทำงาน (Scaling to 2 → healthy → ถอดตัวเก่า)
+- [x] แก้ `Class "Redis" not found` ด้วย `REDIS_CLIENT=predis`
+  💡 ระยะยาว: เพิ่ม phpredis ใน Dockerfile แล้วถอด predis ได้ (docs/15)
+- [ ] เพิ่ม monitor โดเมนของ app นี้ใน Uptime Kuma
+- [ ] ย้าย seeder demo ออกจาก production flow เมื่อเปิดใช้จริง (ข้อมูล demo อยู่ใน db แล้ว)
 
 ### B3. 🟢 Next.js (1-2 ชั่วโมง)
 
@@ -277,14 +286,14 @@ nano .env                  # APP_DOMAIN, DATABASE_URL (ถ้าใช้), HEAL
 
 ### B4. 🟢 เปิด auto-deploy (5 นาที — ทำหลัง B1-B3 นิ่งแล้ว)
 
-- [ ] `crontab -e` เพิ่ม:
+- [x] `crontab -e` เพิ่ม (ทำแล้ว + แก้สิทธิ์ log file แล้ว 2026-07-08):
 
 ```cron
 */2 * * * * /opt/infra-stack/scripts/auto-deploy.sh >> /var/log/infra-deploy.log 2>&1
 ```
 
 - [ ] ทดสอบ: push commit เล็กๆ เข้า repo ของ app → รอ 2-4 นาที → `tail -f /var/log/infra-deploy.log`
-  ต้องเห็นมัน pull + build + rolling deploy เอง
+  ต้องเห็นมัน pull + build + rolling deploy **เองโดยไม่ต้องสั่ง** (ที่ผ่านมา deploy มือทุกครั้ง)
 - [ ] ทดสอบ zero-downtime จริง (terminal ที่สอง ระหว่าง deploy):
 
 ```bash
