@@ -3,6 +3,24 @@
 All notable changes to InfraStack are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](https://semver.org/).
 
+## [2.2.0] - 2026-07-12
+
+### Added — auto-migrate + rollback (post-mortem จากเว็บดับหลัง push)
+- `deploy.sh` รัน `php artisan migrate --force` ก่อน rollout อัตโนมัติเมื่อ
+  project มี `DEPLOY_MIGRATE=1` (รันด้วย image ใหม่บน container ชั่วคราว)
+- `deploy.sh` tag image ปัจจุบันเป็น `:previous` ก่อน build ใหม่ →
+  `rollback.sh <project> previous` ใช้ได้เสมอ (ก่อนหน้านี้ prune ลบ image เก่าทิ้ง)
+- template Laravel `.env.example` เพิ่ม `DEPLOY_MIGRATE=1`
+- docs/25: post-mortem, ข้อจำกัด healthcheck /up, วิธี health route ที่แตะ DB
+
+### Root cause ที่แก้
+push โค้ดที่มี migration ใหม่ → auto-deploy build+deploy โค้ดใหม่ แต่ schema เก่า
+→ app คืน 500; healthcheck `/up` ตอบ 200 (เช็คแค่ boot ไม่เช็ค DB) → rolling deploy
+คิดว่าสำเร็จ เว็บดับจน migrate มือ
+
+### ต้องทำบน server สำหรับ project เดิม
+เพิ่ม `DEPLOY_MIGRATE=1` ใน `.env` ของ automation-ai-seller-chat และ zennuaflow
+
 ## [2.1.2] - 2026-07-07
 
 ### Fixed — จากการ deploy Laravel จริงครั้งแรก

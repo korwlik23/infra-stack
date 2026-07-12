@@ -8,8 +8,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-NAME="${1:?usage: rollback.sh <project> <image-tag>}"
-TAG="${2:?usage: rollback.sh <project> <image-tag>}"
+# tag ที่ใช้บ่อยสุดคือ "previous" — deploy.sh เก็บเวอร์ชันก่อนหน้าไว้ให้อัตโนมัติ
+# เช่น: ./scripts/rollback.sh automation-ai-seller-chat previous
+NAME="${1:?usage: rollback.sh <project> <image-tag>  (เช่น tag=previous)}"
+TAG="${2:?usage: rollback.sh <project> <image-tag>  (เช่น tag=previous)}"
 DIR="projects/$NAME"
 [ -f "$DIR/.env" ] || { echo "ERROR: $DIR/.env not found" >&2; exit 1; }
 

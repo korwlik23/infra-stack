@@ -26,6 +26,15 @@ fi
 cd "$DIR"
 
 ROLLOUT_SERVICE="$(grep -E '^ROLLOUT_SERVICE=' .env 2>/dev/null | head -1 | cut -d= -f2- || true)"
+DEPLOY_MIGRATE="$(grep -E '^DEPLOY_MIGRATE=' .env 2>/dev/null | head -1 | cut -d= -f2- || true)"
+APP_IMAGE="$(grep -E '^APP_IMAGE=' .env 2>/dev/null | head -1 | cut -d= -f2- || true)"
+
+# ── 0. เก็บ image ปัจจุบันเป็น :previous ก่อน build ใหม่ (ไว้ rollback) ──
+# tag ไว้ = รอด docker image prune (prune ลบเฉพาะ image ที่ไม่มี tag)
+if [ -n "$APP_IMAGE" ] && docker image inspect "$APP_IMAGE" >/dev/null 2>&1; then
+  docker tag "$APP_IMAGE" "${APP_IMAGE%:*}:previous"
+  echo "[deploy:$NAME] เก็บเวอร์ชันปัจจุบันเป็น ${APP_IMAGE%:*}:previous"
+fi
 
 # ── 1. เตรียม image ใหม่ ─────────────────────────────
 if [ -d src/.git ]; then
@@ -39,6 +48,17 @@ if [ -d src/.git ]; then
 else
   echo "[deploy:$NAME] pulling image from registry…"
   docker compose pull
+fi
+
+# ── 1.5 Migrate ก่อนสลับ traffic (opt-in ต่อ project ด้วย DEPLOY_MIGRATE=1) ─
+# รันด้วย image ใหม่ที่เพิ่ง build บน container ชั่วคราว — ทำ "ก่อน" rollout เสมอ
+# เพื่อให้ schema พร้อมก่อนโค้ดใหม่รับ traffic (กัน 500 แบบที่เจอ 2026-07-12)
+# ⚠️ migration ต้องเป็น expand/contract — ระหว่าง rolling โค้ดเก่ายังรันกับ schema ใหม่ได้
+# ถ้า migrate ล้ม: set -e หยุดทันที ไม่ rollout → เว็บเก่ายังอยู่
+if [ "$DEPLOY_MIGRATE" = "1" ]; then
+  MIGRATE_SVC="${ROLLOUT_SERVICE:-$NAME-app}"
+  echo "[deploy:$NAME] running migrations on '$MIGRATE_SVC'…"
+  docker compose run --rm --no-deps --entrypoint php "$MIGRATE_SVC" artisan migrate --force
 fi
 
 # ── 2. สลับเวอร์ชัน ──────────────────────────────────

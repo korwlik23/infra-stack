@@ -58,15 +58,33 @@ Plugin ติดตั้งโดย `install.sh` อยู่แล้ว (ไ
 
 กติกาสั้น ๆ: **migration ทุกตัวต้องรันได้โดยโค้ดเวอร์ชันก่อนหน้ายังทำงานต่อได้**
 
+## ⚙️ migrate อัตโนมัติตอน deploy (v2.2.0+)
+
+`deploy.sh` จะรัน `php artisan migrate --force` **ก่อนสลับ traffic** อัตโนมัติ
+ถ้า project มี `DEPLOY_MIGRATE=1` ใน `.env` (template Laravel ตั้งให้แล้ว)
+
+ลำดับ: build image ใหม่ → **migrate ด้วย image ใหม่** → rolling deploy
+→ schema พร้อมก่อนโค้ดใหม่รับ traffic ถ้า migrate ล้ม `set -e` หยุดทันที ไม่ deploy ต่อ
+
+🩹 **เหตุผลที่ต้องมี (post-mortem 2026-07-12):** ก่อนมีฟีเจอร์นี้ push โค้ดที่มี
+migration ใหม่ → auto-deploy build+deploy โค้ดใหม่ **แต่ schema ยังเก่า** → app คืน 500
+และ healthcheck `/up` ตอบ 200 อยู่ (แค่เช็คว่า framework boot ได้ ไม่เช็ค DB)
+rolling deploy เลยคิดว่าสำเร็จ ทั้งที่หน้าเว็บพัง → เว็บดับจน migrate มือ
+
+**project เก่าที่สร้างก่อน v2.2.0:** เพิ่ม `DEPLOY_MIGRATE=1` ใน `.env` เอง
+
 ## 🔄 Rollback
 
 ```bash
-./scripts/rollback.sh zennuaflow v1.4.2    # กลับ tag เก่า แบบ rolling เหมือนกัน
+./scripts/rollback.sh automation-ai-seller-chat previous   # กลับเวอร์ชันก่อนหน้า
 ```
 
-เงื่อนไข: **tag image ด้วยเวอร์ชันเสมอ** (`:v1.4.2` ไม่ใช่ `:latest` อย่างเดียว)
-ไม่งั้นไม่มี "เวอร์ชันเก่า" ให้กลับ — และจำไว้ว่า migration ไม่ย้อนอัตโนมัติ
-(ถ้าใช้ expand/contract ถูกต้อง โค้ดเก่าจะยังอ่าน schema ใหม่ได้ → rollback ปลอดภัย)
+`deploy.sh` เก็บ image ก่อน build ใหม่ไว้เป็น tag `:previous` อัตโนมัติ (v2.2.0+)
+→ rollback ได้เสมอโดยไม่ต้อง tag เวอร์ชันเอง (เก็บย้อนได้ 1 step)
+อยากเก็บหลายเวอร์ชัน: tag image เองเป็น `:v1.4.2` แล้ว `rollback.sh <project> v1.4.2`
+
+⚠️ **migration ไม่ย้อนอัตโนมัติ** — ถ้าใช้ expand/contract ถูกต้อง โค้ดเก่าจะยัง
+อ่าน schema ใหม่ได้ → rollback โค้ดปลอดภัย (นี่คือเหตุผลที่ห้าม drop column ใน release เดียว)
 
 ## ข้อยกเว้น (ตัวที่ rolling ไม่ได้ — และไม่เป็นไร)
 
@@ -87,3 +105,11 @@ while true; do curl -s -o /dev/null -w "%{http_code} " https://app.<domain>; sle
 # ทดสอบด่าน healthcheck: deploy image ที่พังโดยตั้งใจ
 # → rollout ต้อง fail, เว็บต้องยังตอบ 200 ตลอด
 ```
+
+## ⚠️ ข้อจำกัดของ healthcheck `/up` (รู้ไว้)
+
+`/up` ของ Laravel เช็คแค่ว่า framework boot ได้ — **ไม่เช็คว่า migration ครบ**
+ดังนั้น "deploy สำเร็จ" ไม่ได้แปลว่า "ทุกหน้าใช้ได้" เสมอ ทางกันสองชั้น:
+1. `DEPLOY_MIGRATE=1` — migrate ก่อน traffic (แก้เคสที่เจอบ่อยสุด) ✅ ทำแล้ว
+2. อยากเข้มกว่า: เขียน health route เองที่แตะ DB/Redis เบา ๆ แล้วตั้ง `HEALTHCHECK_PATH`
+   ชี้ไปที่นั่น — ตัวใหม่ที่ query ตารางที่ยังไม่มีจะ fail healthcheck → rollout ไม่ผ่าน
