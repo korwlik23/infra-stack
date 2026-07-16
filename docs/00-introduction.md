@@ -22,6 +22,7 @@ InfraStack คือ **"ระบบปฏิบัติการของ Serv
 | Ops | [13-backup.md](13-backup.md) → [14-monitoring.md](14-monitoring.md) |
 | Deploy | [15-deploy-laravel.md](15-deploy-laravel.md) → [16-deploy-nextjs.md](16-deploy-nextjs.md) → [17-deploy-n8n.md](17-deploy-n8n.md) |
 | CI/CD | [19-cicd.md](19-cicd.md) — auto deploy ฟรี ไม่ใช้ GitHub Actions · [25-zero-downtime.md](25-zero-downtime.md) — deploy ไม่ให้เว็บดับ |
+| **Deploy project ใหม่** | [26-new-project.md](26-new-project.md) — ขั้นตอนครบ ทำซ้ำได้ทุกครั้ง |
 | v2.0 (เปิดเมื่อต้องการ) | [20-rabbitmq.md](20-rabbitmq.md) · [21-minio.md](21-minio.md) · [22-loki.md](22-loki.md) · [23-beszel.md](23-beszel.md) · [24-ai-worker.md](24-ai-worker.md) |
 | อนาคต | [18-scale.md](18-scale.md) |
 
