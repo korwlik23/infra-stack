@@ -33,6 +33,10 @@ services:
     container_name: cadvisor
     restart: unless-stopped
     privileged: true
+    command:
+      - "--docker_only=true"
+      - "--housekeeping_interval=30s"
+      - "--disable_metrics=disk"
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
