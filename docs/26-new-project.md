@@ -52,20 +52,21 @@ nano projects/<ชื่อ>/docker-compose.yml
 nano projects/<ชื่อ>/.env
 ```
 
-ค่าสำคัญใน `.env` (Laravel):
+**ข่าวดี (v2.3.0+):** `create-project.sh` **ดึงค่าจาก `.env` กลางให้อัตโนมัติแล้ว** —
+`DB_PASSWORD`, `DB_USERNAME`, `REDIS_PASSWORD`, `APP_DOMAIN`, `TZ`, R2 ถูกเติมให้เลย
+ไม่ต้องพิมพ์ซ้ำ (กลไก: template ใช้ token `__ROOT:KEY__` → script แทนค่าจาก `.env` กลาง)
+
+เหลือแค่ตั้ง **ค่าเฉพาะ project** ที่ปล่อยว่างไว้:
 
 ```env
-APP_IMAGE=ghcr.io/korwlik23/<ชื่อ>:latest
-APP_DOMAIN=<ชื่อ>.tewarach-dev.me     # หรือ temp domain ถ้ายังไม่พร้อมสลับ DNS
-APP_KEY=base64:...                    # ถ้าย้ายจากเครื่องเก่า ต้องตัวเดิม!
-DB_DATABASE=<ชื่อ>_db
-DB_PASSWORD=<POSTGRES_PASSWORD จาก /opt/infra-stack/.env>
-REDIS_PASSWORD=<REDIS_PASSWORD>
-REDIS_CLIENT=predis                   # ถ้า image ไม่มี phpredis extension
-ROLLOUT_SERVICE=<ชื่อ>-app            # template ตั้งให้แล้ว
-DEPLOY_MIGRATE=1                      # migrate อัตโนมัติทุก deploy (v2.2.0+)
-HEALTHCHECK_PATH=/up
+APP_KEY=          # ⚠️ ต้องตั้ง: ./scripts/artisan.sh <ชื่อ> key:generate --show
+                  #    (ย้ายจากเครื่องเก่า → ใช้ APP_KEY เดิม ห้ามgenerate ใหม่)
+# ที่เหลือเติมมาให้แล้วจาก .env กลาง — เช็คแล้วแก้เฉพาะที่ต่าง เช่น:
+# DEPLOY_MIGRATE=1 / REDIS_CLIENT=predis  ← template Laravel ตั้งให้แล้ว
 ```
+
+ถ้าค่าไหนใน `.env` กลางยังเป็น `CHANGE_ME`/ว่าง script จะเตือน + ใส่ `CHANGE_ME`
+ให้ (เช่น R2 ถ้ายังไม่ตั้ง) แล้วค่อยเติมทีหลัง
 
 ```bash
 # 5) สร้าง database (ชื่อห้ามมี "-" ใช้ "_" แทน)

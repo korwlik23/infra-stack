@@ -3,6 +3,20 @@
 All notable changes to InfraStack are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](https://semver.org/).
 
+## [2.3.0] - 2026-07-13
+
+### Added — ดึงค่าจาก .env กลางเข้า project อัตโนมัติ (ลดพิมพ์ซ้ำ + typo)
+- `create-project.sh` แทนที่ token `__ROOT:KEY__` ใน project `.env` ด้วยค่าจาก
+  `.env` กลางตอนสร้าง (DB/Redis/domain/TZ/R2) — key ที่ไม่มี → CHANGE_ME + เตือน
+- template ทุกตัว (laravel/nextjs/n8n/ai-worker) ใช้ `__ROOT:` แทน CHANGE_ME
+  ในค่าที่ share กัน; ปล่อยว่างเฉพาะค่า per-project (APP_KEY, encryption key, API key)
+- laravel template เพิ่ม `REDIS_CLIENT=predis` เป็น default
+
+### Implementation note (บั๊กที่กันได้ตอนเทสต์)
+แทนที่ค่าด้วย bash `${//}` + `shopt -u patsub_replacement` (bash 5.2 ตีความ `&`
+เป็น match เหมือน sed) — รองรับรหัสผ่านที่มี `& | \ =` แบบ byte-exact
+(sed escape เชื่อถือไม่ได้, nested-regex loop ค้าง — เลี่ยงทั้งคู่)
+
 ## [2.2.0] - 2026-07-12
 
 ### Added — auto-migrate + rollback (post-mortem จากเว็บดับหลัง push)

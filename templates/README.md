@@ -14,5 +14,16 @@
 - **Pre-built image** จาก registry (default — `APP_IMAGE` ใน .env)
 - **Build on server** — clone app ไว้ที่ `src/` แล้ว uncomment `build: ./src` (ดู docs/19-cicd.md)
 
+## Placeholder ใน template
+
+| Token | แทนด้วย | ตอนไหน |
+|-------|---------|--------|
+| `__PROJECT__` | ชื่อ project | ทุกไฟล์ |
+| `__ROOT:KEY__` | ค่าจาก `.env` กลาง (คีย์ `KEY`) | เฉพาะไฟล์ `.env` ตอน create-project |
+
+`__ROOT:KEY__` = ดึงค่า share กัน (DB/Redis/domain/TZ/R2) จาก `.env` กลางให้อัตโนมัติ
+→ ลดการพิมพ์ซ้ำ + typo เช่น `DB_PASSWORD=__ROOT:POSTGRES_PASSWORD__`
+ถ้า key ไม่มีใน `.env` กลาง (หรือเป็น CHANGE_ME) → script ใส่ `CHANGE_ME` + เตือน
+
 การเพิ่ม template ใหม่: สร้างโฟลเดอร์ + `docker-compose.yml` + `.env.example` + `README.md`
-ใช้ `__PROJECT__` เป็น placeholder ทุกจุดที่เป็นชื่อ project
+ใช้ `__PROJECT__` และ `__ROOT:KEY__` ตามข้างบน
