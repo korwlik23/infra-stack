@@ -73,6 +73,7 @@ and start with a clean Git history.
   with generic descriptions.
 - `environments/README.md`
 - `environments/production.env.example`
+- `docs/02-security.md`
 - `docs/06-postgresql.md`
 - `docs/15-deploy-laravel.md`
 - `docs/19-cicd.md`

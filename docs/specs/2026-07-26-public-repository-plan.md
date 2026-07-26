@@ -40,14 +40,15 @@ only the validated tracked snapshot into a new one-commit repository at
 
 ## Task 4 — Refresh public entry documentation
 
-- **Files:** `README.md`, `GUIDE.md`
+- **Files:** `README.md`, `GUIDE.md`, `docs/02-security.md`
 - **Change:** Align the displayed release with `VERSION`, describe a public-code/
   private-runtime configuration model, update the documented `docs/00`–`docs/26`
-  coverage, link the installation checklist and license, and remove advice that the
-  reusable code repository itself must be private.
-- **Verify:** `rg -n 'v2\.1\.0|repo.*Private|repository.*Private|00.?25' README.md GUIDE.md`
-  returns no stale matches and `rg -n 'v2\.3\.0|TODO\.md|LICENSE' README.md` finds the
-  expected public entry points.
+  coverage, link the installation checklist and license, remove advice that the
+  reusable code repository itself must be private, and replace the personal Windows
+  prompt path with the existing `<user>` placeholder convention.
+- **Verify:** `rg -n 'v2\.1\.0|repo.*Private|repository.*Private|00.?25|C:\\Users\\kil' README.md GUIDE.md docs/02-security.md`
+  returns no stale/private matches and `rg -n 'v2\.3\.0|TODO\.md|LICENSE' README.md`
+  finds the expected public entry points.
 - **Dependency:** Independent after Task 1.
 
 ## Task 5 — Normalize environment examples
