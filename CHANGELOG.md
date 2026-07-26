@@ -33,7 +33,7 @@ push โค้ดที่มี migration ใหม่ → auto-deploy build+de
 คิดว่าสำเร็จ เว็บดับจน migrate มือ
 
 ### ต้องทำบน server สำหรับ project เดิม
-เพิ่ม `DEPLOY_MIGRATE=1` ใน `.env` ของ automation-ai-seller-chat และ zennuaflow
+เพิ่ม `DEPLOY_MIGRATE=1` ใน `.env` ของ Laravel deployments ที่ต้องรัน migration
 
 ## [2.1.2] - 2026-07-07
 

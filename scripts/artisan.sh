@@ -3,9 +3,9 @@
 # (แทน alias ที่หายทุกครั้งที่ ssh ใหม่)
 #
 # ใช้: ./scripts/artisan.sh <project> <artisan-args...>
-# เช่น: ./scripts/artisan.sh zennuaflow migrate --force
-#       ./scripts/artisan.sh automation-ai-seller-chat db:seed --force
-#       ./scripts/artisan.sh zennuaflow optimize:clear
+# เช่น: ./scripts/artisan.sh app migrate --force
+#       ./scripts/artisan.sh app db:seed --force
+#       ./scripts/artisan.sh app optimize:clear
 set -euo pipefail
 cd "$(dirname "$0")/.."
 

@@ -2,9 +2,8 @@
 
 🎯 push โค้ด → เว็บอัปเดตเอง โดยไม่จ่ายค่า CI
 
-🤔 **เรื่องค่าใช้จ่าย GitHub Actions**: จริง ๆ ฟรีสำหรับ public repo และ private repo
-ได้ฟรี 2,000 นาที/เดือน — แต่วิธี build บนเซิร์ฟเวอร์เองด้านล่างนี้**ไม่พึ่งอะไรเลย**
-ไม่มีเพดานนาที และ image ไม่ต้องเดินทางผ่าน registry
+จะใช้ hosted CI ก็ได้ แต่วิธี build บนเซิร์ฟเวอร์ด้านล่างไม่ผูกกับโควตาของ CI
+provider และ image ไม่ต้องเดินทางผ่าน registry
 
 ## แนวคิด: Build on Server + Git Poll
 
@@ -19,14 +18,14 @@ push → GitHub ← (poll ทุก 2 นาที) เซิร์ฟเวอ�
 
 ```bash
 # 1. clone source ของ app ไว้ใน project (ผ่าน SSH deploy key แบบ read-only)
-cd projects/zennuaflow
-git clone git@github.com:korwlik23/zennuaflow.git src
+cd projects/app
+git clone git@github.com:<github-user>/<repo>.git src
 
 # 2. เปิดโหมด build ใน docker-compose.yml ของ project
 #    (uncomment บรรทัด "build: ./src" — ทุก template มีเตรียมไว้)
 
 # 3. deploy ครั้งแรก
-cd ../.. && ./scripts/deploy.sh zennuaflow
+cd ../.. && ./scripts/deploy.sh app
 ```
 
 ## ⚙️ เปิด auto deploy
@@ -50,9 +49,9 @@ crontab -e
 ## Deploy key (read-only — ปลอดภัยกว่าใช้ key ส่วนตัว)
 
 ```bash
-ssh-keygen -t ed25519 -f ~/.ssh/deploy_zennuaflow -N ""
+ssh-keygen -t ed25519 -f ~/.ssh/deploy_app -N ""
 # GitHub → repo → Settings → Deploy keys → Add (ไม่ติ๊ก write access)
-# ~/.ssh/config:  Host github.com-zennuaflow → IdentityFile ~/.ssh/deploy_zennuaflow
+# ~/.ssh/config: Host github.com-app → IdentityFile ~/.ssh/deploy_app
 ```
 
 ## ⚠️ ระวัง
@@ -60,7 +59,8 @@ ssh-keygen -t ed25519 -f ~/.ssh/deploy_zennuaflow -N ""
 - Build บนเครื่องกิน CPU/RAM ชั่วคราว — เครื่อง 8GB build Next.js ได้ แต่อย่า build
   พร้อมกันหลายตัว (auto-deploy.sh รันทีละตัวอยู่แล้ว)
 - `src/` ไม่ถูก commit เข้า infra-stack (อยู่ใน .gitignore) — มันเป็น repo ของ app เอง
-- migrate database ไม่ auto — schema เปลี่ยนให้ deploy มือ + migrate เอง
+- เปิด migration อัตโนมัติด้วย `DEPLOY_MIGRATE=1` เฉพาะ project ที่ใช้
+  expand/contract migrations ตาม [25-zero-downtime.md](25-zero-downtime.md)
 
 ## 🧪 ทดสอบ
 

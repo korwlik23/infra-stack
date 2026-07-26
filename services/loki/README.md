@@ -15,7 +15,7 @@ Loki ใช้ ~100-200MB, ต่อ Grafana ที่มีอยู่แล�
 Grafana → Explore → datasource **Loki** → query:
 
 ```logql
-{container="zennuaflow-app"}                    # log ของ container เดียว
+{container="app-app"}                           # log ของ container เดียว
 {container=~".+"} |= "error"                    # หา error ทุก container
 {container="traefik"} | json                    # parse log JSON
 ```

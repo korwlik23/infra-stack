@@ -15,8 +15,8 @@ Contabo (และ provider ส่วนใหญ่) ให้แค่**รห
 ssh-keygen -t ed25519
 
 # 2. ส่ง public key ขึ้น server (เลือกตาม shell ที่ใช้ — ดู prompt)
-#    cmd        (prompt: C:\Users\kil>)      → ใช้ %USERPROFILE%
-#    PowerShell (prompt: PS C:\Users\kil>)   → ใช้ $env:USERPROFILE
+#    cmd        (working directory: C:\Users\<user>)    → ใช้ %USERPROFILE%
+#    PowerShell (working directory: C:\Users\<user>) → ใช้ $env:USERPROFILE
 
 # แบบ cmd:
 type %USERPROFILE%\.ssh\id_ed25519.pub | ssh root@<ip> "mkdir -p /root/.ssh && cat >> /root/.ssh/authorized_keys && chmod 700 /root/.ssh && chmod 600 /root/.ssh/authorized_keys"

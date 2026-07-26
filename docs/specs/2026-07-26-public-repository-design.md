@@ -77,6 +77,7 @@ and start with a clean Git history.
 - `docs/06-postgresql.md`
 - `docs/15-deploy-laravel.md`
 - `docs/19-cicd.md`
+- `docs/20-rabbitmq.md`
 - `docs/22-loki.md`
 - `docs/25-zero-downtime.md`
 - `docs/26-new-project.md`

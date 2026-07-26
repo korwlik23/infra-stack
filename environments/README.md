@@ -9,7 +9,7 @@ nano .env
 
 | ไฟล์ | ใช้กับ |
 |------|--------|
-| `production.env.example` | VPS production (Contabo Singapore) |
+| `production.env.example` | Public-facing production VPS |
 | `staging.env.example` | เครื่อง staging |
 | `development.env.example` | local dev |
 

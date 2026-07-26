@@ -8,8 +8,8 @@
 docker compose --env-file .env -f docker/docker-compose.database.yml up -d
 ```
 
-Database ต่อ project (zennuaflow_db, trex_db, printshub_db, bdo_db, n8n_db)
-ถูกสร้างจาก `services/postgres/init/01-create-databases.sql` ในครั้งแรก
+ตัวอย่าง `app_db` และ database สำหรับ bundled n8n template ถูกสร้างจาก
+`services/postgres/init/01-create-databases.sql` ในครั้งแรก
 
 เพิ่มทีหลัง:
 

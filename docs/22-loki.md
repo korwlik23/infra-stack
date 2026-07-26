@@ -19,7 +19,7 @@ Loki ใช้ ~100-200MB, ใช้ Grafana ที่มีอยู่แล�
 Grafana → Explore → **Loki**:
 
 ```logql
-{container="zennuaflow-app"} |= "ERROR"     # error ของ app เดียว
+{container="app-app"} |= "ERROR"            # error ของ app เดียว
 {container=~".+"} |= "exception"            # ทั้งเครื่อง
 ```
 

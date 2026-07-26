@@ -1,323 +1,206 @@
-# ✅ TODO — งานที่เหลือหลังติดตั้ง (เครื่อง 217.216.32.198)
+# InfraStack Installation Checklist
 
-> สถานะ ณ 2026-07-08: **Phase A เสร็จครบ** · n8n ✅ · automation-ai-seller-chat ✅ (rolling deploy)
-> · zennuaflow รันบน temp domain รอย้ายข้อมูล+สลับ DNS · auto-deploy cron เปิดแล้ว
-> · server อยู่บน v2.1.2 · FLUSHDB/cron log/cert spam แก้หมดแล้ว (ยืนยัน 2026-07-08)
->
-> ทุกคำสั่งรันที่ `/opt/infra-stack` ด้วย user `deploy` เว้นแต่บอกไว้
-> ติ๊ก `[x]` เมื่อเสร็จ แล้ว commit ไฟล์นี้กลับเข้า Git ได้เลย (ไม่มี secret)
+ใช้ checklist นี้กับ Ubuntu VPS เครื่องใหม่หนึ่งเครื่อง งานทั้งหมดเริ่มเป็นสถานะยังไม่ทำ
+และต้องตรวจผลจริงก่อนติ๊กเสร็จ อ่านภาพรวมที่ [GUIDE.md](GUIDE.md) และลำดับคู่มือที่
+[docs/00-introduction.md](docs/00-introduction.md)
 
----
+> เก็บ `.env`, private keys, certificates, backup archives และข้อมูล runtime ไว้นอก
+> Git เสมอ ตัวอย่างใน repository ใช้ค่าจำลองเท่านั้น
 
-## Phase A — ปิดงานระบบ (ทำให้ครบก่อน deploy โปรเจกต์)
+## 1. Prerequisites — เตรียมเครื่องและสิทธิ์เข้าถึง
 
-### A1. 🔴 Revoke Telegram token (5 นาที — token เก่าหลุดในภาพแคปแล้ว)
-
-- [x] เปิด Telegram → คุยกับ `@BotFather` → พิมพ์ `/revoke` → เลือก bot → ได้ token ใหม่
-- [x] เอา token ใหม่ใส่แทนตัวเก่า:
-
-```bash
-nano services/alertmanager/alertmanager.yml   # แก้บรรทัด bot_token: "..."
-docker restart alertmanager
-```
-
-- [x] ทดสอบว่ายังส่งได้:
+- [ ] เตรียม Ubuntu VPS ที่เข้าผ่าน SSH หรือ provider console ได้
+- [ ] สร้าง SSH key บนเครื่องผู้ดูแลและสำรอง private key ในที่ปลอดภัย
+- [ ] เพิ่ม public key ให้ `root` แล้วเปิด terminal ใหม่ทดสอบว่าเข้าได้จริง
+- [ ] เตรียม domain และสิทธิ์แก้ DNS; เปิด inbound เฉพาะ SSH, HTTP และ HTTPS
+- [ ] ติดตั้ง Git แล้ว clone repository ลง `/opt/infra-stack`
 
 ```bash
-docker exec alertmanager wget -qO- --post-data='[{"labels":{"alertname":"TestAlert","severity":"info"}}]' --header='Content-Type: application/json' http://localhost:9093/api/v2/alerts
+apt update && apt install -y git
+git clone https://github.com/korwlik23/infra-stack.git /opt/infra-stack
+cd /opt/infra-stack
 ```
 
-→ ต้องมีข้อความเข้า Telegram ภายใน ~30 วินาที
+รายละเอียด: [docs/01-server-setup.md](docs/01-server-setup.md)
 
-- [x] กันเผลอ commit token:
+## 2. Security — Harden server ก่อนเปิดบริการ
+
+- [ ] อ่านคำเตือนเรื่อง SSH key และ lockout ใน [docs/02-security.md](docs/02-security.md)
+- [ ] รัน hardening script จาก session ที่ยังเปิด provider console สำรองไว้ได้
 
 ```bash
-git update-index --skip-worktree services/alertmanager/alertmanager.yml
+cd /opt/infra-stack
+sudo ./scripts/harden.sh
 ```
 
-### A2. 🔴 ตั้ง cron backup (10 นาที — สำคัญที่สุดในลิสต์นี้)
-
-- [x] ทดลองรัน backup มือก่อน 1 ครั้ง:
+- [ ] ตั้งรหัสสำหรับ `sudo` ของ user `deploy` และโอน ownership ของ repository
 
 ```bash
-./scripts/backup.sh
-ls -lh backup/archives/postgres/    # ต้องมีไฟล์ all_*.sql.gz ขนาด > 0
+sudo passwd deploy
+sudo chown -R deploy:deploy /opt/infra-stack
 ```
 
-- [x] ตั้ง cron:
+- [ ] เปิด terminal ใหม่ทดสอบ `ssh deploy@<server-ip>` ก่อนปิด session เดิม
+- [ ] ยืนยันว่า root login และ password login ถูกปิดตามนโยบายที่เลือก
+- [ ] ตรวจ UFW และ Fail2ban
 
 ```bash
-# ⚠️ ต้องทำก่อน — deploy เขียนไฟล์ใหม่ใน /var/log ไม่ได้ cron จะล้มเงียบ
-sudo touch /var/log/infra-backup.log /var/log/infra-deploy.log
-sudo chown deploy:deploy /var/log/infra-backup.log /var/log/infra-deploy.log
-crontab -e
+sudo ufw status verbose
+sudo fail2ban-client status sshd
 ```
 
-วางท้ายไฟล์:
+## 3. Configuration — ตั้งค่าที่ไม่อยู่ใน Git
 
-```cron
-0 3 * * *  /opt/infra-stack/backup/scripts/postgres-backup.sh >> /var/log/infra-backup.log 2>&1
-30 3 * * 0 /opt/infra-stack/backup/scripts/volumes-backup.sh  >> /var/log/infra-backup.log 2>&1
-```
-
-- [x] เช้าวันถัดไป เช็คว่า cron ทำงานจริง:
+- [ ] Login ใหม่เป็น `deploy` แล้วสร้าง `.env` จากตัวอย่าง
 
 ```bash
-ls -lh backup/archives/postgres/ && tail /var/log/infra-backup.log
+cd /opt/infra-stack
+cp .env.example .env
+chmod 600 .env
+nano .env
 ```
 
-- [x] 🔁 **ภายในเดือนนี้**: ซ้อม restore 1 ครั้ง (`./scripts/restore.sh` — มี confirmation ก่อนเขียนทับ)
-  กฎ: backup ที่ไม่เคยลอง restore = ไม่มี backup ([docs/13](docs/13-backup.md))
-
-### A3. 🟠 Uptime Kuma — ตั้ง monitor + แจ้งเตือน (15 นาที)
-
-- [x] เปิด `https://uptime.tewarach-dev.me` → login
-- [x] Settings → Notifications → Setup Notification → **Telegram**
-  → ใส่ bot token (ตัวใหม่จาก A1) + chat ID → Test → Save
-  → ติ๊ก **Default enabled** (monitor ใหม่จะผูกอัตโนมัติ)
-- [x] Add New Monitor ทีละตัว (Type: HTTP(s), Interval: 60s):
-
-| Friendly Name | URL |
-|---|---|
-| Portainer | `https://portainer.tewarach-dev.me` |
-| Grafana | `https://grafana.tewarach-dev.me` |
-| ZennuaFlow (เครื่องเก่า) | `https://zennuaflow.tewarach-dev.me` |
-
-- [x] ทดสอบ: ปิด grafana ชั่วคราว `docker stop grafana` → รอ ~2 นาที → ต้องมีแจ้งเตือน
-  → `docker start grafana` → ต้องมีข้อความ "Up" ตามมา
-
-### A4. 🟠 เปลี่ยน basicauth ของ netdata / dozzle (10 นาที)
-
-ตอนนี้ 2 ตัวนี้ login ไม่ได้เพราะ hash ยังเป็น `CHANGE_ME`
-
-- [x] สร้าง hash (บนเซิร์ฟเวอร์):
+- [ ] เปลี่ยน `BASE_DOMAIN`, `ACME_EMAIL` และทุกค่า `CHANGE_ME`
+- [ ] สร้างรหัสผ่านแต่ละระบบแยกกัน เช่น `openssl rand -hex 32`
+- [ ] ตั้งค่า R2 เฉพาะเมื่อพร้อมใช้ offsite backup; อย่าใส่ secret ลงไฟล์ตัวอย่าง
+- [ ] ตรวจว่า `.env` ถูก ignore และไม่มี secret ถูก stage
 
 ```bash
-sudo apt install -y apache2-utils
-htpasswd -nb admin 'รหัสผ่านที่ต้องการ'
-# ได้ผลลัพธ์แบบ: admin:$apr1$xxxx$yyyyyyyy
+git check-ignore -v .env
+git status --short
 ```
 
-- [x] ⚠️ ก่อนวางใน compose ต้องเปลี่ยน `$` ทุกตัวเป็น `$$` เช่น
-  `admin:$apr1$ab12$cd34` → `admin:$$apr1$$ab12$$cd34`
-- [x] แก้ 2 ไฟล์ (บรรทัด `basicauth.users=`):
+## 4. Core — Docker, networks, Traefik และ Portainer
+
+- [ ] รัน installer; ถ้าเพิ่ม user เข้า group `docker` ให้ logout/login แล้วรันซ้ำ
 
 ```bash
-nano services/netdata/docker-compose.yml
-nano services/dozzle/docker-compose.yml
-docker compose --env-file .env -f docker/docker-compose.monitoring.yml up -d netdata dozzle
+cd /opt/infra-stack
+./install.sh
 ```
 
-- [x] ทดสอบ: เปิด `https://netdata.tewarach-dev.me` และ `https://logs.tewarach-dev.me` -> 
-  → ใส่ admin + รหัส → เข้าได้
-
-### A5. 🟡 Grafana — import dashboards (10 นาที)
-
-- [x] เปิด `https://grafana.tewarach-dev.me` → Dashboards → New → **Import**
-- [x] Import ทีละ ID (ช่อง datasource เลือก **Prometheus**):
-
-| ID | ชื่อ | ดูอะไร |
-|----|------|--------|
-| 1860 | Node Exporter Full | CPU / RAM / Disk / Network |
-| 193 | Docker monitoring | container ราย ตัว |
-| 9628 | PostgreSQL Database | postgres (exporter มีแล้ว) |
-| 11835 | Redis Dashboard | redis (exporter มีแล้ว) |
-
-- [x] เปิด dashboard 1860 ดูค่า baseline ตอนเครื่องว่าง แล้วจดไว้:
-  RAM ใช้ไป ~___ GB, CPU ~___% (ไว้เทียบตอนเครื่อง "ตึง" — [docs/18](docs/18-scale.md))
-
----
-
-## Phase B — Deploy โปรเจกต์ (ทำทีละตัว ตามลำดับ)
-
-> แนวคิด CI/CD ที่ใช้: **build บนเซิร์ฟเวอร์ ฟรี 100%** ไม่ใช้ GitHub Actions
-> อ่านก่อนเริ่ม: [docs/19-cicd.md](docs/19-cicd.md) + [docs/25-zero-downtime.md](docs/25-zero-downtime.md)
-
-### B1. 🟢 n8n (30 นาที — ง่ายสุด เริ่มตัวนี้ DNS ก็ชี้รออยู่แล้ว)
-
-- [x] สร้าง project:
+- [ ] ตรวจ Docker, Compose, shared networks และ core containers
 
 ```bash
-./scripts/create-project.sh n8n n8n
+docker --version
+docker compose version
+docker network ls | grep -E 'proxy|backend|monitoring'
+docker compose --env-file .env -f docker/docker-compose.core.yml ps
 ```
 
-- [x] สร้าง encryption key แล้วเก็บใน password manager **เดี๋ยวนี้** (หาย = credentials ทุก workflow กู้ไม่ได้):
+- [ ] เพิ่ม DNS records ที่ต้องใช้ แล้วตรวจว่า Traefik ออก TLS certificate สำเร็จ
+- [ ] สร้างบัญชี Portainer ครั้งแรกและใช้รหัสผ่านเฉพาะระบบ
+
+รายละเอียด: [docs/03-docker.md](docs/03-docker.md),
+[docs/04-traefik.md](docs/04-traefik.md), [docs/05-portainer.md](docs/05-portainer.md)
+
+## 5. Database — PostgreSQL และ Redis
+
+- [ ] Start database stack
 
 ```bash
-openssl rand -hex 24
+docker compose --env-file .env -f docker/docker-compose.database.yml up -d
+docker compose --env-file .env -f docker/docker-compose.database.yml ps
 ```
 
-- [x] ตั้งค่า:
+- [ ] ยืนยันว่า PostgreSQL และ Redis healthy และไม่เปิด ports สู่ public network
+- [ ] สร้าง database แยกต่อ application ตามคู่มือ ไม่ใช้ database กลางร่วมกัน
+
+รายละเอียด: [docs/06-postgresql.md](docs/06-postgresql.md),
+[docs/07-redis.md](docs/07-redis.md)
+
+## 6. Monitoring — Metrics, logs และ uptime
+
+- [ ] Start monitoring stack
 
 ```bash
-nano projects/n8n/.env
+docker compose --env-file .env -f docker/docker-compose.monitoring.yml up -d
+docker compose --env-file .env -f docker/docker-compose.monitoring.yml ps
 ```
 
-```env
-APP_DOMAIN=n8n.tewarach-dev.me
-N8N_ENCRYPTION_KEY=<ค่าจาก openssl ข้างบน>
-DB_DATABASE=n8n_db        # มีอยู่แล้ว (สร้างตอน postgres init)
-DB_USERNAME=infra          # ตาม POSTGRES_USER ใน /opt/infra-stack/.env
-DB_PASSWORD=<POSTGRES_PASSWORD จาก /opt/infra-stack/.env>
-```
+- [ ] เปลี่ยน Grafana admin password และตรวจ Prometheus targets
+- [ ] สร้าง Uptime Kuma owner account, monitors และ notification channel
+- [ ] ทดสอบ alert ด้วย service ทดลอง แล้วเปิด service กลับทันที
+- [ ] ตรวจว่า token หรือ chat ID ไม่ถูก commit ใน tracked configuration
 
-- [x] Start + เช็ค:
+รายละเอียด: [docs/08-netdata.md](docs/08-netdata.md),
+[docs/09-grafana.md](docs/09-grafana.md), [docs/10-uptime-kuma.md](docs/10-uptime-kuma.md),
+[docs/14-monitoring.md](docs/14-monitoring.md)
+
+## 7. Backup — สำรองและซ้อมกู้คืน
+
+- [ ] รัน PostgreSQL backup และตรวจว่า archive มีขนาดมากกว่า 0 bytes
 
 ```bash
-cd projects/n8n && docker compose up -d
-docker compose logs -f    # รอเห็น "Editor is now accessible" แล้ว Ctrl+C
-cd ../..
+./backup/scripts/postgres-backup.sh
+ls -lh backup/archives/postgres/
 ```
 
-- [x] เปิด `https://n8n.tewarach-dev.me` → สร้าง owner account
-- [x] ทดสอบ workflow แรก: Webhook trigger → Execute → ยิง curl ตาม URL ที่มันให้ → เห็น execution สำเร็จ
-- [x] เพิ่ม monitor `https://n8n.tewarach-dev.me` ใน Uptime Kuma
+- [ ] รัน volume backup และตรวจผลลัพธ์
+- [ ] สร้าง log files ที่ cron เขียนได้ แล้วตั้ง daily/weekly schedules ตามคู่มือ
+- [ ] ตั้ง offsite copy เช่น Cloudflare R2 และตรวจว่าไฟล์ปลายทางเปิดอ่านได้
+- [ ] ซ้อม restore ด้วยข้อมูลทดสอบก่อนใช้ production และจดเวลา recovery
 
-### B2. 🟢 Laravel — ZennuaFlow ย้ายมาเครื่องนี้ (2-4 ชั่วโมง เผื่อเวลา)
+รายละเอียด: [docs/12-r2.md](docs/12-r2.md), [docs/13-backup.md](docs/13-backup.md)
 
-> 📌 **สถานะ 2026-07-08:** app (repo `accounting-saas`) build + rolling deploy
-> **สำเร็จแล้ว** รันอยู่บน temp domain — เหลือ: ตรวจ APP_KEY, ย้ายข้อมูล, สลับ DNS
+## 8. Optional Services — เปิดเท่าที่ใช้
 
-> เช็คก่อน: ZennuaFlow มี Dockerfile หรือยัง? ถ้ายัง ต้องเพิ่มใน repo ของ app ก่อน
-> (แนะนำ php-fpm + nginx หรือ FrankenPHP, expose port 8080, มี `curl` ใน image)
-
-**เตรียม (ครั้งเดียว):**
-
-- [x] ~~deploy key แยกต่อ repo~~ → ใช้ SSH key ของ account (`~/.ssh/id_ed25519`
-  ผูกกับ GitHub account) แทน — ใช้ได้ แต่ key เดียวเข้าได้ทุก repo
-  ⚠️ อยากจำกัดสิทธิ์เมื่อไหร่ ค่อยเปลี่ยนเป็น deploy key read-only ตามสูตรเดิม:
+- [ ] เปิด tools stack เมื่อต้องใช้ pgAdmin หรือ Redis Insight
+- [ ] เปิด messaging stack เมื่อต้องใช้ RabbitMQ
+- [ ] เปิด storage stack เมื่อต้องใช้ MinIO
+- [ ] ทบทวนสิทธิ์, DNS, authentication, backup และ monitoring ของทุก service ที่เปิดเพิ่ม
 
 ```bash
-ssh-keygen -t ed25519 -f ~/.ssh/deploy_zennuaflow -N ""
-cat ~/.ssh/deploy_zennuaflow.pub
-# GitHub → repo → Settings → Deploy keys → Add (ไม่ติ๊ก write)
-# + ตั้ง alias ใน ~/.ssh/config (Host github.com-zennuaflow …)
+docker compose --env-file .env -f docker/docker-compose.tools.yml up -d
+docker compose --env-file .env -f docker/docker-compose.messaging.yml up -d
+docker compose --env-file .env -f docker/docker-compose.storage.yml up -d
 ```
 
-**Deploy:**
+ดูรายการ stack ที่ [docker/README.md](docker/README.md)
 
-- [x] สร้าง project + clone source (repo จริงชื่อ `accounting-saas`):
+## 9. Deploy — เพิ่ม application แรก
+
+- [ ] เตรียม application image หรือ Dockerfile พร้อม health endpoint
+- [ ] สร้าง project จาก template ที่ตรงกับ application
 
 ```bash
-./scripts/create-project.sh zennuaflow laravel
-cd projects/zennuaflow
-git clone git@github.com:korwlik23/accounting-saas.git src
+./scripts/create-project.sh app <laravel|nextjs|n8n|ai-worker>
+nano projects/app/.env
+./scripts/deploy.sh app
 ```
 
-- [x] เปิดโหมด build-on-server: เอา `#` ออกหน้า `build: ./src`
-- [x] ตั้งค่า `.env` — ใช้ temp domain `zennuaflow-new.tewarach-dev.me` ระหว่างทดสอบ
-  ⚠️ **ก่อนย้ายข้อมูล: เช็คว่า APP_KEY เป็นตัวเดียวกับเครื่องเก่า** — จุดสำคัญ:
+- [ ] เพิ่ม DNS ก่อน deploy เพื่อหลีกเลี่ยง certificate issuance failure
+- [ ] เปิด migration เฉพาะ application ที่ใช้ expand/contract migration ได้
+- [ ] ตรวจ health endpoint, งานหลัก, queue/scheduler และ logs
+- [ ] เพิ่ม application เข้า Uptime Kuma และทดสอบ rollback บน environment ทดลอง
 
-```env
-APP_DOMAIN=zennuaflow.tewarach-dev.me   # ⚠️ ยังไม่สลับ DNS — ดูข้อถัดไป
-APP_KEY=<จาก .env ของเครื่องเก่า — ต้องตัวเดิม! ไม่งั้นข้อมูลเข้ารหัสเดิมอ่านไม่ได้>
-DB_DATABASE=zennuaflow_db
-DB_PASSWORD=<POSTGRES_PASSWORD>
-REDIS_PASSWORD=<REDIS_PASSWORD>
-HEALTHCHECK_PATH=/up       # Laravel 11+; เก่ากว่านั้นสร้าง route /up เอง
-```
+รายละเอียด: [docs/25-zero-downtime.md](docs/25-zero-downtime.md),
+[docs/26-new-project.md](docs/26-new-project.md)
 
-- [ ] **ย้ายข้อมูลจากเครื่องเก่า** (ทำตอนคนใช้น้อย):
+## 10. Validation — ตรวจ Definition of Done
+
+- [ ] Core, database และ monitoring containers อยู่ในสถานะ running/healthy
+- [ ] HTTPS ใช้งานได้โดยไม่มี certificate warning
+- [ ] PostgreSQL/Redis ไม่เข้าถึงได้จาก public internet
+- [ ] Uptime และ resource alerts ส่งถึงผู้ดูแลจริง
+- [ ] Backup ล่าสุดอ่านได้และ restore drill ผ่าน
+- [ ] `git status --short` ไม่มี `.env`, keys, certificates, archives หรือ runtime data
+- [ ] เก็บ rollback path และ provider-console recovery steps ไว้ใน runbook ส่วนตัว
 
 ```bash
-# บนเครื่องเก่า: dump database
-pg_dump -U <user> zennuaflow_db | gzip > /tmp/zennuaflow.sql.gz
-# ดึงมาเครื่องใหม่:
-scp <user>@20.63.219.103:/tmp/zennuaflow.sql.gz /tmp/
-gunzip -c /tmp/zennuaflow.sql.gz | docker exec -i postgres psql -U infra -d zennuaflow_db
+docker ps
+docker network ls
+sudo ufw status verbose
+git status --short
 ```
 
-- [x] Build + start — **rolling deploy ผ่านแล้ว** (2026-07-08); migrate รันตอนย้ายข้อมูลจริง:
+## 11. Maintenance — งานประจำหลังติดตั้ง
 
-```bash
-cd /opt/infra-stack && ./scripts/deploy.sh zennuaflow
-./scripts/artisan.sh zennuaflow migrate --force
-```
+- [ ] ทุกสัปดาห์: ตรวจ disk, container restarts, backup age และ uptime
+- [ ] ทุกเดือน: ซ้อม restore, ทบทวน alerts และอัปเดต security patches
+- [ ] ก่อน update: อ่าน [CHANGELOG.md](CHANGELOG.md), ยืนยัน backup และ rollback path
+- [ ] หลัง update/deploy: ตรวจ health, logs และ metrics ก่อนจบงาน
+- [ ] บันทึกข้อมูลเฉพาะเครื่องใน runbook ส่วนตัวที่อยู่นอก repository นี้
 
-- [ ] ทดสอบบน temp domain ให้ครบ (login, หน้าหลัก) ก่อนวันสลับ:
-
-```bash
-curl -s -o /dev/null -w "%{http_code}\n" https://zennuaflow-new.tewarach-dev.me   # ต้อง 200
-```
-
-- [ ] **วันสลับจริง**: แก้ `.env` → `APP_DOMAIN=zennuaflow.tewarach-dev.me` →
-  Cloudflare สลับ A record `zennuaflow`: `20.63.219.103` → `217.216.32.198` →
-  `./scripts/deploy.sh zennuaflow` → ลบ record `zennuaflow-new`
-- [ ] เปิดเว็บจริง ทดสอบ login / งานหลัก / queue:
-
-```bash
-./scripts/artisan.sh zennuaflow queue:monitor redis
-```
-
-- [ ] เก็บเครื่องเก่าไว้ 1 สัปดาห์ก่อนปิด (เผื่อ rollback DNS กลับ)
-
-### B2.5 🟢 automation-ai-seller-chat (Laravel) — ✅ เสร็จแล้ว 2026-07-08
-
-> ทำเพิ่มนอกแผนเดิม — deploy ด้วย pattern เดียวกับ B2 (build-on-server + rolling)
-
-- [x] project + src + `build: ./src` + database `automation_ai_seller_chat_db`
-- [x] migrate + seed ครบ (RolePermission, Plan, DemoTenant, SupportTicket, AiSellerDemo)
-- [x] rolling deploy ทำงาน (Scaling to 2 → healthy → ถอดตัวเก่า)
-- [x] แก้ `Class "Redis" not found` ด้วย `REDIS_CLIENT=predis`
-  💡 ระยะยาว: เพิ่ม phpredis ใน Dockerfile แล้วถอด predis ได้ (docs/15)
-- [ ] เพิ่ม monitor โดเมนของ app นี้ใน Uptime Kuma
-- [ ] ย้าย seeder demo ออกจาก production flow เมื่อเปิดใช้จริง (ข้อมูล demo อยู่ใน db แล้ว)
-
-### B3. 🟢 Next.js (1-2 ชั่วโมง)
-
-> เตรียมใน repo ของ app: `next.config.js` ใส่ `output: "standalone"` + Dockerfile
-> (multi-stage ตาม official example, ท้ายสุด `node server.js`, port 3000)
-
-- [ ] Deploy key + ssh alias (ทำเหมือน B2 เปลี่ยนชื่อ)
-- [ ] สร้าง + clone + เปิด build:
-
-```bash
-./scripts/create-project.sh <ชื่อ> nextjs
-cd projects/<ชื่อ>
-git clone git@github.com-<ชื่อ>:korwlik23/<repo>.git src
-nano docker-compose.yml    # เอา # ออกหน้า build: ./src
-nano .env                  # APP_DOMAIN, DATABASE_URL (ถ้าใช้), HEALTHCHECK_PATH
-```
-
-- [ ] สร้าง `/api/health` ใน app ที่ตอบ 200 เร็วๆ แล้วตั้ง `HEALTHCHECK_PATH=/api/health`
-- [ ] เพิ่ม A record `<ชื่อ>.tewarach-dev.me` → `217.216.32.198` ใน Cloudflare
-- [ ] `cd /opt/infra-stack && ./scripts/deploy.sh <ชื่อ>` → เปิดเว็บ → เพิ่ม Uptime Kuma monitor
-- [ ] ⚠️ จำ: ตัวแปร `NEXT_PUBLIC_*` ฝังตอน build — เปลี่ยนค่าต้อง deploy ใหม่ ไม่ใช่แค่ restart
-
-### B4. 🟢 เปิด auto-deploy (5 นาที — ทำหลัง B1-B3 นิ่งแล้ว)
-
-- [x] `crontab -e` เพิ่ม (ทำแล้ว + แก้สิทธิ์ log file แล้ว 2026-07-08):
-
-```cron
-*/2 * * * * /opt/infra-stack/scripts/auto-deploy.sh >> /var/log/infra-deploy.log 2>&1
-```
-
-- [ ] ทดสอบ: push commit เล็กๆ เข้า repo ของ app → รอ 2-4 นาที → `tail -f /var/log/infra-deploy.log`
-  ต้องเห็นมัน pull + build + rolling deploy **เองโดยไม่ต้องสั่ง** (ที่ผ่านมา deploy มือทุกครั้ง)
-- [ ] ทดสอบ zero-downtime จริง (terminal ที่สอง ระหว่าง deploy):
-
-```bash
-while true; do curl -s -o /dev/null -w "%{http_code} " https://<เว็บ>.tewarach-dev.me; sleep 1; done
-# ต้องเห็น 200 ล้วน ไม่มี 502
-```
-
----
-
-## Phase C — ภายในเดือนนี้ (ไม่บล็อกอะไร แต่อย่าลืม)
-
-- [ ] **Cloudflare R2**: สมัคร → สร้าง buckets (`images`, `videos`, `uploads`, `backup`)
-  → ติดตั้ง rclone → backup จะ sync offsite อัตโนมัติ ([docs/12](docs/12-r2.md))
-- [ ] **ซ้อม disaster recovery**: อ่าน [docs/13](docs/13-backup.md) ท้ายบท — จับเวลา restore
-- [ ] **ทดสอบ rollback**: `./scripts/rollback.sh <project> <tag>` กับ project ทดลอง ([docs/25](docs/25-zero-downtime.md))
-- [ ] **Beszel agent**: ค่อยเปิดตอนมีเครื่องที่ 2 — ตอนนี้หยุดไว้ถูกแล้ว ([docs/23](docs/23-beszel.md))
-- [ ] เช็คสุขภาพประจำอาทิตย์ 5 นาที ตามลิสต์ใน [docs/14-monitoring.md](docs/14-monitoring.md)
-
----
-
-## ⚠️ กฎประจำเครื่องนี้ (อ่านซ้ำได้เรื่อยๆ)
-
-1. **ห้ามใช้ `--remove-orphans`** กับ docker compose บนเครื่องนี้ — จะลบ stack อื่นทิ้ง
-2. `.env` และ `alertmanager.yml` (มี token) **ห้าม commit** — .gitignore + skip-worktree กันไว้แล้ว
-3. Deploy ใช้ `./scripts/deploy.sh <ชื่อ>` เสมอ — อย่า `docker compose up -d` มือใน projects/ (เสีย zero-downtime)
-4. Migration ต้องเป็น expand/contract — ห้าม rename/drop column ใน release เดียว ([docs/25](docs/25-zero-downtime.md))
-5. แก้อะไรใน services/ บนเซิร์ฟเวอร์ ให้แก้ใน repo (เครื่อง dev) แล้ว push ด้วย — Git คือ source of truth
+อ้างอิงการดูแลต่อเนื่อง: [docs/14-monitoring.md](docs/14-monitoring.md),
+[docs/18-scale.md](docs/18-scale.md), [docs/roadmap.md](docs/roadmap.md)

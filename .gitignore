@@ -40,3 +40,6 @@ Thumbs.db
 *.log
 .idea/
 .vscode/
+
+# Local operator notes — never publish
+/TODO.private.md

@@ -1,6 +1,6 @@
 # InfraStack
 
-Production Infrastructure Stack — v2.1.0
+Production Infrastructure Stack — v2.3.0
 
 ## Goal
 
@@ -57,7 +57,7 @@ Three layers:
 - CI/CD ฟรีไม่ใช้ GitHub Actions — build-on-server + auto-deploy (cron git poll)
 - **Zero-downtime deployment** — rolling deploy + healthcheck gate + `rollback.sh`
 - Project templates (Laravel, Next.js, n8n, AI Worker) + `create-project.sh`
-- Full documentation under `docs/` (00–25)
+- Full documentation under `docs/` (00–26)
 
 ## Repository Structure
 
@@ -102,9 +102,13 @@ docker compose --env-file .env -f docker/docker-compose.storage.yml up -d    # M
 
 ## Security Rules
 
-- Repository ควรเป็น **Private** ถ้าใช้กับเซิร์ฟเวอร์จริง
-- **ห้าม commit**: `.env`, SSH keys, API tokens, certificates — ดู `.gitignore`
-- Commit ได้เฉพาะ `.env.example` ที่ใช้ค่า `CHANGE_ME`
+- Repository นี้เปิดเผย reusable code ได้ แต่ deployment configuration และ operator
+  runbooks ต้องเก็บเป็น private
+- **ห้าม commit**: `.env`, SSH keys, API tokens, certificates, backup archives หรือ
+  runtime data — ดู `.gitignore`
+- Commit ได้เฉพาะ `.env.example` ที่ใช้ dummy values เช่น `CHANGE_ME`
+- ใช้ [TODO.md](TODO.md) เป็น installation checklist และเก็บข้อมูลเฉพาะเครื่องไว้นอก
+  repository
 
 ## Documentation
 
@@ -115,10 +119,14 @@ Start at [docs/00-introduction.md](docs/00-introduction.md).
 Architecture details in [docs/architecture.md](docs/architecture.md),
 requirements in [docs/requirements.md](docs/requirements.md),
 roadmap in [docs/roadmap.md](docs/roadmap.md).
+Installation checklist in [TODO.md](TODO.md).
 
 ## Versioning
 
 Infrastructure is versioned like software — see [CHANGELOG.md](CHANGELOG.md).
-Current: **v2.1.0** — zero-downtime rolling deployment + rollback, on top of
-v2.0 (RabbitMQ, MinIO, Loki, Alertmanager→Telegram, Beszel, AI Worker,
-CI/CD without GitHub Actions).
+Current: **v2.3.0** — project `.env` auto-fill from shared root configuration, on top
+of v2.2 auto-migration/rollback and the v2.0 service expansion.
+
+## License
+
+[MIT](LICENSE)

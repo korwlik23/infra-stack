@@ -24,9 +24,8 @@ only the validated tracked snapshot into a new one-commit repository at
   installation checklist covering prerequisites, hardening, `.env`, core/database/
   monitoring stacks, optional services, backups and restore drills, application
   deployment, validation, and routine maintenance.
-- **Verify:** `rg -n '217\.216|20\.63|tewarach|zennua|automation-ai|accounting-saas' TODO.md`
-  returns no matches; every checklist section contains commands or links that exist in
-  the repository.
+- **Verify:** The known-private-identifier scan returns no matches in `TODO.md`; every
+  checklist section contains commands or links that exist in the repository.
 - **Dependency:** Depends on Task 1.
 
 ## Task 3 — Add the public license
@@ -64,11 +63,12 @@ only the validated tracked snapshot into a new one-commit repository at
 ## Task 6 — Generalize database and service examples
 
 - **Files:** `docs/06-postgresql.md`, `services/postgres/init/01-create-databases.sql`,
-  `services/loki/README.md`, `docs/22-loki.md`
+  `docs/20-rabbitmq.md`, `services/loki/README.md`, `docs/22-loki.md`
 - **Change:** Replace private database/container names with neutral `app_db` and
-  `app-app` examples; keep `n8n_db` only where it represents the bundled n8n template.
-- **Verify:** `rg -n -i 'zennua|trex|printshub|bdo|content center|automation-ai'` over
-  these four files returns no matches; SQL statements end with semicolons.
+  `app-app` examples; keep `n8n_db` only where it represents the bundled n8n template;
+  replace copyable weak URL credentials with explicit placeholders.
+- **Verify:** The known-private-identifier and literal-credential scans over these files
+  return no matches; SQL statements end with semicolons.
 - **Dependency:** Independent after Task 1.
 
 ## Task 7 — Generalize application operation examples

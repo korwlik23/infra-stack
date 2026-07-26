@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Rollback project กลับไป image tag ก่อนหน้า (zero-downtime ถ้ามี rollout)
 # ใช้: ./scripts/rollback.sh <project> <image-tag>
-# เช่น: ./scripts/rollback.sh zennuaflow v1.4.2
+# เช่น: ./scripts/rollback.sh app v1.4.2
 #
 # ⚠️ rollback ได้เฉพาะ "โค้ด" — database migration ที่รันไปแล้วไม่ย้อนอัตโนมัติ
 #    (นี่คือเหตุผลที่ migration ต้องเป็นแบบ expand/contract — docs/25-zero-downtime.md)
@@ -9,7 +9,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 # tag ที่ใช้บ่อยสุดคือ "previous" — deploy.sh เก็บเวอร์ชันก่อนหน้าไว้ให้อัตโนมัติ
-# เช่น: ./scripts/rollback.sh automation-ai-seller-chat previous
+# เช่น: ./scripts/rollback.sh app previous
 NAME="${1:?usage: rollback.sh <project> <image-tag>  (เช่น tag=previous)}"
 TAG="${2:?usage: rollback.sh <project> <image-tag>  (เช่น tag=previous)}"
 DIR="projects/$NAME"

@@ -76,7 +76,7 @@ rolling deploy เลยคิดว่าสำเร็จ ทั้งที�
 ## 🔄 Rollback
 
 ```bash
-./scripts/rollback.sh automation-ai-seller-chat previous   # กลับเวอร์ชันก่อนหน้า
+./scripts/rollback.sh app previous   # กลับเวอร์ชันก่อนหน้า
 ```
 
 `deploy.sh` เก็บ image ก่อน build ใหม่ไว้เป็น tag `:previous` อัตโนมัติ (v2.2.0+)

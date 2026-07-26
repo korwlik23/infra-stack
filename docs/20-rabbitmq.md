@@ -20,7 +20,7 @@
 docker compose --env-file .env -f docker/docker-compose.messaging.yml up -d
 ```
 
-- UI: `https://mq.<BASE_DOMAIN>` · AMQP จาก app: `amqp://user:pass@rabbitmq:5672`
+- UI: `https://mq.<BASE_DOMAIN>` · AMQP จาก app: `amqp://<user>:<password>@rabbitmq:5672`
 - รายละเอียด: [services/rabbitmq/README.md](../services/rabbitmq/README.md)
 
 ## 🧪 ทดสอบ

@@ -10,21 +10,21 @@ Infrastructure  →  Platform  →  Application
 |-------|------------------|-----------|
 | **Infrastructure** | ทำครั้งเดียวต่อเครื่อง | Ubuntu, Docker, Traefik, PostgreSQL, Redis, Cloudflare, R2 |
 | **Platform** | ทุก project แชร์ | Portainer, Netdata, Grafana, Prometheus, Uptime Kuma, Dozzle, Watchtower, Backup, CI/CD |
-| **Application** | Deploy อิสระต่อ project | ZennuaFlow, Trex, PrintsHub, BDO, Content Center, n8n, AI Workers |
+| **Application** | Deploy อิสระต่อ project | Laravel/Next.js apps, n8n, AI Workers |
 
 ## ภาพรวมบนเครื่องเดียว (Stage 1)
 
 ```text
-VPS (Contabo Singapore)
+VPS (cloud provider)
 │
 ├── Traefik ── HTTPS ทุกโดเมน
-│      ├── zennuaflow.com
-│      ├── n8n.domain.com
-│      ├── portainer.domain.com
-│      ├── grafana.domain.com
-│      ├── netdata.domain.com
-│      ├── uptime.domain.com
-│      └── logs.domain.com (Dozzle)
+│      ├── app.example.com
+│      ├── n8n.example.com
+│      ├── portainer.example.com
+│      ├── grafana.example.com
+│      ├── netdata.example.com
+│      ├── uptime.example.com
+│      └── logs.example.com (Dozzle)
 │
 ├── PostgreSQL ── database ต่อ project (network: backend)
 ├── Redis ────── cache / queue / session (network: backend)

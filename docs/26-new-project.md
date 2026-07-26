@@ -25,14 +25,14 @@ app repo ต้องมี **Dockerfile** ไม่งั้น build บนเ
 | health route | `/up` (Laravel 11 มีให้) | สร้าง `/api/health` เอง |
 | build output | php-fpm+nginx | `output: "standalone"` |
 
-(ตัวอย่าง Dockerfile ดูจาก accounting-saas / automation-ai-seller-chat ใน repo ของ app นั้น)
+(เก็บ Dockerfile ไว้ใน repository ของ application นั้น)
 
 ---
 
 ## เฟส 1 — ตั้งค่าครั้งเดียวบนเซิร์ฟเวอร์
 
 > แทน `<ชื่อ>` ด้วยชื่อ project (ตัวเล็ก a-z 0-9 -), `<repo>` = ชื่อ repo จริงบน GitHub
-> (อาจไม่ตรงกัน เช่น project `zennuaflow` แต่ repo ชื่อ `accounting-saas`)
+> ชื่อ project และชื่อ repository ไม่จำเป็นต้องตรงกัน
 
 ```bash
 cd /opt/infra-stack
@@ -42,7 +42,7 @@ cd /opt/infra-stack
 
 # 2) clone โค้ด app เข้าไปใน src/
 cd projects/<ชื่อ>
-git clone git@github.com:korwlik23/<repo>.git src
+git clone git@github.com:<github-user>/<repo>.git src
 cd /opt/infra-stack
 
 # 3) เปิดโหมด build-on-server (เอา # ออกหน้า "build: ./src")
@@ -72,7 +72,7 @@ APP_KEY=          # ⚠️ ต้องตั้ง: ./scripts/artisan.sh <ช�
 # 5) สร้าง database (ชื่อห้ามมี "-" ใช้ "_" แทน)
 docker exec -i postgres psql -U infra -c "CREATE DATABASE <ชื่อ>_db;"
 
-# 6) เพิ่ม DNS record ใน Cloudflare: <ชื่อ>.tewarach-dev.me → 217.216.32.198
+# 6) เพิ่ม DNS record ใน Cloudflare: <ชื่อ>.example.com → 203.0.113.10
 #    ⚠️ ทำก่อน deploy ไม่งั้น Traefik ขอ cert ไม่ผ่าน → โดน rate limit
 
 # 7) deploy ครั้งแรก (build + migrate + start)
@@ -83,7 +83,7 @@ docker exec -i postgres psql -U infra -c "CREATE DATABASE <ชื่อ>_db;"
 
 # 9) สร้าง admin/owner ครั้งแรก (แล้วแต่ app — ผ่านหน้าเว็บหรือ artisan)
 
-# 10) เพิ่ม monitor ใน Uptime Kuma → https://<ชื่อ>.tewarach-dev.me
+# 10) เพิ่ม monitor ใน Uptime Kuma → https://<ชื่อ>.example.com
 ```
 
 ---

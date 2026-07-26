@@ -77,7 +77,7 @@ cd infra-stack
 infra-stack/
 ├── install.sh        ← จุดเริ่มต้น รันตัวนี้บนเครื่องใหม่
 ├── TODO.md           ← checklist งานหลังติดตั้ง
-├── docs/             ← คู่มือทุกเรื่อง เรียงเป็นบท 00–25 (เริ่มที่ 00)
+├── docs/             ← คู่มือทุกเรื่อง เรียงเป็นบท 00–26 (เริ่มที่ 00)
 ├── services/         ← "พิมพ์เขียว" ของแต่ละโปรแกรมข้างบน (1 ตัว = 1 โฟลเดอร์)
 ├── docker/           ← ตัวรวมพิมพ์เขียวเป็นชุดๆ (core / database / monitoring / ...)
 ├── scripts/          ← คำสั่งสำเร็จรูป: ติดตั้ง, backup, deploy, ย้อนเวอร์ชัน
@@ -158,7 +158,8 @@ Checklist สุขภาพประจำสัปดาห์ (5 นาที
 
 1. **ห้าม commit ไฟล์ `.env` หรือรหัสผ่าน/token ใดๆ เข้า Git** — repo นี้ตั้ง `.gitignore` กันไว้แล้ว อย่าไปฝืนมัน
 2. ค่าที่เขียนว่า `CHANGE_ME` ทุกจุด = ต้องเปลี่ยนก่อนใช้จริง (สร้างรหัสด้วย `openssl rand -hex 24`)
-3. ถ้าใช้กับงานจริง ตั้ง repo เป็น **Private**
+3. เปิด repository ของ reusable code เป็น public ได้ แต่ `.env`, keys, backup,
+   operator notes และข้อมูล runtime ต้องเป็น **Private** เสมอ
 4. เข้าเซิร์ฟเวอร์ด้วย SSH key เท่านั้น (ตัวติดตั้ง `harden.sh` จัดให้) — เก็บไฟล์ key ไว้ให้ดี หายแล้วเข้าเครื่องไม่ได้
 5. Backup ที่ไม่เคยลอง restore = ไม่มี backup — ซ้อมเดือนละครั้ง
 
@@ -172,6 +173,7 @@ Checklist สุขภาพประจำสัปดาห์ (5 นาที
 | ดูว่ามีแผนพัฒนาอะไรต่อ | [docs/roadmap.md](docs/roadmap.md) |
 | งานหลังติดตั้ง | [TODO.md](TODO.md) |
 | ประวัติเวอร์ชัน | [CHANGELOG.md](CHANGELOG.md) |
+| เงื่อนไขการใช้งาน | [LICENSE](LICENSE) |
 
 ---
 
