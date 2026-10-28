@@ -38,11 +38,12 @@ app repo ต้องมี **Dockerfile** ไม่งั้น build บนเ
 cd /opt/infra-stack
 
 # 1) สร้าง project จาก template (laravel / nextjs / n8n / ai-worker)
+#    database stack ต้องรันอยู่ — script สร้าง database <ชื่อ>_db ให้ด้วย
 ./scripts/create-project.sh <ชื่อ> laravel
 
-# 2) clone โค้ด app เข้าไปใน src/
+# 2) clone โค้ด app เข้าไปใน src/ (ใช้ deploy key + host alias — docs/19-cicd.md)
 cd projects/<ชื่อ>
-git clone git@github.com:<github-user>/<repo>.git src
+git clone git@github.com-<ชื่อ>:<github-user>/<repo>.git src
 cd /opt/infra-stack
 
 # 3) เปิดโหมด build-on-server (เอา # ออกหน้า "build: ./src")
@@ -59,8 +60,12 @@ nano projects/<ชื่อ>/.env
 เหลือแค่ตั้ง **ค่าเฉพาะ project** ที่ปล่อยว่างไว้:
 
 ```env
-APP_KEY=          # ⚠️ ต้องตั้ง: ./scripts/artisan.sh <ชื่อ> key:generate --show
-                  #    (ย้ายจากเครื่องเก่า → ใช้ APP_KEY เดิม ห้ามgenerate ใหม่)
+# ⚠️ ต้องตั้ง — ชื่อ image ที่ build บนเครื่อง (placeholder ghcr.io/<github-user>/… มี < > → build ล้ม)
+APP_IMAGE=<ชื่อ>:latest
+# ⚠️ ต้องตั้ง — สร้างบน host ได้เลย (ยังไม่มี container ให้รัน artisan จนกว่าจะ deploy ครั้งแรก):
+#    echo "base64:$(openssl rand -base64 32)"
+#    ย้ายจากเครื่องเก่า → ใช้ APP_KEY เดิม ห้าม generate ใหม่
+APP_KEY=
 # ที่เหลือเติมมาให้แล้วจาก .env กลาง — เช็คแล้วแก้เฉพาะที่ต่าง เช่น:
 # DEPLOY_MIGRATE=1 / REDIS_CLIENT=predis  ← template Laravel ตั้งให้แล้ว
 ```
@@ -69,8 +74,8 @@ APP_KEY=          # ⚠️ ต้องตั้ง: ./scripts/artisan.sh <ช�
 ให้ (เช่น R2 ถ้ายังไม่ตั้ง) แล้วค่อยเติมทีหลัง
 
 ```bash
-# 5) สร้าง database (ชื่อห้ามมี "-" ใช้ "_" แทน)
-docker exec -i postgres psql -U infra -c "CREATE DATABASE <ชื่อ>_db;"
+# 5) database — create-project.sh สร้าง <ชื่อ>_db ให้แล้ว (ชื่อมี "-" ก็ได้ — quote ให้แล้ว)
+#    ถ้าตอนนั้น postgres ยังไม่รัน script จะพิมพ์คำสั่งสร้างเองให้ copy ไปรัน
 
 # 6) เพิ่ม DNS record ใน Cloudflare: <ชื่อ>.example.com → 203.0.113.10
 #    ⚠️ ทำก่อน deploy ไม่งั้น Traefik ขอ cert ไม่ผ่าน → โดน rate limit
@@ -111,7 +116,9 @@ auto-deploy (cron ทุก 2 นาที) เห็น commit ใหม่ →
 | `Class "Redis" not found` | image ไม่มี phpredis | `REDIS_CLIENT=predis` ใน .env |
 | เว็บ 500 หลัง push (มี migration ใหม่) | ลืม `DEPLOY_MIGRATE=1` | เพิ่มใน .env (template ใหม่มีให้แล้ว) |
 | cert ขอไม่ผ่าน / log NXDOMAIN | ยังไม่ได้เพิ่ม DNS record | เพิ่ม A record ก่อน deploy |
-| database ชื่อมี `-` สร้างไม่ได้ | PostgreSQL ไม่ชอบ `-` | ใช้ `_` เช่น `my_app_db` |
+| `CREATE DATABASE my-app_db` ด้วยมือแล้ว syntax error | ชื่อมี `-` ต้อง quote | ใช้ `create-project.sh` (quote ให้) หรือ `CREATE DATABASE "my-app_db";` |
+| `invalid reference format` ตอน build | `APP_IMAGE` ยังเป็น placeholder `ghcr.io/<github-user>/…` | ตั้ง `APP_IMAGE=<ชื่อ>:latest` |
+| `artisan.sh … key:generate` ได้ "service is not running" | ยังไม่เคย deploy — ไม่มี container | `echo "base64:$(openssl rand -base64 32)"` |
 
 ## 🔒 กฎที่ยังต้องจำ
 

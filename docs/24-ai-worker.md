@@ -16,8 +16,8 @@ webhook/queue
 
 ```bash
 ./scripts/create-project.sh img-worker ai-worker
-nano projects/img-worker/.env    # queue URL, OPENAI_API_KEY, R2, mem limit
-cd projects/img-worker && docker compose up -d
+nano projects/img-worker/.env    # APP_IMAGE, OPENAI_API_KEY, mem limit (queue URL/R2 เติมให้แล้ว)
+./scripts/deploy.sh img-worker
 ```
 
 Template มี `mem_limit`/`cpus` กัน worker กินทั้งเครื่อง (default 2g/2cpu)

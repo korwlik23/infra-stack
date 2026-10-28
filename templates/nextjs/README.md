@@ -6,16 +6,16 @@ Next.js standalone container ต่อ Traefik (HTTPS อัตโนมัต�
 ## Deploy
 
 ```bash
-nano .env
-docker compose up -d
-docker compose logs -f __PROJECT__
+nano .env                                   # APP_IMAGE (+ DATABASE_URL ถ้าใช้)
+cd ../.. && ./scripts/deploy.sh __PROJECT__
+cd projects/__PROJECT__ && docker compose logs -f __PROJECT__
 ```
 
 DNS: เพิ่ม record `__PROJECT__.<domain>` ชี้ server IP ใน Cloudflare (Proxied)
 
 ## Zero-downtime deploy
 
-Deploy ครั้งถัดไปใช้ `../../scripts/deploy.sh __PROJECT__` — rolling อัตโนมัติ
+Deploy ครั้งถัดไปใช้ `./scripts/deploy.sh __PROJECT__` (จาก repo root) — rolling อัตโนมัติ
 
 - healthcheck ใช้ `fetch` ของ Node 18+ (ไม่ต้องมี curl ใน image)
 - default เช็คหน้าแรก `/` — แนะนำสร้าง `/api/health` ที่ตอบเร็วและเบา

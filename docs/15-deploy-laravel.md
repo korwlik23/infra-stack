@@ -5,21 +5,17 @@
 ## ⚙️ วิธีทำ
 
 ```bash
-# 1. สร้าง project จาก template
+# 1. สร้าง project จาก template — สร้าง database app_db ให้ด้วย (ต้อง start database stack ก่อน)
+#    ค่า DB / Redis / domain / R2 เติมจาก .env กลางให้อัตโนมัติ
 ./scripts/create-project.sh app laravel
 
-# 2. สร้าง database
-docker exec -it postgres psql -U $POSTGRES_USER -c "CREATE DATABASE app_db;"
+# 2. ตั้งค่าที่เหลือ
+nano projects/app/.env    # APP_IMAGE + APP_KEY: echo "base64:$(openssl rand -base64 32)"
 
-# 3. ตั้งค่า
-nano projects/app/.env    # APP_KEY, domain, DB, Redis, R2
+# 3. DNS: เพิ่ม A record app.<domain> ใน Cloudflare (ก่อน deploy)
 
-# 4. DNS: เพิ่ม A record app.<domain> ใน Cloudflare
-
-# 5. Start + migrate
-cd projects/app
-docker compose up -d
-docker compose exec app-app php artisan migrate --force
+# 4. Deploy — pull/build + migrate (DEPLOY_MIGRATE=1) + start
+./scripts/deploy.sh app
 ```
 
 ได้ 3 containers: `-app` (HTTP, ไม่มี container_name — เพื่อ rolling deploy),

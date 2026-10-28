@@ -5,11 +5,10 @@
 ## ⚙️ วิธีทำ
 
 ```bash
-./scripts/create-project.sh n8n n8n
-docker exec -it postgres psql -U $POSTGRES_USER -c "CREATE DATABASE n8n_db;"
-nano projects/n8n/.env     # APP_DOMAIN + N8N_ENCRYPTION_KEY (openssl rand -hex 24)
-# DNS: n8n.<domain> ใน Cloudflare
-cd projects/n8n && docker compose up -d
+./scripts/create-project.sh n8n n8n     # ใช้ database n8n_db (สร้างให้ถ้ายังไม่มี)
+nano projects/n8n/.env     # N8N_ENCRYPTION_KEY (openssl rand -hex 24) — APP_DOMAIN/DB เติมให้แล้ว
+# DNS: n8n.<domain> ใน Cloudflare (ก่อน deploy)
+./scripts/deploy.sh n8n
 ```
 
 เปิด `https://n8n.<domain>` → สร้าง owner account
@@ -25,8 +24,10 @@ cd projects/n8n && docker compose up -d
 ## Backup
 
 - Workflow + credentials อยู่ใน `n8n_db` (โดน postgres-backup ทุกคืนอยู่แล้ว)
-- Volume `n8n_data` (config + binary data) — เพิ่มชื่อ volume เข้า
-  `volumes-backup.sh` เมื่อ deploy จริง
+- Volume (config + binary data) ชื่อจริงคือ `<project>_<project>_data` — project ชื่อ `n8n`
+  ได้ `n8n_n8n_data` (เช็ค: `docker volume ls | grep _data`) เพิ่มเข้า backup:
+  `./backup/scripts/volumes-backup.sh portainer_data grafana_data uptime_kuma_data redis_data n8n_n8n_data`
+  (ใส่ชื่อผิด script จะ "skip missing volume" เงียบ ๆ)
 
 ## 🧪 ทดสอบ
 

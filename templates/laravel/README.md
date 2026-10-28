@@ -4,23 +4,22 @@
 
 ## Deploy
 
-```bash
-# 1. สร้าง database
-docker exec -it postgres psql -U infra -c "CREATE DATABASE __PROJECT___db;"
+Database `__PROJECT___db` ถูกสร้างให้แล้วตอน `create-project.sh` (ถ้า postgres รันอยู่)
 
-# 2. ตั้งค่า .env (APP_KEY: php artisan key:generate --show)
+```bash
+# 1. ตั้งค่า .env — APP_IMAGE (build บนเครื่อง: ตั้งชื่ออะไรก็ได้ เช่น __PROJECT__:latest)
+#    และ APP_KEY: echo "base64:$(openssl rand -base64 32)"
 nano .env
 
-# 3. Start + migrate
-docker compose up -d
-docker compose exec __PROJECT__-app php artisan migrate --force
+# 2. Deploy (build/pull + migrate + start) — รันจาก repo root
+cd ../.. && ./scripts/deploy.sh __PROJECT__
 ```
 
 DNS: เพิ่ม record `__PROJECT__.<domain>` ชี้ server IP ใน Cloudflare (Proxied)
 
 ## Zero-downtime deploy
 
-Deploy ครั้งถัดไปใช้ `../../scripts/deploy.sh __PROJECT__` — จะ rolling อัตโนมัติ
+Deploy ครั้งถัดไปใช้ `./scripts/deploy.sh __PROJECT__` (จาก repo root) — จะ rolling อัตโนมัติ
 (เปิดตัวใหม่รอ healthy ก่อน ค่อยถอดตัวเก่า — เว็บไม่ดับ) เงื่อนไข:
 
 - image ต้องมี `curl` (ใช้ใน healthcheck)

@@ -17,12 +17,15 @@ push → GitHub ← (poll ทุก 2 นาที) เซิร์ฟเวอ�
 ## ⚙️ Setup ต่อ project
 
 ```bash
-# 1. clone source ของ app ไว้ใน project (ผ่าน SSH deploy key แบบ read-only)
+# 1. clone source ของ app ไว้ใน project (ผ่าน SSH deploy key แบบ read-only — ดูหัวข้อล่าง)
+#    ใช้ host alias "github.com-app" จาก ~/.ssh/config เพื่อให้ ssh ใช้ deploy key ของ repo นี้
 cd projects/app
-git clone git@github.com:<github-user>/<repo>.git src
+git clone git@github.com-app:<github-user>/<repo>.git src
 
 # 2. เปิดโหมด build ใน docker-compose.yml ของ project
 #    (uncomment บรรทัด "build: ./src" — ทุก template มีเตรียมไว้)
+#    และตั้ง APP_IMAGE ใน .env เป็นชื่อ image ที่ถูกต้อง เช่น app:latest
+#    (placeholder ghcr.io/<github-user>/… มี < > → build ล้ม "invalid reference format")
 
 # 3. deploy ครั้งแรก
 cd ../.. && ./scripts/deploy.sh app
@@ -50,9 +53,19 @@ crontab -e
 
 ```bash
 ssh-keygen -t ed25519 -f ~/.ssh/deploy_app -N ""
+cat ~/.ssh/deploy_app.pub
 # GitHub → repo → Settings → Deploy keys → Add (ไม่ติ๊ก write access)
-# ~/.ssh/config: Host github.com-app → IdentityFile ~/.ssh/deploy_app
+cat >> ~/.ssh/config <<'EOF'
+Host github.com-app
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/deploy_app
+  IdentitiesOnly yes
+EOF
+ssh -T git@github.com-app      # ต้องเห็น "successfully authenticated"
 ```
+
+1 deploy key ใช้ได้กับ repo เดียว — repo ถัดไปสร้าง key + Host alias ใหม่ (เช่น `github.com-shop`)
 
 ## ⚠️ ระวัง
 

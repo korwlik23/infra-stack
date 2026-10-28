@@ -17,9 +17,11 @@ CI build → push image ขึ้น ghcr
 
 ```bash
 ./scripts/create-project.sh myweb nextjs
-nano projects/myweb/.env          # APP_IMAGE, APP_DOMAIN, DATABASE_URL ถ้าใช้
-# เพิ่ม DNS record ใน Cloudflare
-cd projects/myweb && docker compose up -d
+nano projects/myweb/.env          # APP_IMAGE (+ DATABASE_URL ถ้าใช้ — ค่า user/pass เติมให้แล้ว)
+# ใช้ DATABASE_URL: สร้าง database เอง (template nextjs ไม่มี DB_DATABASE ให้ create-project สร้าง)
+docker exec -i postgres sh -c 'psql -U "$POSTGRES_USER" -d postgres -c "CREATE DATABASE \"myweb_db\";"'
+# เพิ่ม DNS record ใน Cloudflare (ก่อน deploy)
+./scripts/deploy.sh myweb
 ```
 
 ## ⚠️ ระวัง
