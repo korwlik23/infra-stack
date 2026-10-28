@@ -14,13 +14,19 @@
 ## ⚙️ วิธีทำ
 
 อยู่ใน database stack แล้ว — config ที่ `services/redis/redis.conf`
-(AOF persistence, maxmemory 512mb + LRU, ปิด FLUSHALL/FLUSHDB/CONFIG)
+(AOF persistence, maxmemory 512mb + `volatile-lru`, ปิด FLUSHALL/CONFIG —
+FLUSHDB เปิดไว้เพราะ Laravel `cache:clear` ต้องใช้)
+
+`volatile-lru` ไล่ทิ้งเฉพาะ key ที่มี TTL (cache) — job ใน queue ไม่มี TTL จึงไม่ถูกลบตอน RAM เต็ม
+แก้ `redis.conf` แล้วต้อง `docker restart redis`
 
 ## 🧪 ทดสอบ
 
+รหัสผ่านอ่านจาก env ของ container เอง (shell บน host ไม่มีตัวแปร `$REDIS_PASSWORD`):
+
 ```bash
-docker exec -it redis redis-cli -a "$REDIS_PASSWORD" ping     # PONG
-docker exec -it redis redis-cli -a "$REDIS_PASSWORD" info memory | head -5
+docker exec -it redis sh -c 'redis-cli -a "$REDIS_PASSWORD" ping'                    # PONG
+docker exec -it redis sh -c 'redis-cli -a "$REDIS_PASSWORD" info memory' | head -5
 ```
 
 ## ⚠️ ระวัง

@@ -12,12 +12,14 @@ Cache / Queue / Session กลางของทุก project — ต่อผ�
 ## Start / Test
 
 ```bash
-docker compose --env-file ../../.env up -d
-docker exec -it redis redis-cli -a "$REDIS_PASSWORD" ping   # → PONG
+# จาก repo root — Redis อยู่ใน database stack
+docker compose --env-file .env -f docker/docker-compose.database.yml up -d redis
+docker exec -it redis sh -c 'redis-cli -a "$REDIS_PASSWORD" ping'   # → PONG
 ```
 
 ## หมายเหตุ production
 
-- `maxmemory 512mb` + `allkeys-lru` — ปรับตาม RAM เครื่อง (แนะนำ ~10-15% ของ RAM)
+- `maxmemory 512mb` + `volatile-lru` — ปรับตาม RAM เครื่อง (แนะนำ ~10-15% ของ RAM)
+  ไล่ทิ้งเฉพาะ key ที่มี TTL → job ใน queue ไม่ถูกลบตอน RAM เต็ม
 - AOF เปิดอยู่ → queue ไม่หายตอน restart
-- `FLUSHALL` / `FLUSHDB` / `CONFIG` ถูกปิดใน production
+- `FLUSHALL` / `CONFIG` ถูกปิดใน production (`FLUSHDB` เปิดไว้ — Laravel `cache:clear` ต้องใช้)

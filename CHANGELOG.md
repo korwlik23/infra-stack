@@ -23,6 +23,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
   (`PasswordAuthentication yes`) ชนะค่าที่แก้ใน `sshd_config` + `sshd -t` ก่อน restart
 - `harden.sh` ติดตั้ง `apache2-utils` (`htpasswd`) สำหรับสร้าง basicauth hash
 
+### Fixed — Redis / backup
+- redis.conf: `maxmemory-policy allkeys-lru` → `volatile-lru` — เดิม RAM เต็มแล้ว job ใน
+  queue (ไม่มี TTL) ถูกลบเงียบ ๆ ได้ เครื่องเดิม: `git pull` แล้ว `docker restart redis`
+
 ### Fixed — rollback ค้าง tag `:previous`
 - `rollback.sh` retag image เป้าหมายเป็น `APP_IMAGE` แทนการแก้ `.env` — เดิม `.env`
   ค้าง `APP_IMAGE=…:previous`: deploy ถัดไป (build) เขียนทับ `:previous` จน image ดีหาย
