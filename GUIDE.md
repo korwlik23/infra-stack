@@ -12,8 +12,8 @@ InfraStack คือ **ชุดติดตั้งเซิร์ฟเวอ
 ระบบเฝ้าดูว่าเว็บล่มไหม ฯลฯ ใช้เวลาหลายวันและพลาดง่าย repo นี้ย่อทั้งหมดนั้นเหลือ:
 
 ```bash
-git clone <repo นี้>
-cd infra-stack
+git clone <repo นี้> /opt/infra-stack
+cd /opt/infra-stack
 ./install.sh
 ```
 
@@ -96,12 +96,14 @@ infra-stack/
 ### 5.1 ติดตั้งเครื่องใหม่ครั้งแรก
 
 ```text
-1. เช่า VPS (Ubuntu) → ได้ IP มา
-2. ชี้ DNS: สร้าง A record (portainer, grafana, netdata, uptime, logs) → IP เครื่อง
-3. ssh เข้าเครื่อง → clone repo → sudo ./scripts/harden.sh   (ล็อกประตูบ้านก่อน)
-4. ./install.sh → แก้ .env (ใส่โดเมน + ตั้งรหัสผ่าน) → เสร็จ
-5. เปิด docker/docker-compose.database.yml และ .monitoring.yml ตามคู่มือ
-6. ไล่ทำ TODO.md
+1. เช่า VPS (Ubuntu) → ได้ IP มา → ใส่ SSH key ให้ root (docs/02)
+2. ชี้ DNS: สร้าง A record ทุก subdomain ที่จะเปิด → IP เครื่อง
+   (อย่างน้อย traefik, portainer, grafana, netdata, uptime, logs, servers — รายการเต็มใน docs/11)
+3. ssh เข้าเครื่อง (root) → clone ลง /opt/infra-stack → ./scripts/harden.sh   (ล็อกประตูบ้านก่อน)
+4. login ใหม่เป็น user deploy → cp .env.example .env → แก้ .env (โดเมน + รหัสผ่านทุกตัว)
+5. ./install.sh  (ติด Docker + เปิด Traefik/Portainer — ถ้าบอกให้ login ใหม่ก็ login แล้วรันซ้ำ)
+6. เปิด database stack แล้วตามด้วย monitoring stack ตามคู่มือ
+7. ไล่ทำ TODO.md
 ```
 
 เวอร์ชันละเอียดทีละคลิก: [docs/00-introduction.md](docs/00-introduction.md) → ไล่ตามบท
@@ -113,14 +115,16 @@ infra-stack/
 # สร้างจากแม่แบบ — laravel / nextjs / n8n / ai-worker
 ./scripts/create-project.sh myapp laravel
 
-# ใส่ค่าจริง (โดเมน, รหัสฐานข้อมูล ฯลฯ)
+# ใส่ค่าที่เหลือ (APP_IMAGE, APP_KEY ฯลฯ — ค่า DB/Redis/โดเมนเติมให้แล้วจาก .env กลาง)
 nano projects/myapp/.env
 
-# ขึ้นเว็บ
-cd projects/myapp && docker compose up -d
+# เพิ่ม DNS record myapp.<โดเมน> → IP เครื่อง "ก่อน" ขึ้นเว็บ (Traefik ขอ HTTPS ทันที)
+
+# ขึ้นเว็บ (build/pull + migrate + start)
+./scripts/deploy.sh myapp
 ```
 
-เพิ่ม DNS record `myapp.<โดเมน>` → เปิดเว็บได้เลย มี HTTPS ให้อัตโนมัติ
+ขั้นตอนเต็มทีละข้อ: [docs/26-new-project.md](docs/26-new-project.md)
 
 **deploy ครั้งถัดๆ ไป** ใช้คำสั่งเดียว — ระบบจะเปิดเวอร์ชันใหม่คู่กับตัวเก่า
 รอจนแน่ใจว่าใช้งานได้ ค่อยสลับ (เว็บไม่ดับเลยแม้แต่วินาทีเดียว และถ้าเวอร์ชันใหม่พัง
@@ -128,14 +132,14 @@ cd projects/myapp && docker compose up -d
 
 ```bash
 ./scripts/deploy.sh myapp        # deploy แบบเว็บไม่ดับ
-./scripts/rollback.sh myapp v1.2 # เวอร์ชันใหม่มีปัญหา? ถอยกลับใน 1 นาที
+./scripts/rollback.sh myapp previous # เวอร์ชันใหม่มีปัญหา? ถอยกลับใน 1 นาที
 ```
 
 ### 5.3 ดูแลรายวัน/รายสัปดาห์
 
 | อยากรู้ว่า... | ทำแบบนี้ |
 |---------------|----------|
-| ทุกอย่างยังปกติไหม | ไม่ต้องทำอะไร — ถ้าผิดปกติ Telegram จะเด้งเอง |
+| ทุกอย่างยังปกติไหม | ไม่ต้องทำอะไร — ถ้าผิดปกติ Telegram จะเด้งเอง (หลังตั้ง notification ใน Uptime Kuma / Alertmanager แล้ว) |
 | แอปตัวไหน error | เปิด `logs.<โดเมน>` (Dozzle) คลิกดูตัวนั้น |
 | ทำไมเครื่องช้า | เปิด `netdata.<โดเมน>` ดู CPU/RAM ตอนนี้ |
 | อยาก restart แอป | เปิด `portainer.<โดเมน>` → Containers → เลือก → Restart |

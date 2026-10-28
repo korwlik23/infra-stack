@@ -13,6 +13,9 @@
 - [ ] สร้าง SSH key บนเครื่องผู้ดูแลและสำรอง private key ในที่ปลอดภัย
 - [ ] เพิ่ม public key ให้ `root` แล้วเปิด terminal ใหม่ทดสอบว่าเข้าได้จริง
 - [ ] เตรียม domain และสิทธิ์แก้ DNS; เปิด inbound เฉพาะ SSH, HTTP และ HTTPS
+- [ ] สร้าง DNS A record ของทุก subdomain ที่จะเปิด → IP เครื่อง **ก่อนรัน `install.sh`**
+      (core: `traefik`, `portainer` — installer start ให้ทันที; รายการต่อ stack ดู
+      [docs/11-cloudflare.md](docs/11-cloudflare.md)) ไม่งั้น ACME ล้มซ้ำจนโดน rate limit
 - [ ] ติดตั้ง Git แล้ว clone repository ลง `/opt/infra-stack`
 
 ```bash
@@ -63,6 +66,8 @@ nano .env
 - [ ] เปลี่ยน `BASE_DOMAIN`, `ACME_EMAIL` และทุกค่า `CHANGE_ME`
 - [ ] สร้างรหัสผ่านแต่ละระบบแยกกัน เช่น `openssl rand -hex 32`
 - [ ] ตั้งค่า R2 เฉพาะเมื่อพร้อมใช้ offsite backup; อย่าใส่ secret ลงไฟล์ตัวอย่าง
+- [ ] ตั้ง basicauth ของ Traefik dashboard, Netdata และ Dozzle (placeholder เดิม login ไม่ได้)
+      — `htpasswd -nb admin '<password>'` แล้วแทน `$` เป็น `$$` ในไฟล์ compose ([docs/04-traefik.md](docs/04-traefik.md))
 - [ ] ตรวจว่า `.env` ถูก ignore และไม่มี secret ถูก stage
 
 ```bash
@@ -88,8 +93,8 @@ docker network ls | grep -E 'proxy|backend|monitoring'
 docker compose --env-file .env -f docker/docker-compose.core.yml ps
 ```
 
-- [ ] เพิ่ม DNS records ที่ต้องใช้ แล้วตรวจว่า Traefik ออก TLS certificate สำเร็จ
-- [ ] สร้างบัญชี Portainer ครั้งแรกและใช้รหัสผ่านเฉพาะระบบ
+- [ ] ตรวจว่า Traefik ออก TLS certificate สำเร็จ (`docker logs traefik --tail 50 | grep -i acme`)
+- [ ] สร้างบัญชี Portainer ครั้งแรก**ภายใน 5 นาที**หลัง start และใช้รหัสผ่านเฉพาะระบบ
 
 รายละเอียด: [docs/03-docker.md](docs/03-docker.md),
 [docs/04-traefik.md](docs/04-traefik.md), [docs/05-portainer.md](docs/05-portainer.md)
@@ -104,7 +109,7 @@ docker compose --env-file .env -f docker/docker-compose.database.yml ps
 ```
 
 - [ ] ยืนยันว่า PostgreSQL และ Redis healthy และไม่เปิด ports สู่ public network
-- [ ] สร้าง database แยกต่อ application ตามคู่มือ ไม่ใช้ database กลางร่วมกัน
+- [ ] ใช้ database แยกต่อ application (`create-project.sh` สร้างให้เมื่อ postgres รันอยู่)
 
 รายละเอียด: [docs/06-postgresql.md](docs/06-postgresql.md),
 [docs/07-redis.md](docs/07-redis.md)
@@ -118,7 +123,8 @@ docker compose --env-file .env -f docker/docker-compose.monitoring.yml up -d
 docker compose --env-file .env -f docker/docker-compose.monitoring.yml ps
 ```
 
-- [ ] เปลี่ยน Grafana admin password และตรวจ Prometheus targets
+- [ ] login Grafana ด้วย `GRAFANA_ADMIN_USER`/`GRAFANA_ADMIN_PASSWORD` จาก `.env` และตรวจ Prometheus targets
+- [ ] สร้าง DNS `servers.` ไว้แล้ว (Beszel hub อยู่ใน monitoring stack)
 - [ ] สร้าง Uptime Kuma owner account, monitors และ notification channel
 - [ ] ทดสอบ alert ด้วย service ทดลอง แล้วเปิด service กลับทันที
 - [ ] ตรวจว่า token หรือ chat ID ไม่ถูก commit ใน tracked configuration

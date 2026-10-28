@@ -3,7 +3,7 @@
 ที่วาง project ที่ deploy จริงบนเครื่องนี้ — สร้างด้วย:
 
 ```bash
-./scripts/create-project.sh <name> <laravel|nextjs|n8n>
+./scripts/create-project.sh <name> <laravel|nextjs|n8n|ai-worker>
 ```
 
 แต่ละ project เป็นอิสระ: มี `docker-compose.yml` + `.env` ของตัวเอง

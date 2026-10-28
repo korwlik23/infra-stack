@@ -22,7 +22,13 @@ docker compose --env-file .env -f docker/docker-compose.core.yml up -d
 - DNS ต้องชี้มาเครื่องนี้**ก่อน** start ไม่งั้น Let's Encrypt challenge ล้ม
   (โดน rate limit ได้ถ้าพลาดซ้ำ ๆ — 5 ครั้ง/ชั่วโมง/โดเมน)
 - ถ้าใช้ Cloudflare Proxy (ส้ม): ตั้ง SSL mode = **Full (strict)** ดู [11-cloudflare.md](11-cloudflare.md)
-- เปลี่ยน basicauth hash ของ dashboard ก่อนใช้จริง
+- เปลี่ยน basicauth hash ก่อนใช้จริง — placeholder `$$apr1$$CHANGE_ME$$CHANGE_ME` login ไม่ได้
+  มีใน `services/traefik`, `services/netdata`, `services/dozzle` (+ `services/redisinsight` ถ้าเปิด tools):
+
+  ```bash
+  htpasswd -nb admin 'รหัสผ่าน'      # ได้ admin:$apr1$xxxx$yyyy (package apache2-utils — harden.sh ติดให้)
+  # ใส่ใน label ...basicauth.users= โดยแทน $ ทุกตัวเป็น $$ → admin:$$apr1$$xxxx$$yyyy
+  ```
 
 ## 🧪 ทดสอบ
 

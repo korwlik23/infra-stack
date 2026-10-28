@@ -12,7 +12,17 @@ A    @              <server-ip>   Proxied 🟠
 A    *  (หรือรายตัว) <server-ip>   Proxied 🟠
 ```
 
-แนะนำสร้างรายตัว: `portainer`, `grafana`, `netdata`, `uptime`, `logs`, `n8n` + โดเมน project
+แนะนำสร้างรายตัว — **ครบทุก subdomain ของ stack ที่จะเปิด และสร้างก่อน start stack นั้น**
+(service ที่มี traefik labels แต่ไม่มี DNS → ACME ล้มซ้ำจนโดน rate limit — ดู [04-traefik.md](04-traefik.md)):
+
+| Stack | Subdomain |
+|-------|-----------|
+| Core (`install.sh` start ให้ทันที) | `traefik`, `portainer` |
+| Monitoring | `grafana`, `netdata`, `uptime`, `logs`, `servers` |
+| Tools | `pgadmin`, `redis` |
+| Messaging | `mq` |
+| Storage | `s3`, `minio` |
+| Projects | `<ชื่อ project>` เช่น `app`, `n8n` (หรือค่า `APP_DOMAIN` ใน `.env` ของ project) |
 
 3. SSL/TLS → mode **Full (strict)** (เรามี cert จริงจาก Let's Encrypt ฝั่ง Traefik)
 4. เปิด: Always Use HTTPS, WAF managed rules (ฟรี tier), Bot Fight Mode

@@ -10,9 +10,9 @@ and other services using Docker. Clone this repository on any fresh Ubuntu VPS
 standardized server in 10–15 minutes.
 
 ```bash
-git clone https://github.com/korwlik23/infra-stack.git
-cd infra-stack
-./install.sh
+git clone https://github.com/korwlik23/infra-stack.git /opt/infra-stack
+cd /opt/infra-stack
+./install.sh        # ลำดับเต็ม (harden → .env → DNS → install) ดู Quick Start ด้านล่าง
 ```
 
 ## Architecture
@@ -63,36 +63,56 @@ Three layers:
 
 ```text
 infra-stack/
-├── docs/            # คู่มือทั้งหมด (00-introduction … 18-scale)
-├── docker/          # Stack aggregation (core / database / monitoring)
+├── install.sh       # Installer — Docker, networks, .env, core stack
+├── docs/            # คู่มือทั้งหมด (00-introduction … 26-new-project)
+├── docker/          # Stack aggregation (core / database / monitoring / tools / messaging / storage)
 ├── services/        # หนึ่ง service = หนึ่งโฟลเดอร์ = หนึ่ง docker-compose.yml
 ├── monitoring/      # Prometheus config, alerts, Grafana dashboards
 ├── backup/          # Backup & restore scripts
-├── scripts/         # Automation (install, update, create-project, …)
-├── templates/       # Project templates (laravel / nextjs / n8n)
+├── scripts/         # Automation (harden, update, create-project, deploy, rollback, …)
+├── templates/       # Project templates (laravel / nextjs / n8n / ai-worker)
 ├── environments/    # production / staging / development env examples
 └── projects/        # Deployed projects (each independent, never committed secrets)
 ```
 
 ## Quick Start
 
+ลำดับนี้ตรงกับ [TODO.md](TODO.md) (checklist ละเอียด) — ทำตามลำดับ ห้ามข้าม
+
 ```bash
-# 1. Bootstrap a fresh Ubuntu server (security + Docker)
-sudo ./scripts/harden.sh
-./install.sh
+# 0. ก่อนเริ่ม: ใส่ SSH public key ให้ root (docs/02) และสร้าง DNS A record ของทุก
+#    subdomain ที่จะเปิด → IP เครื่อง (docs/11) — Traefik ขอ cert ทันทีที่ stack start
 
-# 2. Bring up the core stack (Traefik + Portainer)
-docker compose --env-file .env -f docker/docker-compose.core.yml up -d
+# 1. (root) clone + harden — สร้าง user deploy, ปิด root/password login, UFW, Fail2ban
+apt update && apt install -y git
+git clone https://github.com/korwlik23/infra-stack.git /opt/infra-stack
+cd /opt/infra-stack
+./scripts/harden.sh
+passwd deploy                              # รหัสสำหรับ sudo
+chown -R deploy:deploy /opt/infra-stack
 
-# 3. Databases
+# 2. (deploy) login ใหม่เป็น deploy แล้วตั้งค่า — ทุกขั้นต่อจากนี้รันด้วย deploy
+ssh deploy@<server-ip>
+cd /opt/infra-stack
+cp .env.example .env && chmod 600 .env
+nano .env        # BASE_DOMAIN, ACME_EMAIL และรหัสผ่านทุกตัวที่เป็น CHANGE_ME
+#                  (postgres จำรหัสตอน start ครั้งแรก — แก้ทีหลังไม่มีผล)
+# เปลี่ยน basicauth hash ของ Traefik / Netdata / Dozzle: htpasswd -nb admin '<password>'
+#   (ใส่ใน compose ต้อง escape $ เป็น $$ — docs/04)
+
+# 3. Docker + networks + core stack (Traefik + Portainer)
+./install.sh     # ถ้าถูกเพิ่มเข้า group docker → logout/login แล้วรัน ./install.sh ซ้ำ
+#                  เปิด https://portainer.<BASE_DOMAIN> สร้าง admin ภายใน 5 นาที (docs/05)
+
+# 4. Databases
 docker compose --env-file .env -f docker/docker-compose.database.yml up -d
 
-# 4. Monitoring
+# 5. Monitoring
 docker compose --env-file .env -f docker/docker-compose.monitoring.yml up -d
 
-# 5. Create a project from a template (start the database stack first)
+# 6. Create a project from a template (database stack ต้อง start ก่อน)
 ./scripts/create-project.sh myapp laravel
-nano projects/myapp/.env        # set APP_IMAGE, APP_KEY and per-project keys
+nano projects/myapp/.env        # APP_IMAGE, APP_KEY และ per-project keys (docs/26)
 ./scripts/deploy.sh myapp
 
 # Optional stacks (v2.0)
@@ -100,6 +120,9 @@ docker compose --env-file .env -f docker/docker-compose.tools.yml up -d      # p
 docker compose --env-file .env -f docker/docker-compose.messaging.yml up -d  # RabbitMQ
 docker compose --env-file .env -f docker/docker-compose.storage.yml up -d    # MinIO
 ```
+
+เครื่องที่ติดตั้งไว้ก่อนแล้วและจะ `git pull` เวอร์ชันนี้: อ่าน upgrade notes ใน
+[docker/README.md](docker/README.md) ก่อน (ต้องย้าย volume ครั้งเดียว)
 
 ## Security Rules
 
