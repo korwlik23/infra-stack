@@ -26,6 +26,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
 ### Fixed — Redis / backup
 - redis.conf: `maxmemory-policy allkeys-lru` → `volatile-lru` — เดิม RAM เต็มแล้ว job ใน
   queue (ไม่มี TTL) ถูกลบเงียบ ๆ ได้ เครื่องเดิม: `git pull` แล้ว `docker restart redis`
+- backup scripts เลิก `source .env` — อ่านทีละ key แทน (รหัสผ่านที่มี `$` ช่องว่าง `&`
+  ทำ cron backup ล้มด้วย unbound variable); `volumes-backup.sh` อ่าน `BACKUP_KEEP_DAYS` จาก `.env` ด้วย
 
 ### Fixed — rollback ค้าง tag `:previous`
 - `rollback.sh` retag image เป้าหมายเป็น `APP_IMAGE` แทนการแก้ `.env` — เดิม `.env`

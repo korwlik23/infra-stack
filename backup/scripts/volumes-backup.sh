@@ -6,7 +6,10 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 DEST="$ROOT/backup/archives/volumes"
 STAMP="$(date +%Y%m%d_%H%M%S)"
-KEEP_DAYS="${BACKUP_KEEP_DAYS:-7}"
+# อ่านค่าจาก .env ทีละ key แทน `source` — source รันไฟล์เป็น bash: รหัสผ่านที่มี
+# $ ช่องว่าง & ; ทำ script พัง (set -u → unbound variable) หรือได้ค่าผิด
+env_val() { grep -E "^$1=" "$ROOT/.env" 2>/dev/null | head -1 | cut -d= -f2- | sed -E 's/^"(.*)"$/\1/' || true; }
+KEEP_DAYS="$(env_val BACKUP_KEEP_DAYS)"; KEEP_DAYS="${KEEP_DAYS:-7}"
 
 VOLUMES=("$@")
 if [ ${#VOLUMES[@]} -eq 0 ]; then
