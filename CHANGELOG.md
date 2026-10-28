@@ -23,6 +23,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
   (`PasswordAuthentication yes`) ชนะค่าที่แก้ใน `sshd_config` + `sshd -t` ก่อน restart
 - `harden.sh` ติดตั้ง `apache2-utils` (`htpasswd`) สำหรับสร้าง basicauth hash
 
+### Fixed — rollback ค้าง tag `:previous`
+- `rollback.sh` retag image เป้าหมายเป็น `APP_IMAGE` แทนการแก้ `.env` — เดิม `.env`
+  ค้าง `APP_IMAGE=…:previous`: deploy ถัดไป (build) เขียนทับ `:previous` จน image ดีหาย
+  และโหมด registry `pull …:previous` ล้ม; และไม่ `docker compose pull` (ดึง :latest ตัวพังกลับมา)
+- เครื่องที่เคย rollback ด้วยเวอร์ชันเก่า: แก้ `APP_IMAGE` ใน `projects/<name>/.env` กลับเป็น tag เดิม
+
 ### Changed — Traefik static config ย้ายเข้า compose `command:`
 - ลบ `services/traefik/traefik.yml` — ACME email อ่านจาก `ACME_EMAIL` ใน `.env` ผ่าน CLI flag
 - `install.sh` เลิก `sed` แก้ไฟล์ที่อยู่ใน Git (เดิมทำให้ `git status` ไม่ clean และ

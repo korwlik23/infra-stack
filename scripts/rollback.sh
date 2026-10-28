@@ -22,21 +22,28 @@ CURRENT="$(grep -E '^APP_IMAGE=' .env | head -1 | cut -d= -f2-)"
 BASE="${CURRENT%:*}"
 TARGET="$BASE:$TAG"
 
-echo "[rollback:$NAME] $CURRENT → $TARGET"
+[ "$TARGET" != "$CURRENT" ] || { echo "ERROR: APP_IMAGE ใช้ tag '$TAG' อยู่แล้ว" >&2; exit 1; }
+
+echo "[rollback:$NAME] $CURRENT ← $TARGET"
 read -rp "Type 'rollback' to continue: " CONFIRM
 [ "$CONFIRM" = "rollback" ] || { echo "aborted"; exit 1; }
 
-sed -i "s|^APP_IMAGE=.*|APP_IMAGE=$TARGET|" .env
+# image เป้าหมายต้องอยู่บนเครื่อง — ไม่มี (เช่น tag เวอร์ชันบน registry) ค่อย pull
+docker image inspect "$TARGET" >/dev/null 2>&1 || docker pull "$TARGET"
 
-# image อาจอยู่บนเครื่องแล้ว (โหมด build-on-server) — pull ล้มไม่เป็นไร
-docker compose pull 2>/dev/null || true
+# ชี้ tag ที่ compose ใช้ (APP_IMAGE) ไปที่ image เก่า — ไม่แก้ .env
+# (เดิมแก้ APP_IMAGE=…:previous ค้างใน .env → deploy ถัดไป build ทับ :previous
+#  ทำ image ดีตัวสุดท้ายหาย และโหมด registry pull …:previous ไม่เจอ)
+docker tag "$TARGET" "$CURRENT"
 
 ROLLOUT_SERVICE="$(grep -E '^ROLLOUT_SERVICE=' .env 2>/dev/null | head -1 | cut -d= -f2- || true)"
 if [ -n "$ROLLOUT_SERVICE" ] && [ -x "$HOME/.docker/cli-plugins/docker-rollout" ]; then
   echo "[rollback:$NAME] rolling back '$ROLLOUT_SERVICE' (zero downtime)…"
   docker rollout "$ROLLOUT_SERVICE"
 fi
+# ไม่ pull — ถ้า pull จะได้ :latest ตัวที่พังกลับมาทับ
 docker compose up -d
 
-echo "✅ [rollback:$NAME] now on $TARGET — $(date '+%F %T')"
+echo "✅ [rollback:$NAME] $CURRENT = image ของ $TARGET แล้ว — $(date '+%F %T')"
+echo "ℹ️  deploy ครั้งถัดไปจะ build/pull เวอร์ชันใหม่ทับ tag นี้ตามปกติ — แก้โค้ดก่อน push"
 echo "⚠️  ถ้าเวอร์ชันใหม่รัน migration ไปแล้ว เช็ค schema ว่าโค้ดเก่ายังอ่านได้"

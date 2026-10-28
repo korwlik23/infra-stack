@@ -9,7 +9,7 @@
 | `create-project.sh <name> <template>` | สร้าง project จาก template (laravel/nextjs/n8n/ai-worker) | — |
 | `deploy.sh <project>` | **zero-downtime rolling deploy** (build-on-server หรือ pull) — ของพังไม่ได้รับ traffic | migration ต้อง expand/contract (docs/25) |
 | `artisan.sh <project> <args>` | รัน artisan ใน container จากที่ไหนก็ได้ (เช่น `migrate --force`) | — |
-| `rollback.sh <project> <tag>` | กลับ image tag เก่า แบบ rolling | ต้อง tag เวอร์ชันเสมอ ไม่ใช่ :latest |
+| `rollback.sh <project> <tag>` | กลับ image tag เก่า แบบ rolling (`previous` = ก่อน deploy ล่าสุด) — retag ไม่แก้ `.env` | migration ไม่ย้อนเอง (docs/25) |
 | `auto-deploy.sh` | cron: poll git ทุก project → deploy เมื่อมี commit ใหม่ | ดู docs/19-cicd.md |
 | `migrate-volumes.sh` | ย้าย volume `docker_<name>` → `<name>` (อัปเกรดเครื่องเก่า ครั้งเดียว) | stop container เดิม — backup ก่อน (docker/README.md) |
 

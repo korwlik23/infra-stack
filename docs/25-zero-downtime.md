@@ -83,6 +83,10 @@ rolling deploy เลยคิดว่าสำเร็จ ทั้งที�
 → rollback ได้เสมอโดยไม่ต้อง tag เวอร์ชันเอง (เก็บย้อนได้ 1 step)
 อยากเก็บหลายเวอร์ชัน: tag image เองเป็น `:v1.4.2` แล้ว `rollback.sh <project> v1.4.2`
 
+`rollback.sh` **ไม่แก้ `.env`** — มันชี้ tag ใน `APP_IMAGE` (เช่น `:latest`) ไปที่ image เก่า
+แล้ว rolling deploy ด้วย tag เดิม deploy ครั้งถัดไปจึงทำงานปกติ (build/pull เวอร์ชันใหม่ทับ)
+ถ้าเคย rollback ด้วยเวอร์ชันก่อนหน้านี้ที่แก้ `.env` เป็น `APP_IMAGE=…:previous` ให้แก้กลับเป็น tag เดิม
+
 ⚠️ **migration ไม่ย้อนอัตโนมัติ** — ถ้าใช้ expand/contract ถูกต้อง โค้ดเก่าจะยัง
 อ่าน schema ใหม่ได้ → rollback โค้ดปลอดภัย (นี่คือเหตุผลที่ห้าม drop column ใน release เดียว)
 
