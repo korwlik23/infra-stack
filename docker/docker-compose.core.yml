@@ -1,6 +1,9 @@
 # Core stack — Traefik + Portainer
 # Run from repo root:
 #   docker compose --env-file .env -f docker/docker-compose.core.yml up -d
+# ชื่อ project แยกต่อ stack — กัน "orphan containers" warning และกัน
+# --remove-orphans ของ stack หนึ่งไปลบ container ของอีก stack
+name: infra-core
 include:
   - ../services/traefik/docker-compose.yml
   - ../services/portainer/docker-compose.yml

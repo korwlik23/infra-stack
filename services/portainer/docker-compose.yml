@@ -18,7 +18,10 @@ services:
       - "traefik.http.services.portainer.loadbalancer.server.port=9000"
 
 volumes:
+  # pin ชื่อ volume ให้คงที่ — ไม่ผูกกับชื่อ project (กันข้อมูลย้ายที่ตอน rename
+  # stack และให้ backup/scripts/volumes-backup.sh หาเจอด้วยชื่อเปล่า)
   portainer_data:
+    name: portainer_data
 
 networks:
   proxy:

@@ -28,7 +28,9 @@ services:
       - "traefik.http.services.rabbitmq.loadbalancer.server.port=15672"
 
 volumes:
+  # pin ชื่อ volume ให้คงที่ — ไม่ผูกกับชื่อ project
   rabbitmq_data:
+    name: rabbitmq_data
 
 networks:
   backend:

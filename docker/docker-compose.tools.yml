@@ -1,6 +1,7 @@
 # Tools stack — pgAdmin + Redis Insight (DB management UI)
 # Run from repo root:
 #   docker compose --env-file .env -f docker/docker-compose.tools.yml up -d
+name: infra-tools
 include:
   - ../services/pgadmin/docker-compose.yml
   - ../services/redisinsight/docker-compose.yml

@@ -19,7 +19,9 @@ services:
       - "traefik.http.services.uptime.loadbalancer.server.port=3001"
 
 volumes:
+  # pin ชื่อ volume ให้คงที่ — ไม่ผูกกับชื่อ project
   uptime_kuma_data:
+    name: uptime_kuma_data
 
 networks:
   proxy:

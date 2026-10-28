@@ -2,6 +2,7 @@
 # Grafana, Loki+Promtail, Uptime Kuma, Dozzle, Watchtower, Beszel
 # Run from repo root:
 #   docker compose --env-file .env -f docker/docker-compose.monitoring.yml up -d
+name: infra-monitoring
 include:
   - ../services/netdata/docker-compose.yml
   - ../services/prometheus/docker-compose.yml

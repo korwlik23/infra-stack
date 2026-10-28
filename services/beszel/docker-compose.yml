@@ -30,7 +30,9 @@ services:
   #     - KEY=${BESZEL_AGENT_KEY:?pair with hub first — see README}
 
 volumes:
+  # pin ชื่อ volume ให้คงที่ — ไม่ผูกกับชื่อ project
   beszel_data:
+    name: beszel_data
 
 networks:
   proxy:

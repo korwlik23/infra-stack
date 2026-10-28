@@ -25,7 +25,9 @@ services:
       - "traefik.http.services.pgadmin.loadbalancer.server.port=8080"
 
 volumes:
+  # pin ชื่อ volume ให้คงที่ — ไม่ผูกกับชื่อ project
   pgadmin_data:
+    name: pgadmin_data
 
 networks:
   proxy:

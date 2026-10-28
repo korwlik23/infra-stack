@@ -34,9 +34,13 @@ services:
       - "traefik.http.middlewares.netdata-auth.basicauth.users=admin:$$apr1$$CHANGE_ME$$CHANGE_ME"
 
 volumes:
+  # pin ชื่อ volume ให้คงที่ — ไม่ผูกกับชื่อ project
   netdata_config:
+    name: netdata_config
   netdata_lib:
+    name: netdata_lib
   netdata_cache:
+    name: netdata_cache
 
 networks:
   proxy:

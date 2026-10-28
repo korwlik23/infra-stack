@@ -26,8 +26,11 @@ services:
       - monitoring
 
 volumes:
+  # pin ชื่อ volume ให้คงที่ — ไม่ผูกกับชื่อ project
   loki_data:
+    name: loki_data
   promtail_positions:
+    name: promtail_positions
 
 networks:
   monitoring:

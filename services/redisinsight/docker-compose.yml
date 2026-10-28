@@ -24,7 +24,9 @@ services:
       - "traefik.http.middlewares.redisinsight-auth.basicauth.users=admin:$$apr1$$CHANGE_ME$$CHANGE_ME"
 
 volumes:
+  # pin ชื่อ volume ให้คงที่ — ไม่ผูกกับชื่อ project
   redisinsight_data:
+    name: redisinsight_data
 
 networks:
   proxy:

@@ -46,7 +46,9 @@ services:
       - monitoring
 
 volumes:
+  # pin ชื่อ volume ให้คงที่ — ไม่ผูกกับชื่อ project
   prometheus_data:
+    name: prometheus_data
 
 networks:
   # external เหมือน proxy/backend — สร้างโดย install.sh

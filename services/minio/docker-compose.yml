@@ -37,7 +37,9 @@ services:
       - "traefik.http.services.minio-console.loadbalancer.server.port=9001"
 
 volumes:
+  # pin ชื่อ volume ให้คงที่ — ไม่ผูกกับชื่อ project (กันข้อมูล object storage ย้ายที่)
   minio_data:
+    name: minio_data
 
 networks:
   backend:

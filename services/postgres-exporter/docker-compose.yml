@@ -6,7 +6,11 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
-      - DATA_SOURCE_NAME=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/postgres?sslmode=disable
+      # แยก user/pass ออกจาก URI — กันรหัสผ่านที่มี @ : / # ? ทำ DSN พัง
+      # (DATA_SOURCE_NAME แบบ URL เดียวจะ parse ผิดทันทีถ้ารหัสมีอักขระพิเศษ)
+      - DATA_SOURCE_URI=postgres:5432/postgres?sslmode=disable
+      - DATA_SOURCE_USER=${POSTGRES_USER}
+      - DATA_SOURCE_PASS=${POSTGRES_PASSWORD}
     networks:
       - backend
       - monitoring

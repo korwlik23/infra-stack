@@ -14,7 +14,9 @@ services:
       - monitoring
 
 volumes:
+  # pin ชื่อ volume ให้คงที่ — ไม่ผูกกับชื่อ project
   alertmanager_data:
+    name: alertmanager_data
 
 networks:
   monitoring:
