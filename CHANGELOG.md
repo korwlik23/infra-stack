@@ -14,6 +14,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
   รันอยู่ — เดิม deploy แรกล้มที่ migrate "database does not exist"
 - README quick start ขั้นที่ 5 ใช้ `deploy.sh` แทน `docker compose up -d` ตรง ๆ
 
+### Fixed — installer / hardening
+- `install.sh` ตอนยังไม่มี `.env`: สร้างจาก example (chmod 600) แล้ว**หยุด**ให้แก้และรันซ้ำ
+  — เดิมรอ Enter ซึ่งแก้ไฟล์ใน terminal เดียวกันไม่ได้
+
 ### Changed — Traefik static config ย้ายเข้า compose `command:`
 - ลบ `services/traefik/traefik.yml` — ACME email อ่านจาก `ACME_EMAIL` ใน `.env` ผ่าน CLI flag
 - `install.sh` เลิก `sed` แก้ไฟล์ที่อยู่ใน Git (เดิมทำให้ `git status` ไม่ clean และ

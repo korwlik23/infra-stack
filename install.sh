@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # ============================================================
-# InfraStack installer — run on a fresh Ubuntu VPS
-#   git clone <repo> && cd infra-stack && ./install.sh
+# InfraStack installer — run on a fresh Ubuntu VPS as user `deploy`
+# (after scripts/harden.sh — ลำดับเต็มใน TODO.md)
+#   cd /opt/infra-stack && ./install.sh
 # Installs Docker (+rollout plugin), creates shared networks,
 # prepares .env, then brings up the core stack.
 # ============================================================
@@ -59,12 +60,13 @@ docker network inspect monitoring >/dev/null 2>&1 || docker network create monit
 
 # ── 4. Environment file ──────────────────────────────
 if [ ! -f .env ]; then
-  echo "[4/6] Creating .env from .env.example — EDIT IT before continuing."
+  # หยุดแทนการรอ Enter — ระหว่างรอแก้ .env ใน terminal เดียวกันไม่ได้
   cp .env.example .env
+  chmod 600 .env
+  echo "[4/6] Created .env from .env.example — แก้ค่าแล้วรัน ./install.sh อีกครั้ง:"
   echo ""
-  echo "  >>> nano .env   (set BASE_DOMAIN, ACME_EMAIL, passwords) <<<"
-  echo ""
-  read -rp "Press Enter after editing .env to continue…"
+  echo "  nano .env   # BASE_DOMAIN, ACME_EMAIL และรหัสผ่านทุกตัวที่เป็น CHANGE_ME"
+  exit 0
 else
   echo "[4/6] .env already exists — keeping it."
 fi
