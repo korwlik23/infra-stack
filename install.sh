@@ -93,8 +93,7 @@ for key in POSTGRES_PASSWORD REDIS_PASSWORD GRAFANA_ADMIN_PASSWORD; do
   fi
 done
 
-# Sync ACME email จาก .env เข้า traefik config อัตโนมัติ
-sed -i "s|^\( *email:\).*|\1 $ACME_EMAIL_VAL|" services/traefik/traefik.yml
+# Traefik อ่าน ACME email จาก .env ตรง ๆ (CLI flag ใน compose) — ไม่แก้ไฟล์ใน Git
 echo "      Traefik ACME email → $ACME_EMAIL_VAL"
 
 # ── 5. Traefik ACME storage ──────────────────────────

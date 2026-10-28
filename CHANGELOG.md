@@ -14,6 +14,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
   รันอยู่ — เดิม deploy แรกล้มที่ migrate "database does not exist"
 - README quick start ขั้นที่ 5 ใช้ `deploy.sh` แทน `docker compose up -d` ตรง ๆ
 
+### Changed — Traefik static config ย้ายเข้า compose `command:`
+- ลบ `services/traefik/traefik.yml` — ACME email อ่านจาก `ACME_EMAIL` ใน `.env` ผ่าน CLI flag
+- `install.sh` เลิก `sed` แก้ไฟล์ที่อยู่ใน Git (เดิมทำให้ `git status` ไม่ clean และ
+  `git checkout -- traefik.yml` ก่อน pull ทำ email กลับเป็น example.com)
+
 ### Changed — แยก compose project ต่อ stack + pin ชื่อ volume
 - ทุก stack มี project ของตัวเอง (`infra-core`, `infra-database`, `infra-monitoring`,
   `infra-tools`, `infra-messaging`, `infra-storage`) — เลิก WARN orphan ข้าม stack

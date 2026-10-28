@@ -8,10 +8,10 @@
 ## ⚙️ วิธีทำ
 
 ```bash
-# 1. แก้ email ใน services/traefik/traefik.yml ให้ตรง ACME_EMAIL
+# 1. ตั้ง ACME_EMAIL ใน .env — Traefik อ่านค่าเองผ่าน CLI flag ใน compose (ไม่มี traefik.yml แล้ว)
 # 2. เตรียม cert storage
 touch services/traefik/acme.json && chmod 600 services/traefik/acme.json
-# 3. start (รวมอยู่ใน core stack)
+# 3. start (รวมอยู่ใน core stack — install.sh ทำข้อ 2-3 ให้แล้ว)
 docker compose --env-file .env -f docker/docker-compose.core.yml up -d
 ```
 

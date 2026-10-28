@@ -7,6 +7,24 @@ services:
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
+    # Static config ผ่าน CLI แทน traefik.yml — ACME email มาจาก .env ที่เดียว
+    # (เดิม install.sh sed แก้ traefik.yml ที่อยู่ใน Git → git status ไม่ clean + pull ชน)
+    # ⚠️ ห้าม mount ไฟล์ /etc/traefik/traefik.yml กลับเข้ามา — ถ้ามีไฟล์ Traefik จะใช้ไฟล์และข้าม flag ทั้งหมด
+    command:
+      - "--api.dashboard=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:?set in .env}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/acme.json"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--providers.docker.endpoint=unix:///var/run/docker.sock"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=proxy"
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      - "--providers.file.watch=true"
+      - "--log.level=INFO"
     ports:
       - "80:80"
       - "443:443"
@@ -14,7 +32,6 @@ services:
       - TZ=${TZ:-Asia/Bangkok}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./traefik.yml:/etc/traefik/traefik.yml:ro
       - ./dynamic:/etc/traefik/dynamic:ro
       - ./acme.json:/acme.json
     networks:
