@@ -44,9 +44,12 @@ sudo ./scripts/harden.sh
 
 1. สร้าง user `deploy` + sudo (เลิกใช้ root)
 2. copy SSH key จาก root → deploy
-3. ปิด Root Login + Password Login (เหลือ SSH key เท่านั้น)
+3. ปิด Root Login + Password Login (เหลือ SSH key เท่านั้น) — แก้ทั้ง `sshd_config` และเขียน
+   `/etc/ssh/sshd_config.d/00-infra-hardening.conf` (กัน `50-cloud-init.conf` ของ cloud image
+   ที่ตั้ง `PasswordAuthentication yes` มาชนะ) แล้ว `sshd -t` ตรวจก่อน restart
 4. UFW: deny ทุกอย่างขาเข้า ยกเว้น SSH / 80 / 443
 5. Fail2ban กัน brute force
+6. ติดตั้ง `apache2-utils` (`htpasswd`) ไว้สร้าง basicauth hash ของ Traefik / Netdata / Dozzle
 
 ## ⚠️ ระวัง (สำคัญที่สุดในเล่มนี้)
 
@@ -78,6 +81,7 @@ chown -R deploy:deploy /opt/infra-stack
 ```bash
 sudo ufw status verbose          # เห็น 22, 80, 443 allow เท่านั้น
 sudo fail2ban-client status sshd # มี jail ทำงาน
+sudo sshd -T | grep -Ei '^(permitrootlogin|passwordauthentication) '   # ต้องเป็น no ทั้งคู่
 ssh deploy@<ip>                  # ต้องเข้าได้โดย "ไม่ถามรหัสผ่าน" (ใช้ key)
 ssh root@<ip>                    # ต้องถูกปฏิเสธ
 ```
@@ -103,9 +107,9 @@ chmod 600 /home/deploy/.ssh/authorized_keys
 
 ### 2. รัน harden.sh ไปแล้วตอนยังไม่มี key — ต้องทำใหม่ไหม?
 
-ไม่ต้องรื้อ — script ออกแบบให้**รันซ้ำได้** หลังเพิ่ม key แล้วรัน
-`./scripts/harden.sh` อีกรอบ ส่วนที่ทำไปแล้วถูกข้าม และรอบนี้จะปิด
-root/password login ให้ครบ
+ไม่ต้องรื้อ — script ออกแบบให้**รันซ้ำได้** หลังเพิ่ม key ให้ root แล้วรัน
+`sudo ./scripts/harden.sh` อีกรอบ — user ที่มีอยู่แล้วถูกข้าม, key ของ root ถูก copy
+ให้ deploy (ถ้า deploy ยังไม่มี key) และรอบนี้จะปิด root/password login ให้ครบ
 
 ### 3. deploy ใช้ sudo ไม่ได้ (ถามรหัสแต่ไม่มีรหัส)
 

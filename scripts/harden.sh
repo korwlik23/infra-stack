@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================
-# Server hardening — run ONCE as root on a fresh Ubuntu VPS
+# Server hardening — run as root on a fresh Ubuntu VPS (รันซ้ำได้)
 #   sudo ./scripts/harden.sh
 # Day-1 checklist: update, timezone, base packages, deploy
 # user, SSH hardening, UFW, Fail2ban
@@ -16,19 +16,23 @@ apt-get update -y && apt-get upgrade -y
 
 echo "[2/6] timezone Asia/Bangkok + base packages…"
 timedatectl set-timezone Asia/Bangkok
-apt-get install -y curl wget git unzip zip htop vim nano vnstat fail2ban ufw
+# apache2-utils = htpasswd สำหรับสร้าง basicauth hash ของ Traefik/Netdata/Dozzle
+apt-get install -y curl wget git unzip zip htop vim nano vnstat fail2ban ufw apache2-utils
 
 echo "[3/6] creating user '$DEPLOY_USER' with sudo…"
 if ! id "$DEPLOY_USER" >/dev/null 2>&1; then
   adduser --disabled-password --gecos "" "$DEPLOY_USER"
   usermod -aG sudo "$DEPLOY_USER"
-  mkdir -p "/home/$DEPLOY_USER/.ssh"
-  # ใช้ key เดียวกับ root ที่ provider ใส่มาให้ (ถ้ามี)
-  [ -f /root/.ssh/authorized_keys ] && cp /root/.ssh/authorized_keys "/home/$DEPLOY_USER/.ssh/"
-  chown -R "$DEPLOY_USER:$DEPLOY_USER" "/home/$DEPLOY_USER/.ssh"
-  chmod 700 "/home/$DEPLOY_USER/.ssh"
-  chmod 600 "/home/$DEPLOY_USER/.ssh/authorized_keys" 2>/dev/null || true
 fi
+# ใช้ key เดียวกับ root (ถ้ามี) — ทำนอก if ด้านบน เพื่อให้รันซ้ำหลังเพิ่ม key ให้ root ทีหลังได้
+# copy เฉพาะตอน deploy ยังไม่มี key — ไม่ทับ key ที่ตั้งเองไว้แล้ว
+mkdir -p "/home/$DEPLOY_USER/.ssh"
+if [ ! -s "/home/$DEPLOY_USER/.ssh/authorized_keys" ] && [ -s /root/.ssh/authorized_keys ]; then
+  cp /root/.ssh/authorized_keys "/home/$DEPLOY_USER/.ssh/authorized_keys"
+fi
+chown -R "$DEPLOY_USER:$DEPLOY_USER" "/home/$DEPLOY_USER/.ssh"
+chmod 700 "/home/$DEPLOY_USER/.ssh"
+chmod 600 "/home/$DEPLOY_USER/.ssh/authorized_keys" 2>/dev/null || true
 
 echo "[4/6] SSH hardening (no root login, no password auth)…"
 if [ ! -s "/home/$DEPLOY_USER/.ssh/authorized_keys" ]; then
@@ -37,7 +41,16 @@ if [ ! -s "/home/$DEPLOY_USER/.ssh/authorized_keys" ]; then
 else
   sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
   sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
+  # Ubuntu cloud image มัก include sshd_config.d/50-cloud-init.conf ที่ตั้ง
+  # PasswordAuthentication yes — sshd ใช้ค่าแรกที่เจอ จึงต้องมี drop-in ที่เรียงก่อน (00-)
+  if [ -d /etc/ssh/sshd_config.d ]; then
+    printf 'PermitRootLogin no\nPasswordAuthentication no\n' > /etc/ssh/sshd_config.d/00-infra-hardening.conf
+  fi
+  # ตรวจ config ก่อน restart — config พังแล้ว restart = ล็อกตัวเองออก
+  /usr/sbin/sshd -t
   systemctl restart ssh || systemctl restart sshd
+  # ค่าที่ sshd ใช้จริง — ต้องเห็น "no" ทั้งสองบรรทัด
+  /usr/sbin/sshd -T | grep -Ei '^(permitrootlogin|passwordauthentication) ' || true
 fi
 
 echo "[5/6] UFW firewall (allow SSH, HTTP, HTTPS)…"

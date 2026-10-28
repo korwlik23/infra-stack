@@ -17,6 +17,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
 ### Fixed — installer / hardening
 - `install.sh` ตอนยังไม่มี `.env`: สร้างจาก example (chmod 600) แล้ว**หยุด**ให้แก้และรันซ้ำ
   — เดิมรอ Enter ซึ่งแก้ไฟล์ใน terminal เดียวกันไม่ได้
+- `harden.sh` รันซ้ำได้จริง: copy key ของ root ให้ deploy เมื่อ deploy ยังไม่มี key
+  (เดิม copy เฉพาะตอนสร้าง user → เพิ่ม key ทีหลังแล้วรันซ้ำ ก็ยังข้ามการปิด password login)
+- `harden.sh` เขียน `sshd_config.d/00-infra-hardening.conf` กัน `50-cloud-init.conf`
+  (`PasswordAuthentication yes`) ชนะค่าที่แก้ใน `sshd_config` + `sshd -t` ก่อน restart
+- `harden.sh` ติดตั้ง `apache2-utils` (`htpasswd`) สำหรับสร้าง basicauth hash
 
 ### Changed — Traefik static config ย้ายเข้า compose `command:`
 - ลบ `services/traefik/traefik.yml` — ACME email อ่านจาก `ACME_EMAIL` ใน `.env` ผ่าน CLI flag

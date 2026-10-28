@@ -7,7 +7,7 @@
 ```bash
 apt update && apt upgrade -y
 timedatectl set-timezone Asia/Bangkok
-apt install -y curl wget git unzip zip htop vim nano vnstat
+apt install -y curl wget git unzip zip htop vim nano vnstat apache2-utils
 ```
 
 (ทั้งหมดนี้อยู่ใน `scripts/harden.sh` แล้ว — ข้อนี้อธิบายว่ามันทำอะไร)
