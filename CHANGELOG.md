@@ -14,6 +14,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
   รันอยู่ — เดิม deploy แรกล้มที่ migrate "database does not exist"
 - README quick start ขั้นที่ 5 ใช้ `deploy.sh` แทน `docker compose up -d` ตรง ๆ
 
+### Changed — แยก compose project ต่อ stack + pin ชื่อ volume
+- ทุก stack มี project ของตัวเอง (`infra-core`, `infra-database`, `infra-monitoring`,
+  `infra-tools`, `infra-messaging`, `infra-storage`) — เลิก WARN orphan ข้าม stack
+  และ `--remove-orphans` ของ stack หนึ่งไม่ลบ container ของ stack อื่นอีกต่อไป
+- named volume ทั้ง 17 ตัว pin ชื่อเป็น `<name>` (เดิม `docker_<name>`)
+- postgres-exporter แยก user/pass ออกจาก DSN — รหัสผ่านที่มี `@ : / # ?` ไม่ทำ DSN พัง
+
+### ⚠️ Upgrade notes — เครื่องที่ติดตั้งก่อนเวอร์ชันนี้ (ทำครั้งเดียว)
+container เดิมอยู่ใต้ project `docker` และ volume ชื่อ `docker_<name>` — ถ้า up เลยจะชน
+ชื่อ container หรือได้ volume ใหม่ที่ว่างเปล่า ให้รัน `./scripts/migrate-volumes.sh`
+(ใหม่) ก่อน up stack — ขั้นตอนเต็มใน `docker/README.md`
+
 ## [2.3.0] - 2026-07-13
 
 ### Added — ดึงค่าจาก .env กลางเข้า project อัตโนมัติ (ลดพิมพ์ซ้ำ + typo)
