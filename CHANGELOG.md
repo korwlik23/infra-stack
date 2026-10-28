@@ -3,6 +3,17 @@
 All notable changes to InfraStack are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed — จุดที่ทำให้ติดตั้งบนเครื่องใหม่ล้ม
+- watchtower: `DOCKER_API_VERSION` 1.40 → 1.44 (Docker 29 รับขั้นต่ำ 1.44 — 1.40 restart loop)
+- postgres: network `backend` เป็น `external` เหมือน service อื่น (สร้างโดย install.sh)
+- `install.sh` หยุดถ้า `BASE_DOMAIN` / `ACME_EMAIL` ยังเป็น example.com และเตือนรหัสผ่าน
+  `CHANGE_ME` ที่ต้องตั้งก่อน start database stack ครั้งแรก
+- `create-project.sh` สร้าง database ของ project (`DB_DATABASE`) ให้อัตโนมัติถ้า postgres
+  รันอยู่ — เดิม deploy แรกล้มที่ migrate "database does not exist"
+- README quick start ขั้นที่ 5 ใช้ `deploy.sh` แทน `docker compose up -d` ตรง ๆ
+
 ## [2.3.0] - 2026-07-13
 
 ### Added — ดึงค่าจาก .env กลางเข้า project อัตโนมัติ (ลดพิมพ์ซ้ำ + typo)

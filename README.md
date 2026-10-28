@@ -90,9 +90,10 @@ docker compose --env-file .env -f docker/docker-compose.database.yml up -d
 # 4. Monitoring
 docker compose --env-file .env -f docker/docker-compose.monitoring.yml up -d
 
-# 5. Create a project from a template
+# 5. Create a project from a template (start the database stack first)
 ./scripts/create-project.sh myapp laravel
-cd projects/myapp && docker compose up -d
+nano projects/myapp/.env        # set APP_IMAGE, APP_KEY and per-project keys
+./scripts/deploy.sh myapp
 
 # Optional stacks (v2.0)
 docker compose --env-file .env -f docker/docker-compose.tools.yml up -d      # pgAdmin, Redis Insight

@@ -59,6 +59,33 @@ EOF
 }
 resolve_root_tokens "projects/$NAME/.env"
 
+# สร้าง database ของ project ใน postgres กลาง (ถ้า template ใช้ DB_DATABASE)
+# init SQL ของ postgres รันแค่ครั้งแรก — ไม่สร้างให้ project ใหม่
+# ถ้าไม่สร้าง: deploy.sh (DEPLOY_MIGRATE=1) ล้มที่ migrate "database does not exist"
+ensure_project_db() {
+  local penv="$1" db pguser
+  [ -f "$penv" ] && [ -f .env ] || return 0
+  db="$(grep -E '^DB_DATABASE=' "$penv" | head -1 | cut -d= -f2- | tr -d ' ' || true)"
+  [ -n "$db" ] || return 0
+  # ชื่อมาจาก template + NAME ที่ validate แล้ว — กันไว้อีกชั้นก่อนส่งเข้า SQL
+  [[ "$db" =~ ^[a-z0-9_-]+$ ]] || { echo "⚠️  ข้ามการสร้าง database: ชื่อ '$db' ไม่ถูกต้อง"; return 0; }
+  if [ "$(docker inspect -f '{{.State.Running}}' postgres 2>/dev/null || true)" != "true" ]; then
+    echo "⚠️  postgres ไม่ได้รันอยู่ — สร้าง database เองทีหลัง:"
+    echo "    docker exec -i postgres psql -U <POSTGRES_USER> -c 'CREATE DATABASE \"$db\";'"
+    return 0
+  fi
+  pguser="$(grep -E '^POSTGRES_USER=' .env | head -1 | cut -d= -f2- | tr -d ' ' || true)"
+  pguser="${pguser:-infra}"
+  if [ "$(docker exec postgres psql -U "$pguser" -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = '$db'")" = "1" ]; then
+    echo "ℹ️  database '$db' มีอยู่แล้ว"
+  else
+    # quote ชื่อ — รองรับชื่อ project ที่มี - (เช่น my-app_db)
+    docker exec postgres psql -U "$pguser" -d postgres -c "CREATE DATABASE \"$db\";" >/dev/null
+    echo "✅ created database '$db'"
+  fi
+}
+ensure_project_db "projects/$NAME/.env"
+
 echo "✅ created projects/$NAME from template '$TEMPLATE'"
 echo "   (ค่า DB/Redis/domain ดึงจาก .env กลางให้แล้ว — เหลือเฉพาะ per-project keys)"
 echo "next:"

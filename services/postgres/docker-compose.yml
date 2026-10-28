@@ -29,5 +29,8 @@ volumes:
   postgres_data:
 
 networks:
+  # external เหมือน service อื่น — สร้างโดย install.sh
+  # (ประกาศแบบไม่ external จะขัดกับ redis ตอน include รวมใน database stack)
   backend:
+    external: true
     name: backend

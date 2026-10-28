@@ -69,15 +69,33 @@ else
   echo "[4/6] .env already exists — keeping it."
 fi
 
-# Sync ACME email จาก .env เข้า traefik config อัตโนมัติ
-# (Let's Encrypt ปฏิเสธ @example.com — ถ้าลืมแก้จะไม่ได้ cert ทั้งเครื่อง)
-ACME_EMAIL_VAL="$(grep -E '^ACME_EMAIL=' .env | head -1 | cut -d= -f2- | tr -d ' ')"
-if [ -n "$ACME_EMAIL_VAL" ] && [ "$ACME_EMAIL_VAL" != "admin@example.com" ]; then
-  sed -i "s|^\( *email:\).*|\1 $ACME_EMAIL_VAL|" services/traefik/traefik.yml
-  echo "      Traefik ACME email → $ACME_EMAIL_VAL"
-else
-  echo "⚠️  ACME_EMAIL ใน .env ยังเป็นค่า default — Let's Encrypt จะไม่ออก cert ให้"
+env_val() { grep -E "^$1=" .env | head -1 | cut -d= -f2- | tr -d ' ' || true; }
+
+# ค่าที่ core stack ต้องใช้ — ถ้ายังเป็น example.com จะไม่ได้ cert ทั้งเครื่อง
+# (Let's Encrypt ปฏิเสธ @example.com) → หยุดก่อน start ดีกว่าขึ้นมาแบบใช้ไม่ได้
+BASE_DOMAIN_VAL="$(env_val BASE_DOMAIN)"
+ACME_EMAIL_VAL="$(env_val ACME_EMAIL)"
+if [ -z "$BASE_DOMAIN_VAL" ] || [ "$BASE_DOMAIN_VAL" = "example.com" ]; then
+  echo "ERROR: BASE_DOMAIN ใน .env ยังเป็นค่า default — แก้แล้วรัน ./install.sh ใหม่" >&2
+  exit 1
 fi
+case "$ACME_EMAIL_VAL" in
+  ""|*@example.com)
+    echo "ERROR: ACME_EMAIL ใน .env ยังเป็นค่า default — แก้แล้วรัน ./install.sh ใหม่" >&2
+    exit 1 ;;
+esac
+
+# รหัสผ่านไม่ได้ใช้ใน core stack แต่ต้องตั้ง "ก่อน" start database stack ครั้งแรก
+# postgres บันทึกรหัสลง volume ตอน init — แก้ .env ทีหลังจะไม่มีผล (auth failed)
+for key in POSTGRES_PASSWORD REDIS_PASSWORD GRAFANA_ADMIN_PASSWORD; do
+  if [ "$(env_val "$key")" = "CHANGE_ME" ]; then
+    echo "⚠️  $key ยังเป็น CHANGE_ME — ตั้งค่าจริงก่อน start database/monitoring stack"
+  fi
+done
+
+# Sync ACME email จาก .env เข้า traefik config อัตโนมัติ
+sed -i "s|^\( *email:\).*|\1 $ACME_EMAIL_VAL|" services/traefik/traefik.yml
+echo "      Traefik ACME email → $ACME_EMAIL_VAL"
 
 # ── 5. Traefik ACME storage ──────────────────────────
 echo "[5/6] Preparing Traefik certificate storage…"
