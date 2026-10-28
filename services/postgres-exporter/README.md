@@ -6,7 +6,8 @@
 อยู่ใน monitoring stack แล้ว — start เดี่ยว:
 
 ```bash
-docker compose --env-file ../../.env up -d
+# จาก repo root (/opt/infra-stack) — อยู่ใน monitoring stack
+docker compose --env-file .env -f docker/docker-compose.monitoring.yml up -d postgres-exporter
 ```
 
 ทดสอบ: Prometheus → Status → Targets → job `postgres` ต้อง UP

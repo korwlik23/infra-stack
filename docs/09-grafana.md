@@ -11,7 +11,7 @@
 - **cadvisor** — metrics ราย container
 - **Grafana** — `https://grafana.<BASE_DOMAIN>` (user/pass จาก `.env`)
 
-Data source Prometheus ถูก provision อัตโนมัติ
+Data source Prometheus + Loki ถูก provision อัตโนมัติ
 
 ## Dashboard เริ่มต้น
 
@@ -27,11 +27,12 @@ Import จาก grafana.com (Dashboards → New → Import):
 ## Alert rules
 
 อยู่ที่ `monitoring/alerts/basic-alerts.yml` — CPU>90%, RAM>90%, Disk>85%, core container down
-(ส่ง Telegram ต้องเพิ่ม Alertmanager — อยู่ใน roadmap v1.x)
+Prometheus ส่ง alert ไป Alertmanager (อยู่ใน monitoring stack) — default ยังไม่ส่งไปไหน
+เปิด Telegram: [services/alertmanager/README.md](../services/alertmanager/README.md)
 
 ## 🧪 ทดสอบ
 
 ```bash
 docker exec prometheus wget -qO- http://localhost:9090/api/v1/targets | grep -o '"health":"up"' | wc -l
-# ต้องได้ ≥ 3 (prometheus, node, cadvisor)
+# ต้องได้ 5 (prometheus, node, cadvisor, postgres, redis) — postgres/redis ขึ้นหลัง start database stack
 ```

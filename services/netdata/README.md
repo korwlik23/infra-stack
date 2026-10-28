@@ -6,7 +6,8 @@ PostgreSQL, Redis (auto-detect) ดูผ่าน `https://netdata.<BASE_DOMAIN
 ## Start
 
 ```bash
-docker compose --env-file ../../.env up -d
+# จาก repo root (/opt/infra-stack) — อยู่ใน monitoring stack
+docker compose --env-file .env -f docker/docker-compose.monitoring.yml up -d netdata
 ```
 
 ## หมายเหตุ

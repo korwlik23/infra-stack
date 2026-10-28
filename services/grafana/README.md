@@ -6,7 +6,8 @@ Dashboard กลาง — CPU, RAM, Docker, PostgreSQL, Redis, Network
 ## Start
 
 ```bash
-docker compose --env-file ../../.env up -d
+# จาก repo root (/opt/infra-stack) — อยู่ใน monitoring stack
+docker compose --env-file .env -f docker/docker-compose.monitoring.yml up -d grafana
 ```
 
 - Data source **Prometheus** ถูก provision อัตโนมัติ
@@ -16,5 +17,5 @@ docker compose --env-file ../../.env up -d
 ## Rollback
 
 ```bash
-docker compose down          # ข้อมูล dashboard ที่สร้างใน UI อยู่ใน volume grafana_data
+docker compose --env-file .env -f docker/docker-compose.monitoring.yml stop grafana   # ข้อมูล dashboard ที่สร้างใน UI อยู่ใน volume grafana_data
 ```

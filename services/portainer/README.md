@@ -5,7 +5,8 @@
 ## Start
 
 ```bash
-docker compose --env-file ../../.env up -d
+# จาก repo root (/opt/infra-stack) — อยู่ใน core stack
+docker compose --env-file .env -f docker/docker-compose.core.yml up -d portainer
 ```
 
 เปิด `https://portainer.<BASE_DOMAIN>` แล้ว**สร้าง admin ทันที**
@@ -14,7 +15,7 @@ docker compose --env-file ../../.env up -d
 ## Test / Rollback
 
 ```bash
-docker compose ps                       # ต้องเป็น running
-docker compose down                     # ถอน (ข้อมูลอยู่ใน volume portainer_data)
-docker volume rm portainer_portainer_data   # ลบข้อมูลถาวร (ระวัง!)
+docker compose --env-file .env -f docker/docker-compose.core.yml ps  # ต้องเป็น running
+docker compose --env-file .env -f docker/docker-compose.core.yml stop portainer   # หยุด (ข้อมูลอยู่ใน volume portainer_data)
+docker volume rm portainer_data   # ลบข้อมูลถาวร (ระวัง!)
 ```

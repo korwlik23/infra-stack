@@ -21,7 +21,8 @@ UI:    https://mq.<BASE_DOMAIN>   (login เดียวกัน)
 ## Start / Test
 
 ```bash
-docker compose --env-file ../../.env up -d
+# จาก repo root (/opt/infra-stack) — อยู่ใน messaging stack
+docker compose --env-file .env -f docker/docker-compose.messaging.yml up -d rabbitmq
 docker exec rabbitmq rabbitmq-diagnostics -q ping    # → Ping succeeded
 ```
 

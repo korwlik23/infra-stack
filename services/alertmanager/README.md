@@ -13,7 +13,8 @@
 ## Start / Test
 
 ```bash
-docker compose --env-file ../../.env up -d
+# จาก repo root (/opt/infra-stack) — อยู่ใน monitoring stack
+docker compose --env-file .env -f docker/docker-compose.monitoring.yml up -d alertmanager
 # ยิง alert ทดสอบ:
 docker exec alertmanager wget -qO- --post-data='[{"labels":{"alertname":"TestAlert","severity":"info"}}]' \
   --header='Content-Type: application/json' http://localhost:9093/api/v2/alerts

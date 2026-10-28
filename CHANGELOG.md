@@ -35,6 +35,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
   และโหมด registry `pull …:previous` ล้ม; และไม่ `docker compose pull` (ดึง :latest ตัวพังกลับมา)
 - เครื่องที่เคย rollback ด้วยเวอร์ชันเก่า: แก้ `APP_IMAGE` ใน `projects/<name>/.env` กลับเป็น tag เดิม
 
+### Docs — เอกสารให้ตรงกับโค้ด
+- ลำดับติดตั้งเดียวกันทุกที่ (README / GUIDE / TODO): SSH key + DNS ก่อน → clone ลง
+  `/opt/infra-stack` → harden (root) → `.env` + `install.sh` ด้วย user deploy
+- docs/11 ตาราง DNS ต่อ stack (เดิมขาด `traefik`, `servers` ฯลฯ → ACME ล้ม/rate limit)
+- deploy docs: สร้าง `APP_KEY` ด้วย openssl (ก่อน deploy ยังไม่มี container ให้ artisan),
+  ต้องตั้ง `APP_IMAGE`, clone ผ่าน deploy-key host alias, ใช้ `deploy.sh` ครั้งแรก,
+  เลิกสั่ง `CREATE DATABASE` ซ้ำกับ create-project, ชื่อ volume n8n จริง `<p>_<p>_data`
+- README ของ service สั่งผ่านไฟล์ stack (เดิม `cd services/x && up` ชนชื่อ container),
+  แก้ชื่อ volume `postgres_data` / `portainer_data`, beszel-agent ผ่าน monitoring stack
+
 ### Changed — Traefik static config ย้ายเข้า compose `command:`
 - ลบ `services/traefik/traefik.yml` — ACME email อ่านจาก `ACME_EMAIL` ใน `.env` ผ่าน CLI flag
 - `install.sh` เลิก `sed` แก้ไฟล์ที่อยู่ใน Git (เดิมทำให้ `git status` ไม่ clean และ

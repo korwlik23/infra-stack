@@ -13,10 +13,10 @@ Hub อยู่ใน monitoring stack แล้ว → `https://servers.<BASE_
 ## เพิ่มเครื่องใหม่ (Stage 2+)
 
 ```bash
-# บนเครื่องใหม่ — clone infra-stack แล้ว:
-cd services/beszel
+# บนเครื่องใหม่ — clone infra-stack + ./install.sh แล้ว (รันจาก repo root):
 # ใส่ BESZEL_AGENT_KEY จากหน้า Add System ของ hub ใน .env
-docker compose --env-file ../../.env up -d beszel-agent
+# แล้วเอา # ออกจาก service beszel-agent ใน services/beszel/docker-compose.yml
+docker compose -p infra-monitoring --env-file .env -f services/beszel/docker-compose.yml up -d beszel-agent
 ```
 
 ## หมายเหตุ

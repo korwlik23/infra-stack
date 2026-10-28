@@ -8,19 +8,28 @@ Monitor **หลาย server** จากจอเดียว — เบาม�
 ⚠️ agent ถูกคอมเมนต์ไว้ใน compose — เพราะถ้า start โดยไม่มี KEY จะ restart loop
 เปิดตามลำดับนี้:
 
+Hub start มาพร้อม monitoring stack แล้ว (ต้องมี DNS `servers.<BASE_DOMAIN>`) — รันจาก repo root:
+
 ```bash
-docker compose --env-file ../../.env up -d beszel
 # 1. เปิด https://servers.<BASE_DOMAIN> → สร้าง admin
 # 2. Add System: host = <server-ip>, port = 45876 → copy public key
 # 3. ใส่ key ใน /opt/infra-stack/.env: BESZEL_AGENT_KEY="ssh-ed25519 AAAA..."
 # 4. เอา # ออกจาก service beszel-agent ใน docker-compose.yml นี้
-docker compose --env-file ../../.env up -d beszel-agent
+docker compose --env-file .env -f docker/docker-compose.monitoring.yml up -d beszel-agent
 ```
+
+⚠️ อย่ารันจากในโฟลเดอร์ `services/beszel/` — จะได้ project ชื่อ `beszel` ที่ชื่อ container ชนกับ
+`infra-monitoring` ตอน up monitoring stack ครั้งถัดไป
 
 ## เพิ่ม server เครื่องที่สอง
 
-บนเครื่องใหม่รันเฉพาะ agent (มีใน install ของ infra-stack อยู่แล้ว):
-Add System ใน hub → เอา key ไปใส่ `.env` เครื่องนั้น → up agent
+บนเครื่องใหม่ (clone infra-stack + `install.sh` แล้ว) รันเฉพาะ agent:
+Add System ใน hub → เอา key ไปใส่ `.env` เครื่องนั้น → เอา # ออกจาก beszel-agent → up agent
+
+```bash
+# ใช้ชื่อ project เดียวกับ monitoring stack — ถ้าวันหลังเปิด stack เต็มบนเครื่องนี้จะไม่ชนกัน
+docker compose -p infra-monitoring --env-file .env -f services/beszel/docker-compose.yml up -d beszel-agent
+```
 
 ## หมายเหตุ
 

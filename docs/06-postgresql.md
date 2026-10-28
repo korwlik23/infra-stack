@@ -10,11 +10,15 @@ docker compose --env-file .env -f docker/docker-compose.database.yml up -d
 
 ตัวอย่าง `app_db` และ database สำหรับ bundled n8n template ถูกสร้างจาก
 `services/postgres/init/01-create-databases.sql` ในครั้งแรก
+database ของ project ใหม่: `create-project.sh` สร้างให้อัตโนมัติ (`<project>_db`)
 
-เพิ่มทีหลัง:
+⚠️ ตั้ง `POSTGRES_PASSWORD` ใน `.env` **ก่อน** start ครั้งแรก — postgres บันทึกรหัสลง volume
+ตอน init แก้ `.env` ทีหลังจะไม่มีผล (app ได้ `password authentication failed`)
+
+เพิ่มเองทีหลัง (`$POSTGRES_USER` อ่านจาก env ของ container — shell บน host ไม่มีตัวแปรนี้):
 
 ```bash
-docker exec -it postgres psql -U $POSTGRES_USER -c "CREATE DATABASE myapp_db;"
+docker exec -it postgres sh -c 'psql -U "$POSTGRES_USER" -d postgres -c "CREATE DATABASE myapp_db;"'
 ```
 
 ## การต่อจาก app
@@ -37,5 +41,5 @@ password: $POSTGRES_PASSWORD
 
 ```bash
 docker exec postgres pg_isready
-docker exec -it postgres psql -U $POSTGRES_USER -c "\l"   # เห็น database ทุกตัว
+docker exec -it postgres sh -c 'psql -U "$POSTGRES_USER" -d postgres -c "\l"'   # เห็น database ทุกตัว
 ```

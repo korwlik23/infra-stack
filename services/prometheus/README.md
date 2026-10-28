@@ -12,6 +12,7 @@ Config หลักอยู่ที่ [monitoring/prometheus.yml](../../monit
 ## Start / Test
 
 ```bash
-docker compose --env-file ../../.env up -d
+# จาก repo root (/opt/infra-stack) — อยู่ใน monitoring stack
+docker compose --env-file .env -f docker/docker-compose.monitoring.yml up -d prometheus node-exporter cadvisor
 docker exec prometheus wget -qO- http://localhost:9090/-/healthy   # → Healthy
 ```
