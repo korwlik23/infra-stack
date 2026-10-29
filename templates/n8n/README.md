@@ -13,6 +13,6 @@ cd ../.. && ./scripts/deploy.sh __PROJECT__
 ## ระวัง
 
 - `N8N_ENCRYPTION_KEY` หาย = credentials ใน workflow ทั้งหมดกู้ไม่ได้
-- Workflow data อยู่ทั้งใน PostgreSQL และ volume `__PROJECT_____PROJECT___data` — backup ทั้งคู่
-  (`./backup/scripts/volumes-backup.sh __PROJECT_____PROJECT___data`)
+- Workflow data อยู่ทั้งใน PostgreSQL และ volume `__PROJECT_____PROJECT___data` — `./scripts/backup.sh`
+  เก็บทั้งคู่ + `.env` (มี `N8N_ENCRYPTION_KEY`) แบบเข้ารหัสให้อัตโนมัติ
 - webhook URL ต้องเป็น HTTPS domain จริง (ตั้งผ่าน `WEBHOOK_URL` แล้ว)

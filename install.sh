@@ -86,9 +86,11 @@ password_volume() {
 # hex = ไม่มีอักขระพิเศษ → ใส่ใน URL/DSN (DATABASE_URL, REDIS_URL) ได้โดยไม่ต้อง encode
 fill_passwords() {
   local key vol generated="" skipped=""
-  # .env เก่าก่อนมี DASHBOARD_* → เติมให้ (basicauth กลางของหน้าแอดมิน)
-  grep -qE '^DASHBOARD_USER=' .env || printf '\nDASHBOARD_USER=admin\n' >> .env
-  grep -qE '^DASHBOARD_PASSWORD=' .env || printf '\nDASHBOARD_PASSWORD=CHANGE_ME\n' >> .env
+  # .env เก่าก่อนมี key เหล่านี้ → เติมให้ (basicauth กลาง + รหัสเข้ารหัส backup secrets)
+  local kv
+  for kv in DASHBOARD_USER=admin DASHBOARD_PASSWORD=CHANGE_ME BACKUP_ENCRYPTION_PASSWORD=CHANGE_ME; do
+    grep -qE "^${kv%%=*}=" .env || printf '\n%s\n' "$kv" >> .env
+  done
   for key in $(grep -E '^[A-Z0-9_]+_PASSWORD=CHANGE_ME$' .env | cut -d= -f1); do
     vol="$(password_volume "$key")"
     if [ -n "$vol" ] && { docker volume inspect "$vol" >/dev/null 2>&1 \
@@ -197,8 +199,13 @@ echo ""
 echo "✅ Core stack running."
 echo "หน้าแอดมิน (Traefik / Netdata / Dozzle / Redis Insight): user = $DASH_USER"
 echo "  รหัส = DASHBOARD_PASSWORD ใน .env   (ดู: grep DASHBOARD_PASSWORD .env)"
+echo ""
+echo "⚠️  จด BACKUP_ENCRYPTION_PASSWORD เก็บนอกเครื่อง (password manager) — ถ้าเครื่องพัง"
+echo "   ไม่มีรหัสนี้ = เปิด backup ของ .env/รหัสผ่านไม่ได้   (ดู: grep BACKUP_ENCRYPTION_PASSWORD .env)"
+echo ""
 echo "Next steps:"
 echo "  docker compose --env-file .env -f docker/docker-compose.database.yml up -d"
 echo "  ./scripts/check-dns.sh monitoring     # เช็ค DNS ก่อนเปิด monitoring"
 echo "  docker compose --env-file .env -f docker/docker-compose.monitoring.yml up -d"
 echo "  ./scripts/create-project.sh <name> <laravel|nextjs|n8n|ai-worker>"
+echo "  ตั้ง backup รายวัน + ส่งขึ้น R2: docs/13-backup.md"

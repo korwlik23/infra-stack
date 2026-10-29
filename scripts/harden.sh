@@ -23,7 +23,8 @@ apt-get update -y && apt-get "${APT_OPTS[@]}" upgrade
 echo "[2/6] timezone Asia/Bangkok + base packages…"
 timedatectl set-timezone Asia/Bangkok
 # apache2-utils = htpasswd (ไว้สร้าง basicauth เองถ้าต้องการ — install.sh ใช้ openssl แทนแล้ว)
-apt-get "${APT_OPTS[@]}" install curl wget git unzip zip htop vim nano vnstat fail2ban ufw apache2-utils
+# gnupg = เข้ารหัส backup ของ secrets (backup/scripts/secrets-backup.sh)
+apt-get "${APT_OPTS[@]}" install curl wget git unzip zip htop vim nano vnstat fail2ban ufw apache2-utils gnupg
 
 echo "[3/6] creating user '$DEPLOY_USER' with sudo…"
 if ! id "$DEPLOY_USER" >/dev/null 2>&1; then

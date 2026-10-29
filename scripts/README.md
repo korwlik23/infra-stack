@@ -5,8 +5,9 @@
 | `harden.sh` | Day-1 server hardening (root เท่านั้น, รันซ้ำได้ — เช่นหลังเพิ่ม SSH key) | ทดสอบ SSH ใหม่ก่อนปิด session เดิม |
 | `check-dns.sh <stack…>` | เช็คว่า subdomain ของ stack มี DNS record ครบ (อ่านจาก compose จริง) — รันก่อน `up -d` | ไม่ครบ = exit 1; ข้ามได้ด้วย `SKIP_DNS_CHECK=1` |
 | `update.sh [stack]` | pull image ใหม่ + up -d ทีละ stack | database ต้อง backup ก่อน (มี gate) |
-| `backup.sh` | backup PostgreSQL + volumes ทั้งหมด | — |
+| `backup.sh` | backup PostgreSQL + ทุก named volume + secrets (เข้ารหัส) → off-site R2 (cron รายวัน) | จด `BACKUP_ENCRYPTION_PASSWORD` ไว้นอกเครื่อง |
 | `restore.sh [file]` | restore PostgreSQL (default = ล่าสุด) | เขียนทับข้อมูล — มี confirmation |
+| `restore-server.sh <r2:bucket/host \| dir>` | กู้ทั้งเครื่องลง VPS ใหม่: secrets → volumes → core → database → stack ที่มีข้อมูล | เครื่องใหม่เท่านั้น — มี confirmation (docs/13) |
 | `create-project.sh <name> <template>` | สร้าง project จาก template (laravel/nextjs/n8n/ai-worker) | — |
 | `deploy.sh <project>` | **zero-downtime rolling deploy** (build-on-server หรือ pull) — ของพังไม่ได้รับ traffic | migration ต้อง expand/contract (docs/25) |
 | `artisan.sh <project> <args>` | รัน artisan ใน container จากที่ไหนก็ได้ (เช่น `migrate --force`) | — |

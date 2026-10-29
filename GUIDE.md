@@ -146,7 +146,7 @@ nano projects/myapp/.env
 | แอปตัวไหน error | เปิด `logs.<โดเมน>` (Dozzle) คลิกดูตัวนั้น |
 | ทำไมเครื่องช้า | เปิด `netdata.<โดเมน>` ดู CPU/RAM ตอนนี้ |
 | อยาก restart แอป | เปิด `portainer.<โดเมน>` → Containers → เลือก → Restart |
-| backup ยังทำงานไหม | `ls -lh backup/archives/postgres/` (ต้องมีไฟล์ใหม่ทุกวัน) |
+| backup ยังทำงานไหม | `tail -20 /var/log/infra-backup.log` — ต้องจบด้วย `✅ full backup complete` และไม่มี `backup อยู่แค่ในเครื่องนี้` |
 
 Checklist สุขภาพประจำสัปดาห์ (5 นาที): [docs/14-monitoring.md](docs/14-monitoring.md)
 
@@ -158,7 +158,8 @@ Checklist สุขภาพประจำสัปดาห์ (5 นาที
 - ✅ **CI/CD ฟรี** — push โค้ดเข้า GitHub แล้วเว็บอัปเดตเองใน 2-4 นาที (ไม่ใช้ GitHub Actions ไม่มีค่าใช้จ่าย)
 - ✅ Deploy แบบ **zero-downtime** — อัปเดตเว็บโดยผู้ใช้ไม่รู้สึกอะไรเลย
 - ✅ **Backup อัตโนมัติทุกคืน** + ส่งสำเนาขึ้น cloud (Cloudflare R2)
-- ✅ เครื่องพัง? เช่าเครื่องใหม่ → clone → install → restore backup → กลับมาใน ~30 นาที
+- ✅ เครื่องพัง? เช่าเครื่องใหม่ → clone → install → `./scripts/restore-server.sh` (ข้อมูล + รหัสผ่าน + cert
+  กลับมาครบ — ต้องจด `BACKUP_ENCRYPTION_PASSWORD` ไว้) → ย้าย DNS ([docs/13-backup.md](docs/13-backup.md))
 - ✅ โตขึ้น? มีแผน scale เป็นหลายเครื่องโดยไม่ต้องรื้อ ([docs/18-scale.md](docs/18-scale.md))
 
 ## 7. กติกาความปลอดภัย (สั้นๆ แต่ห้ามข้าม)

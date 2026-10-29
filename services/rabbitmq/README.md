@@ -26,5 +26,6 @@ docker compose --env-file .env -f docker/docker-compose.messaging.yml up -d rabb
 docker exec rabbitmq rabbitmq-diagnostics -q ping    # → Ping succeeded
 ```
 
-⚠️ volume `rabbitmq_data` เก็บ message ที่ persistent — เพิ่มเข้า volumes-backup
+volume `rabbitmq_data` เก็บ message ที่ persistent — `./scripts/backup.sh` เก็บให้อัตโนมัติ
+(copy ขณะรัน: message ที่เข้ามาตอน 03:00 อาจไม่อยู่ใน backup รอบนั้น)
 ถ้ามี queue สำคัญ

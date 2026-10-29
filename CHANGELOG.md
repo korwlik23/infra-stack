@@ -72,6 +72,25 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
   `--force-confold`) — เลิกหน้าจอม่วงของ needrestart / dpkg conffile ที่ค้างกลางทาง
 - เอกสารบอกเวลารอ DNS (ย้าย nameserver ไป Cloudflare อาจหลายชั่วโมง) แยกจาก "10–15 นาที"
 
+### Changed — Backup / Disaster Recovery กู้ทั้งเครื่องได้จริง
+- `volumes-backup.sh` backup **ทุก** named volume ในเครื่องแทนรายการตายตัว 4 ตัว (เดิมขาด minio,
+  rabbitmq, beszel, pgadmin, volume ของ project เช่น n8n) — ข้าม `postgres_data` (ใช้ `pg_dumpall`),
+  `docker_*`, volume ไม่มีชื่อ และ `BACKUP_EXCLUDE_VOLUMES` (default: metrics/log history)
+- `secrets-backup.sh` (ใหม่): `.env`, `projects/*` (ยกเว้น src/data), `acme.json`, alertmanager token,
+  deploy keys, crontab → gpg AES256 ด้วย `BACKUP_ENCRYPTION_PASSWORD` (install.sh สุ่มให้ + เตือนให้จด)
+  — เดิมไม่มีการ backup secrets เลย: restore ข้อมูลได้แต่ไม่มีรหัสผ่าน/cert
+- `offsite.sh` (ใหม่): ทุกไฟล์ขึ้น `r2:<bucket>/<BACKUP_HOST>/<kind>/` + ตรวจขนาดหลัง upload,
+  เตือนดังเมื่อยังไม่ตั้ง — เดิมมีแค่ postgres ขึ้น R2 (volume อยู่บนดิสก์เดียวกับเครื่อง) และไม่ตรวจผล
+- `scripts/backup.sh` รันทั้ง 3 ส่วนต่อกันแม้ส่วนแรกล้ม แล้ว exit 1 พร้อมบอกส่วนที่ล้ม; cron เหลือบรรทัดเดียว
+- `postgres-restore.sh`: ตรวจ gzip ก่อน, แยก "already exists" ที่ปกติออก แล้ว **ล้มเมื่อมี error จริง**
+  (เดิมจบ "done" เสมอ) — เก็บ log ข้างไฟล์ backup; เพิ่ม `--yes`
+- `volumes-restore.sh`, `secrets-restore.sh` (ใหม่) — ไม่ทับ volume ที่มีข้อมูล / `.env` เดิมเก็บเป็น
+  `.env.before-restore-*` / ไม่ทับ `~/.ssh` ที่มีอยู่
+- `scripts/restore-server.sh` (ใหม่): กู้ทั้งเครื่องลง VPS ใหม่จาก R2 หรือโฟลเดอร์ local —
+  secrets → volumes → core → database + PostgreSQL → stack ที่เครื่องเดิมเปิดไว้ แล้วบอกขั้น
+  deploy project + ทดสอบด้วย `curl --resolve` ก่อนย้าย DNS (cert เดิมจาก acme.json ใช้ได้ทันที)
+- `harden.sh` ติดตั้ง `gnupg`
+
 ### ⚠️ Upgrade notes — เครื่องที่ติดตั้งก่อนเวอร์ชันนี้ (ทำครั้งเดียว)
 container เดิมอยู่ใต้ project `docker` และ volume ชื่อ `docker_<name>` — ถ้า up เลยจะชน
 ชื่อ container หรือได้ volume ใหม่ที่ว่างเปล่า ให้รัน `./scripts/migrate-volumes.sh`

@@ -139,17 +139,18 @@ docker compose --env-file .env -f docker/docker-compose.monitoring.yml ps
 
 ## 7. Backup — สำรองและซ้อมกู้คืน
 
-- [ ] รัน PostgreSQL backup และตรวจว่า archive มีขนาดมากกว่า 0 bytes
+- [ ] จด `BACKUP_ENCRYPTION_PASSWORD` (และ R2 key) เก็บใน password manager — ไม่มีรหัสนี้กู้ secrets ไม่ได้
+- [ ] ตั้ง rclone remote `r2` + `R2_BUCKET_BACKUP` ใน `.env` ([docs/12-r2.md](docs/12-r2.md))
+- [ ] รัน backup ทั้งชุด และตรวจว่าไฟล์ทั้ง 3 ประเภทมีขนาดมากกว่า 0 bytes และขึ้น R2 (`✅ ตรวจแล้ว`)
 
 ```bash
-./backup/scripts/postgres-backup.sh
-ls -lh backup/archives/postgres/
+./scripts/backup.sh
+ls -lh backup/archives/postgres/ backup/archives/volumes/ backup/archives/secrets/
 ```
 
-- [ ] รัน volume backup และตรวจผลลัพธ์
-- [ ] สร้าง log files ที่ cron เขียนได้ แล้วตั้ง daily/weekly schedules ตามคู่มือ
-- [ ] ตั้ง offsite copy เช่น Cloudflare R2 และตรวจว่าไฟล์ปลายทางเปิดอ่านได้
-- [ ] ซ้อม restore ด้วยข้อมูลทดสอบก่อนใช้ production และจดเวลา recovery
+- [ ] สร้าง log files ที่ cron เขียนได้ แล้วตั้ง cron รายวันตาม [docs/13-backup.md](docs/13-backup.md)
+- [ ] ตั้ง Object lifecycle rule ของ bucket backup ใน R2 (เช่นลบไฟล์อายุเกิน 30 วัน)
+- [ ] ซ้อมกู้ทั้งเครื่องลง VPS ทดลอง: `./scripts/restore-server.sh r2:<bucket>/<host>` และจดเวลา recovery
 
 รายละเอียด: [docs/12-r2.md](docs/12-r2.md), [docs/13-backup.md](docs/13-backup.md)
 

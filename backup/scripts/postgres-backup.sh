@@ -8,24 +8,22 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 # $ ช่องว่าง & ; ทำ script พัง (set -u → unbound variable) หรือได้ค่าผิด
 env_val() { grep -E "^$1=" "$ROOT/.env" 2>/dev/null | head -1 | cut -d= -f2- | sed -E 's/^"(.*)"$/\1/' || true; }
 POSTGRES_USER="$(env_val POSTGRES_USER)"
-R2_BUCKET_BACKUP="$(env_val R2_BUCKET_BACKUP)"
 
 DEST="$ROOT/backup/archives/postgres"
 STAMP="$(date +%Y%m%d_%H%M%S)"
 KEEP_DAYS="$(env_val BACKUP_KEEP_DAYS)"; KEEP_DAYS="${KEEP_DAYS:-7}"
+OUT="$DEST/all_${STAMP}.sql.gz"
 
 mkdir -p "$DEST"
 
 echo "[postgres-backup] dumping all databases…"
-docker exec postgres pg_dumpall -U "${POSTGRES_USER:-infra}" | gzip > "$DEST/all_${STAMP}.sql.gz"
+# เขียนลง .partial ก่อน — dump ล้มกลางทาง จะไม่เหลือไฟล์ครึ่ง ๆ ที่ดูเหมือน backup ล่าสุด
+docker exec postgres pg_dumpall -U "${POSTGRES_USER:-infra}" | gzip > "$OUT.partial"
+mv "$OUT.partial" "$OUT"
 
 echo "[postgres-backup] pruning backups older than ${KEEP_DAYS} days…"
 find "$DEST" -name "all_*.sql.gz" -mtime +"$KEEP_DAYS" -delete
 
-# Optional: sync to Cloudflare R2 (ต้องติดตั้ง rclone และ config remote ชื่อ r2)
-if command -v rclone >/dev/null 2>&1 && [ -n "$R2_BUCKET_BACKUP" ] && [ "$R2_BUCKET_BACKUP" != "CHANGE_ME" ]; then
-  echo "[postgres-backup] syncing to R2 bucket ${R2_BUCKET_BACKUP}…"
-  rclone copy "$DEST/all_${STAMP}.sql.gz" "r2:${R2_BUCKET_BACKUP}/postgres/"
-fi
+"$ROOT/backup/scripts/offsite.sh" postgres "$OUT"
 
-echo "[postgres-backup] done → $DEST/all_${STAMP}.sql.gz"
+echo "[postgres-backup] done → $OUT"

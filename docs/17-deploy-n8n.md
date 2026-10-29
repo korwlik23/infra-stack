@@ -25,9 +25,8 @@ nano projects/n8n/.env     # N8N_ENCRYPTION_KEY (openssl rand -hex 24) — APP_D
 
 - Workflow + credentials อยู่ใน `n8n_db` (โดน postgres-backup ทุกคืนอยู่แล้ว)
 - Volume (config + binary data) ชื่อจริงคือ `<project>_<project>_data` — project ชื่อ `n8n`
-  ได้ `n8n_n8n_data` (เช็ค: `docker volume ls | grep _data`) เพิ่มเข้า backup:
-  `./backup/scripts/volumes-backup.sh portainer_data grafana_data uptime_kuma_data redis_data n8n_n8n_data`
-  (ใส่ชื่อผิด script จะ "skip missing volume" เงียบ ๆ)
+  ได้ `n8n_n8n_data` — `./scripts/backup.sh` เก็บให้อัตโนมัติ (backup ทุก named volume ในเครื่อง)
+- `N8N_ENCRYPTION_KEY` อยู่ใน `projects/<name>/.env` — ถูกเก็บใน secrets backup (เข้ารหัส) ด้วย
 
 ## 🧪 ทดสอบ
 

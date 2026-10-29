@@ -24,4 +24,5 @@ Grafana → Explore → datasource **Loki** → query:
 
 - Retention ค่า default ของ image = ไม่จำกัด — ดิสก์โตเรื่อย ๆ
   ถ้าดิสก์ตึงให้ mount config เองแล้วตั้ง `limits_config.retention_period`
-- volume `loki_data` ควรอยู่ในรายการ volumes-backup ถ้า log สำคัญต่อ audit
+- volume `loki_data` ไม่ถูก backup โดย default (อยู่ใน `BACKUP_EXCLUDE_VOLUMES`) — ถ้า log สำคัญต่อ
+  audit ให้เอาออกจากรายการนั้นใน `.env`
