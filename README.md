@@ -7,7 +7,8 @@ Production Infrastructure Stack — v2.3.0
 Build reusable production infrastructure for deploying Laravel, Next.js, n8n
 and other services using Docker. Clone this repository on any fresh Ubuntu VPS
 (Contabo, GreenCloud, Hetzner, Oracle Cloud, …), run one script, and get a
-standardized server in 10–15 minutes.
+standardized server in 10–15 minutes (plus waiting for DNS — a fresh Cloudflare
+nameserver change can take hours, so set up DNS the day before).
 
 ```bash
 git clone https://github.com/korwlik23/infra-stack.git /opt/infra-stack
@@ -82,6 +83,8 @@ infra-stack/
 ```bash
 # 0. ก่อนเริ่ม: ใส่ SSH public key ให้ root (docs/02) และสร้าง DNS A record ของทุก
 #    subdomain ที่จะเปิด → IP เครื่อง (docs/11) — Traefik ขอ cert ทันทีที่ stack start
+#    ถ้าเพิ่งย้าย nameserver ไป Cloudflare อาจรอหลายชั่วโมง → ทำข้อนี้ล่วงหน้า
+#    (install.sh เช็ค DNS ให้ก่อน start และบอกว่าขาด record ตัวไหน)
 
 # 1. (root) clone + harden — สร้าง user deploy, ปิด root/password login, UFW, Fail2ban
 apt update && apt install -y git
@@ -95,19 +98,19 @@ chown -R deploy:deploy /opt/infra-stack
 ssh deploy@<server-ip>
 cd /opt/infra-stack
 cp .env.example .env && chmod 600 .env
-nano .env        # BASE_DOMAIN, ACME_EMAIL และรหัสผ่านทุกตัวที่เป็น CHANGE_ME
-#                  (postgres จำรหัสตอน start ครั้งแรก — แก้ทีหลังไม่มีผล)
-# เปลี่ยน basicauth hash ของ Traefik / Netdata / Dozzle: htpasswd -nb admin '<password>'
-#   (ใส่ใน compose ต้อง escape $ เป็น $$ — docs/04)
+nano .env        # แก้แค่ BASE_DOMAIN กับ ACME_EMAIL — รหัสผ่านทุกตัว install.sh สุ่มให้
+#                  (รวม DASHBOARD_PASSWORD ที่ใช้ login Traefik / Netdata / Dozzle / Redis Insight)
 
 # 3. Docker + networks + core stack (Traefik + Portainer)
 ./install.sh     # ถ้าถูกเพิ่มเข้า group docker → logout/login แล้วรัน ./install.sh ซ้ำ
+#                  ถ้า DNS ยังไม่ครบ จะหยุดและบอกว่าต้องสร้าง record ไหน → สร้างแล้วรันซ้ำ
 #                  เปิด https://portainer.<BASE_DOMAIN> สร้าง admin ภายใน 5 นาที (docs/05)
 
 # 4. Databases
 docker compose --env-file .env -f docker/docker-compose.database.yml up -d
 
 # 5. Monitoring
+./scripts/check-dns.sh monitoring   # ครบแล้วค่อย start (ไม่ครบ = cert ล้มจนโดนแบน)
 docker compose --env-file .env -f docker/docker-compose.monitoring.yml up -d
 
 # 6. Create a project from a template (database stack ต้อง start ก่อน)
@@ -115,7 +118,7 @@ docker compose --env-file .env -f docker/docker-compose.monitoring.yml up -d
 nano projects/myapp/.env        # APP_IMAGE, APP_KEY และ per-project keys (docs/26)
 ./scripts/deploy.sh myapp
 
-# Optional stacks (v2.0)
+# Optional stacks (v2.0) — เช็ค DNS ก่อนเปิดแต่ละตัว: ./scripts/check-dns.sh tools (messaging / storage)
 docker compose --env-file .env -f docker/docker-compose.tools.yml up -d      # pgAdmin, Redis Insight
 docker compose --env-file .env -f docker/docker-compose.messaging.yml up -d  # RabbitMQ
 docker compose --env-file .env -f docker/docker-compose.storage.yml up -d    # MinIO

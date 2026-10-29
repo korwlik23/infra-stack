@@ -43,9 +43,9 @@ services:
       - "traefik.http.routers.traefik.entrypoints=websecure"
       - "traefik.http.routers.traefik.tls.certresolver=letsencrypt"
       - "traefik.http.routers.traefik.service=api@internal"
-      - "traefik.http.routers.traefik.middlewares=dashboard-auth"
-      # htpasswd -nb admin <password>  → replace hash below
-      - "traefik.http.middlewares.dashboard-auth.basicauth.users=admin:$$apr1$$CHANGE_ME$$CHANGE_ME"
+      # basicauth กลาง — install.sh สร้างจาก DASHBOARD_USER/DASHBOARD_PASSWORD ใน .env
+      # (dynamic/auth.yml อยู่นอก Git — ไม่ต้องแก้ hash ในไฟล์นี้)
+      - "traefik.http.routers.traefik.middlewares=dashboard-auth@file"
 
 networks:
   proxy:

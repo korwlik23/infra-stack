@@ -2,8 +2,8 @@
 
 ดู Redis ผ่าน Browser — Cache / Queue / Session ทั้งหมด — `https://redis.<BASE_DOMAIN>`
 
-⚠️ RedisInsight **ไม่มีระบบ login ของตัวเอง** — ถูกป้องกันด้วย basicauth ที่ Traefik
-(เปลี่ยน hash ใน compose ก่อนใช้: `htpasswd -nb admin <password>`, escape `$`→`$$`)
+⚠️ RedisInsight **ไม่มีระบบ login ของตัวเอง** — ถูกป้องกันด้วย basicauth กลางที่ Traefik
+(login ด้วย `DASHBOARD_USER` / `DASHBOARD_PASSWORD` ใน `.env` — install.sh สร้างให้)
 
 ## เพิ่ม database ครั้งแรก
 

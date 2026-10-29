@@ -49,7 +49,9 @@ sudo ./scripts/harden.sh
    ที่ตั้ง `PasswordAuthentication yes` มาชนะ) แล้ว `sshd -t` ตรวจก่อน restart
 4. UFW: deny ทุกอย่างขาเข้า ยกเว้น SSH / 80 / 443
 5. Fail2ban กัน brute force
-6. ติดตั้ง `apache2-utils` (`htpasswd`) ไว้สร้าง basicauth hash ของ Traefik / Netdata / Dozzle
+6. ติดตั้ง `apache2-utils` (`htpasswd`) ไว้ใช้เอง — basicauth ของหน้าแอดมิน `install.sh` สร้างให้แล้ว
+7. รัน apt แบบไม่ถาม (`DEBIAN_FRONTEND=noninteractive`, needrestart อัตโนมัติ, เก็บ config เดิม)
+   — ไม่มีหน้าจอม่วงเด้งกลางทาง
 
 ## ⚠️ ระวัง (สำคัญที่สุดในเล่มนี้)
 

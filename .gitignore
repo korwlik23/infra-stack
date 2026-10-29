@@ -24,6 +24,8 @@ aws_secret_key*
 
 # ── Runtime data ────────────────────────────────────
 services/traefik/acme.json
+# basicauth hash ที่ install.sh สร้างจาก .env
+services/traefik/dynamic/auth.yml
 services/**/data/
 projects/**/data/
 

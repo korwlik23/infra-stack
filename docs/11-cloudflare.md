@@ -24,6 +24,15 @@ A    *  (หรือรายตัว) <server-ip>   Proxied 🟠
 | Storage | `s3`, `minio` |
 | Projects | `<ชื่อ project>` เช่น `app`, `n8n` (หรือค่า `APP_DOMAIN` ใน `.env` ของ project) |
 
+เช็คว่าครบก่อน start stack ไหนก็ได้ — script อ่านรายชื่อจาก compose จริง และบอกว่าขาดตัวไหน:
+
+```bash
+./scripts/check-dns.sh core monitoring     # install.sh เช็ค core ให้อัตโนมัติ
+```
+
+⏳ ถ้าเพิ่งเปลี่ยน nameserver ที่ registrar ไป Cloudflare อาจใช้เวลาหลายชั่วโมง (สูงสุด ~24 ชม.)
+กว่าโดเมนจะ Active — ทำขั้นนี้ล่วงหน้าก่อนวันติดตั้ง
+
 3. SSL/TLS → mode **Full (strict)** (เรามี cert จริงจาก Let's Encrypt ฝั่ง Traefik)
 4. เปิด: Always Use HTTPS, WAF managed rules (ฟรี tier), Bot Fight Mode
 

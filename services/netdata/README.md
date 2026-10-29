@@ -12,6 +12,7 @@ docker compose --env-file .env -f docker/docker-compose.monitoring.yml up -d net
 
 ## หมายเหตุ
 
-- Dashboard ถูกป้องกันด้วย basicauth ผ่าน Traefik — เปลี่ยน hash ก่อนใช้
+- Dashboard ถูกป้องกันด้วย basicauth กลางของ Traefik (`dashboard-auth@file`) — login ด้วย
+  `DASHBOARD_USER` / `DASHBOARD_PASSWORD` ใน `.env` (install.sh สร้างให้)
 - Netdata เห็นข้อมูล host เพราะ mount `/proc`, `/sys` แบบ read-only
 - ถ้ามีหลาย server ในอนาคต ค่อยต่อ Netdata Cloud หรือใช้ Beszel รวมจอเดียว

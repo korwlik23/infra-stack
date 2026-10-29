@@ -34,7 +34,7 @@
 ## ถัดไป (v2.x)
 
 - [ ] ทดสอบ clean installation บน fresh VPS ตาม [00-introduction.md](00-introduction.md)
-- [ ] เปลี่ยน basicauth hash ทุกจุด (traefik/netdata/dozzle/redisinsight)
+- [x] basicauth ทุกจุด (traefik/netdata/dozzle/redisinsight) สร้างอัตโนมัติจาก `.env` โดย install.sh
 - [ ] ตั้ง Telegram bot + ใส่ token ใน alertmanager.yml (บนเซิร์ฟเวอร์)
 - [ ] Import Grafana dashboards (1860, 193, 9628, 11835) แล้ว export JSON เก็บเข้า Git
 - [ ] ซ้อม restore backup ครั้งแรก + จับเวลา disaster recovery

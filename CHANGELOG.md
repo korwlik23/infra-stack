@@ -57,10 +57,29 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
 - named volume ทั้ง 17 ตัว pin ชื่อเป็น `<name>` (เดิม `docker_<name>`)
 - postgres-exporter แยก user/pass ออกจาก DSN — รหัสผ่านที่มี `@ : / # ?` ไม่ทำ DSN พัง
 
+### Changed — ติดตั้งได้เองโดยไม่ต้องมีพื้นฐาน
+- `install.sh` สุ่มรหัสให้ทุก `*_PASSWORD=CHANGE_ME` ใน `.env` (hex 48 ตัว — ใส่ใน URL/DSN ได้)
+  ข้ามตัวที่ data volume มีอยู่แล้ว (postgres/grafana/pgadmin/rabbitmq จำรหัสตอน init ครั้งแรก)
+  — มือใหม่แก้ `.env` แค่ `BASE_DOMAIN` + `ACME_EMAIL` และไม่มีทาง start database ด้วย `CHANGE_ME`
+- basicauth กลาง `dashboard-auth@file` สำหรับ Traefik dashboard / Netdata / Dozzle / Redis Insight:
+  `install.sh` สร้าง `services/traefik/dynamic/auth.yml` (gitignored) จาก `DASHBOARD_USER` /
+  `DASHBOARD_PASSWORD` ใน `.env` — เลิกให้คนรัน `htpasswd` แล้วแก้ compose + escape `$`→`$$` เอง
+  (และ compose ไม่ถูกแก้บนเครื่องอีก → `git pull` ไม่ชน)
+- `scripts/check-dns.sh <stack…>` (ใหม่): อ่าน `Host(…)` จาก compose ของ stack แล้วเช็คว่าทุก
+  subdomain resolve ได้ — `install.sh` เช็ค core ก่อน start, ขาดตัวไหนหยุดและบอกวิธีสร้าง record
+  (กัน ACME ล้มซ้ำจน Let's Encrypt แบน ~1 ชม.) ข้ามได้ด้วย `SKIP_DNS_CHECK=1`
+- `harden.sh` รัน apt แบบ non-interactive (`DEBIAN_FRONTEND=noninteractive`, `NEEDRESTART_MODE=a`,
+  `--force-confold`) — เลิกหน้าจอม่วงของ needrestart / dpkg conffile ที่ค้างกลางทาง
+- เอกสารบอกเวลารอ DNS (ย้าย nameserver ไป Cloudflare อาจหลายชั่วโมง) แยกจาก "10–15 นาที"
+
 ### ⚠️ Upgrade notes — เครื่องที่ติดตั้งก่อนเวอร์ชันนี้ (ทำครั้งเดียว)
 container เดิมอยู่ใต้ project `docker` และ volume ชื่อ `docker_<name>` — ถ้า up เลยจะชน
 ชื่อ container หรือได้ volume ใหม่ที่ว่างเปล่า ให้รัน `./scripts/migrate-volumes.sh`
 (ใหม่) ก่อน up stack — ขั้นตอนเต็มใน `docker/README.md`
+
+basicauth: hash ที่เคยแก้เองใน compose ของ traefik/netdata/dozzle/redisinsight ถูกแทนด้วย
+`DASHBOARD_PASSWORD` ใน `.env` (รหัสเดียวทุกหน้า) — `git checkout --` 4 ไฟล์นั้นก่อน `git pull`
+แล้วรัน `./install.sh` (เติม `DASHBOARD_*` ลง `.env` + สุ่มรหัสให้ถ้ายังไม่มี)
 
 ## [2.3.0] - 2026-07-13
 

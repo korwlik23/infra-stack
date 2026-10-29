@@ -3,6 +3,7 @@
 | Script | ทำอะไร | ระวัง |
 |--------|--------|-------|
 | `harden.sh` | Day-1 server hardening (root เท่านั้น, รันซ้ำได้ — เช่นหลังเพิ่ม SSH key) | ทดสอบ SSH ใหม่ก่อนปิด session เดิม |
+| `check-dns.sh <stack…>` | เช็คว่า subdomain ของ stack มี DNS record ครบ (อ่านจาก compose จริง) — รันก่อน `up -d` | ไม่ครบ = exit 1; ข้ามได้ด้วย `SKIP_DNS_CHECK=1` |
 | `update.sh [stack]` | pull image ใหม่ + up -d ทีละ stack | database ต้อง backup ก่อน (มี gate) |
 | `backup.sh` | backup PostgreSQL + volumes ทั้งหมด | — |
 | `restore.sh [file]` | restore PostgreSQL (default = ล่าสุด) | เขียนทับข้อมูล — มี confirmation |

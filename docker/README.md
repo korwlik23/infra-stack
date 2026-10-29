@@ -57,9 +57,12 @@ git pull
 cd /opt/infra-stack
 ./scripts/backup.sh                                    # backup ก่อนเสมอ
 git checkout -- services/traefik/traefik.yml 2>/dev/null || true   # ไฟล์นี้ถูกลบจาก repo แล้ว (email ย้ายไป .env)
+# basicauth ย้ายไป .env แล้ว — ทิ้ง hash ที่เคยแก้เองใน compose (รหัสใหม่ = DASHBOARD_PASSWORD)
+git checkout -- services/traefik/docker-compose.yml services/netdata/docker-compose.yml \
+  services/dozzle/docker-compose.yml services/redisinsight/docker-compose.yml
 git pull
 ./scripts/migrate-volumes.sh                           # stop container เดิม + copy docker_<name> → <name>
-docker compose --env-file .env -f docker/docker-compose.core.yml up -d
+./install.sh                                           # เติม DASHBOARD_* ใน .env + สร้าง auth.yml + up core
 docker compose --env-file .env -f docker/docker-compose.database.yml up -d
 docker compose --env-file .env -f docker/docker-compose.monitoring.yml up -d
 # + tools / messaging / storage ถ้าเคยเปิดไว้

@@ -17,9 +17,8 @@ services:
       - "traefik.http.routers.dozzle.entrypoints=websecure"
       - "traefik.http.routers.dozzle.tls.certresolver=letsencrypt"
       - "traefik.http.services.dozzle.loadbalancer.server.port=8080"
-      - "traefik.http.routers.dozzle.middlewares=dozzle-auth"
-      # htpasswd -nb admin <password> — เปลี่ยนก่อนใช้
-      - "traefik.http.middlewares.dozzle-auth.basicauth.users=admin:$$apr1$$CHANGE_ME$$CHANGE_ME"
+      # basicauth กลาง — install.sh สร้างจาก DASHBOARD_USER/DASHBOARD_PASSWORD ใน .env
+      - "traefik.http.routers.dozzle.middlewares=dashboard-auth@file"
 
 networks:
   proxy:

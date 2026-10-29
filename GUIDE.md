@@ -17,7 +17,8 @@ cd /opt/infra-stack
 ./install.sh
 ```
 
-ประมาณ 10–15 นาที ได้เซิร์ฟเวอร์พร้อมใช้ระดับ production — และทุกเครื่องที่ติดตั้ง
+ประมาณ 10–15 นาที (ไม่นับเวลารอ DNS — ถ้าเพิ่งย้ายโดเมนเข้า Cloudflare อาจรอหลายชั่วโมง
+ให้ทำเรื่อง DNS ไว้ล่วงหน้า) ได้เซิร์ฟเวอร์พร้อมใช้ระดับ production — และทุกเครื่องที่ติดตั้ง
 ด้วยชุดนี้จะมีหน้าตาเหมือนกันหมด ดูแลง่าย ย้ายเครื่องง่าย
 
 **เปรียบเทียบ:** VPS เปล่า = ที่ดินเปล่า / InfraStack = บ้านสำเร็จรูปพร้อมระบบไฟ ประปา
@@ -100,9 +101,11 @@ infra-stack/
 2. ชี้ DNS: สร้าง A record ทุก subdomain ที่จะเปิด → IP เครื่อง
    (อย่างน้อย traefik, portainer, grafana, netdata, uptime, logs, servers — รายการเต็มใน docs/11)
 3. ssh เข้าเครื่อง (root) → clone ลง /opt/infra-stack → ./scripts/harden.sh   (ล็อกประตูบ้านก่อน)
-4. login ใหม่เป็น user deploy → cp .env.example .env → แก้ .env (โดเมน + รหัสผ่านทุกตัว)
-5. ./install.sh  (ติด Docker + เปิด Traefik/Portainer — ถ้าบอกให้ login ใหม่ก็ login แล้วรันซ้ำ)
-6. เปิด database stack แล้วตามด้วย monitoring stack ตามคู่มือ
+4. login ใหม่เป็น user deploy → cp .env.example .env → แก้ .env แค่ 2 ค่า: โดเมน + อีเมล
+   (รหัสผ่านทุกตัว install.sh สุ่มให้เอง)
+5. ./install.sh  (ติด Docker + เช็ค DNS + เปิด Traefik/Portainer — ถ้าบอกให้ login ใหม่
+   หรือบอกว่าขาด DNS record ตัวไหน ก็ทำตามแล้วรันซ้ำ)
+6. เปิด database stack → ./scripts/check-dns.sh monitoring → เปิด monitoring stack ตามคู่มือ
 7. ไล่ทำ TODO.md
 ```
 
@@ -161,7 +164,8 @@ Checklist สุขภาพประจำสัปดาห์ (5 นาที
 ## 7. กติกาความปลอดภัย (สั้นๆ แต่ห้ามข้าม)
 
 1. **ห้าม commit ไฟล์ `.env` หรือรหัสผ่าน/token ใดๆ เข้า Git** — repo นี้ตั้ง `.gitignore` กันไว้แล้ว อย่าไปฝืนมัน
-2. ค่าที่เขียนว่า `CHANGE_ME` ทุกจุด = ต้องเปลี่ยนก่อนใช้จริง (สร้างรหัสด้วย `openssl rand -hex 24`)
+2. ค่าที่เขียนว่า `CHANGE_ME` = ต้องเปลี่ยนก่อนใช้จริง — รหัสผ่าน (`*_PASSWORD`) `install.sh` สุ่มให้เอง
+   ส่วนค่าอื่น เช่น key ของ R2 ต้องใส่เอง
 3. เปิด repository ของ reusable code เป็น public ได้ แต่ `.env`, keys, backup,
    operator notes และข้อมูล runtime ต้องเป็น **Private** เสมอ
 4. เข้าเซิร์ฟเวอร์ด้วย SSH key เท่านั้น (ตัวติดตั้ง `harden.sh` จัดให้) — เก็บไฟล์ key ไว้ให้ดี หายแล้วเข้าเครื่องไม่ได้

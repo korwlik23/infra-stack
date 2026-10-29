@@ -20,15 +20,15 @@ docker compose --env-file .env -f docker/docker-compose.core.yml up -d
 ## ⚠️ ระวัง
 
 - DNS ต้องชี้มาเครื่องนี้**ก่อน** start ไม่งั้น Let's Encrypt challenge ล้ม
-  (โดน rate limit ได้ถ้าพลาดซ้ำ ๆ — 5 ครั้ง/ชั่วโมง/โดเมน)
+  (โดน rate limit ได้ถ้าพลาดซ้ำ ๆ — 5 ครั้ง/ชั่วโมง/โดเมน) — `install.sh` เช็คของ core ให้แล้ว
+  stack อื่นเช็คเองก่อน start: `./scripts/check-dns.sh monitoring` (หรือ `tools` / `messaging` / `storage`)
 - ถ้าใช้ Cloudflare Proxy (ส้ม): ตั้ง SSL mode = **Full (strict)** ดู [11-cloudflare.md](11-cloudflare.md)
-- เปลี่ยน basicauth hash ก่อนใช้จริง — placeholder `$$apr1$$CHANGE_ME$$CHANGE_ME` login ไม่ได้
-  มีใน `services/traefik`, `services/netdata`, `services/dozzle` (+ `services/redisinsight` ถ้าเปิด tools):
-
-  ```bash
-  htpasswd -nb admin 'รหัสผ่าน'      # ได้ admin:$apr1$xxxx$yyyy (package apache2-utils — harden.sh ติดให้)
-  # ใส่ใน label ...basicauth.users= โดยแทน $ ทุกตัวเป็น $$ → admin:$$apr1$$xxxx$$yyyy
-  ```
+- หน้า Traefik dashboard, Netdata, Dozzle และ Redis Insight ใช้ basicauth กลาง
+  `dashboard-auth@file` — `install.sh` สร้างไฟล์ `services/traefik/dynamic/auth.yml` (นอก Git)
+  จาก `DASHBOARD_USER` / `DASHBOARD_PASSWORD` ใน `.env` ทุกครั้งที่รัน ไม่ต้องแก้ hash ใน compose
+  - ดูรหัส: `grep DASHBOARD_PASSWORD .env`
+  - เปลี่ยนรหัส: แก้ `DASHBOARD_PASSWORD` ใน `.env` → `./install.sh` (Traefik โหลดไฟล์ใหม่เอง)
+  - ถ้าเห็น 404 ทุกหน้าที่ใช้ basicauth: ยังไม่มี `auth.yml` → รัน `./install.sh`
 
 ## 🧪 ทดสอบ
 
@@ -72,3 +72,4 @@ docker compose --env-file .env -f docker/docker-compose.core.yml up -d
 2. ยังไม่ใช้ service นั้น → ปิด router: แก้ compose เป็น `traefik.enable=false` แล้ว up -d
 
 **กฎ:** เปิด service ที่มี traefik labels เมื่อไหร่ → สร้าง DNS record ทันทีทุกครั้ง
+แล้วเช็คด้วย `./scripts/check-dns.sh <stack>` ก่อน `up -d` (บอกว่าขาด record ตัวไหน)

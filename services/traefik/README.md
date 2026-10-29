@@ -31,8 +31,9 @@ networks:
 - Static config อยู่ใน `command:` ของ `docker-compose.yml` — ACME email มาจาก
   `ACME_EMAIL` ใน `.env` (แก้ `.env` แล้ว `up -d traefik` ใหม่)
 - Dynamic config (middleware ใช้ซ้ำ เช่น `security-headers@file`) อยู่ที่ `dynamic/`
-- Dashboard: `https://traefik.<BASE_DOMAIN>` — เปลี่ยน basicauth hash ก่อนใช้
-  (`htpasswd -nb admin <password>` จาก package `apache2-utils`; ใน compose ต้อง escape `$` เป็น `$$`)
+- Dashboard: `https://traefik.<BASE_DOMAIN>` — login ด้วย `DASHBOARD_USER` / `DASHBOARD_PASSWORD` ใน `.env`
+  (install.sh สร้าง `dynamic/auth.yml` = middleware `dashboard-auth@file` ไฟล์นี้อยู่นอก Git ห้าม commit)
+- service ที่ต้องการ basicauth เพิ่ม: ใส่ label `traefik.http.routers.<name>.middlewares=dashboard-auth@file`
 - `acme.json` เก็บ certificate — ห้าม commit (อยู่ใน .gitignore แล้ว)
 
 ## Test / Rollback

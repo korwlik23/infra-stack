@@ -29,9 +29,8 @@ services:
       - "traefik.http.routers.netdata.entrypoints=websecure"
       - "traefik.http.routers.netdata.tls.certresolver=letsencrypt"
       - "traefik.http.services.netdata.loadbalancer.server.port=19999"
-      - "traefik.http.routers.netdata.middlewares=netdata-auth"
-      # htpasswd -nb admin <password> — เปลี่ยนก่อนใช้
-      - "traefik.http.middlewares.netdata-auth.basicauth.users=admin:$$apr1$$CHANGE_ME$$CHANGE_ME"
+      # basicauth กลาง — install.sh สร้างจาก DASHBOARD_USER/DASHBOARD_PASSWORD ใน .env
+      - "traefik.http.routers.netdata.middlewares=dashboard-auth@file"
 
 volumes:
   # pin ชื่อ volume ให้คงที่ — ไม่ผูกกับชื่อ project

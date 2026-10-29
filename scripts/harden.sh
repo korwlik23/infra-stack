@@ -11,13 +11,19 @@ set -euo pipefail
 
 DEPLOY_USER="${DEPLOY_USER:-deploy}"
 
+# ห้าม apt เด้งหน้าจอถาม — Ubuntu 22.04+ needrestart ("Which services should be restarted?")
+# และ dpkg conffile prompt (เช่น sshd_config เวอร์ชันใหม่) โผล่แม้ใส่ -y มือใหม่จะติดที่จอม่วง
+# confold = เก็บไฟล์ config เดิมไว้ (ขั้น [4/6] แก้ sshd เองอยู่แล้ว)
+export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a
+APT_OPTS=(-y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold)
+
 echo "[1/6] apt update & upgrade…"
-apt-get update -y && apt-get upgrade -y
+apt-get update -y && apt-get "${APT_OPTS[@]}" upgrade
 
 echo "[2/6] timezone Asia/Bangkok + base packages…"
 timedatectl set-timezone Asia/Bangkok
-# apache2-utils = htpasswd สำหรับสร้าง basicauth hash ของ Traefik/Netdata/Dozzle
-apt-get install -y curl wget git unzip zip htop vim nano vnstat fail2ban ufw apache2-utils
+# apache2-utils = htpasswd (ไว้สร้าง basicauth เองถ้าต้องการ — install.sh ใช้ openssl แทนแล้ว)
+apt-get "${APT_OPTS[@]}" install curl wget git unzip zip htop vim nano vnstat fail2ban ufw apache2-utils
 
 echo "[3/6] creating user '$DEPLOY_USER' with sudo…"
 if ! id "$DEPLOY_USER" >/dev/null 2>&1; then

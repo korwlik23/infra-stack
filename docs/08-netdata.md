@@ -10,7 +10,7 @@
 docker compose --env-file .env -f docker/docker-compose.monitoring.yml up -d
 ```
 
-เปิด `https://netdata.<BASE_DOMAIN>` (มี basicauth — เปลี่ยน hash ใน compose ก่อน)
+เปิด `https://netdata.<BASE_DOMAIN>` (login ด้วย `DASHBOARD_USER` / `DASHBOARD_PASSWORD` ใน `.env`)
 
 ## ใช้ดูอะไร
 

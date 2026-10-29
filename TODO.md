@@ -16,6 +16,7 @@
 - [ ] สร้าง DNS A record ของทุก subdomain ที่จะเปิด → IP เครื่อง **ก่อนรัน `install.sh`**
       (core: `traefik`, `portainer` — installer start ให้ทันที; รายการต่อ stack ดู
       [docs/11-cloudflare.md](docs/11-cloudflare.md)) ไม่งั้น ACME ล้มซ้ำจนโดน rate limit
+      — ถ้าเพิ่งย้าย nameserver ไป Cloudflare อาจรอหลายชั่วโมง ทำข้อนี้ล่วงหน้า
 - [ ] ติดตั้ง Git แล้ว clone repository ลง `/opt/infra-stack`
 
 ```bash
@@ -63,11 +64,12 @@ chmod 600 .env
 nano .env
 ```
 
-- [ ] เปลี่ยน `BASE_DOMAIN`, `ACME_EMAIL` และทุกค่า `CHANGE_ME`
-- [ ] สร้างรหัสผ่านแต่ละระบบแยกกัน เช่น `openssl rand -hex 32`
+- [ ] เปลี่ยน `BASE_DOMAIN` และ `ACME_EMAIL` — รหัสผ่าน `*_PASSWORD` ที่เป็น `CHANGE_ME`
+      ไม่ต้องตั้งเอง `install.sh` สุ่มให้ทุกตัว (ดูทีหลังได้ด้วย `grep PASSWORD .env`)
 - [ ] ตั้งค่า R2 เฉพาะเมื่อพร้อมใช้ offsite backup; อย่าใส่ secret ลงไฟล์ตัวอย่าง
-- [ ] ตั้ง basicauth ของ Traefik dashboard, Netdata และ Dozzle (placeholder เดิม login ไม่ได้)
-      — `htpasswd -nb admin '<password>'` แล้วแทน `$` เป็น `$$` ในไฟล์ compose ([docs/04-traefik.md](docs/04-traefik.md))
+- [ ] หน้า Traefik dashboard, Netdata, Dozzle และ Redis Insight login ด้วย `DASHBOARD_USER` /
+      `DASHBOARD_PASSWORD` ใน `.env` — `install.sh` สร้าง basicauth ให้ ไม่ต้องแก้ compose
+      ([docs/04-traefik.md](docs/04-traefik.md))
 - [ ] ตรวจว่า `.env` ถูก ignore และไม่มี secret ถูก stage
 
 ```bash
@@ -78,6 +80,7 @@ git status --short
 ## 4. Core — Docker, networks, Traefik และ Portainer
 
 - [ ] รัน installer; ถ้าเพิ่ม user เข้า group `docker` ให้ logout/login แล้วรันซ้ำ
+      (installer เช็ค DNS ของ `traefik` / `portainer` ก่อน start — ขาดตัวไหนจะหยุดและบอก)
 
 ```bash
 cd /opt/infra-stack
@@ -116,9 +119,10 @@ docker compose --env-file .env -f docker/docker-compose.database.yml ps
 
 ## 6. Monitoring — Metrics, logs และ uptime
 
-- [ ] Start monitoring stack
+- [ ] เช็ค DNS ของ monitoring ให้ครบ แล้ว start monitoring stack
 
 ```bash
+./scripts/check-dns.sh monitoring
 docker compose --env-file .env -f docker/docker-compose.monitoring.yml up -d
 docker compose --env-file .env -f docker/docker-compose.monitoring.yml ps
 ```
@@ -157,6 +161,7 @@ ls -lh backup/archives/postgres/
 - [ ] ทบทวนสิทธิ์, DNS, authentication, backup และ monitoring ของทุก service ที่เปิดเพิ่ม
 
 ```bash
+./scripts/check-dns.sh tools messaging storage   # เช็คเฉพาะ stack ที่จะเปิด
 docker compose --env-file .env -f docker/docker-compose.tools.yml up -d
 docker compose --env-file .env -f docker/docker-compose.messaging.yml up -d
 docker compose --env-file .env -f docker/docker-compose.storage.yml up -d

@@ -16,11 +16,11 @@ echo "=============================================="
 
 # ── 1. Docker ────────────────────────────────────────
 if ! command -v docker >/dev/null 2>&1; then
-  echo "[1/6] Installing Docker…"
+  echo "[1/8] Installing Docker…"
   curl -fsSL https://get.docker.com | sh
   sudo systemctl enable --now docker
 else
-  echo "[1/6] Docker already installed: $(docker --version)"
+  echo "[1/8] Docker already installed: $(docker --version)"
 fi
 
 # ให้ user ปัจจุบันใช้ docker ได้โดยไม่ต้อง sudo (สิทธิ์มีผลหลัง login ใหม่)
@@ -43,9 +43,9 @@ fi
 # ทั้งที่ไม่มี plugin (เจอจริงตอน deploy ครั้งแรก) → เช็คไฟล์ตรง ๆ
 ROLLOUT_PLUGIN="$HOME/.docker/cli-plugins/docker-rollout"
 if [ -x "$ROLLOUT_PLUGIN" ]; then
-  echo "[2/6] docker-rollout already installed"
+  echo "[2/8] docker-rollout already installed"
 else
-  echo "[2/6] Installing docker-rollout plugin (zero-downtime deploy)…"
+  echo "[2/8] Installing docker-rollout plugin (zero-downtime deploy)…"
   mkdir -p "$HOME/.docker/cli-plugins"
   curl -fsSL https://raw.githubusercontent.com/wowu/docker-rollout/main/docker-rollout \
     -o "$HOME/.docker/cli-plugins/docker-rollout"
@@ -53,25 +53,71 @@ else
 fi
 
 # ── 3. Shared networks ───────────────────────────────
-echo "[3/6] Creating shared networks (proxy, backend, monitoring)…"
+echo "[3/8] Creating shared networks (proxy, backend, monitoring)…"
 docker network inspect proxy >/dev/null 2>&1 || docker network create proxy
 docker network inspect backend >/dev/null 2>&1 || docker network create backend
 docker network inspect monitoring >/dev/null 2>&1 || docker network create monitoring
+
+# openssl ใช้สุ่มรหัสผ่าน + สร้าง basicauth hash (Ubuntu มีมาให้แล้ว)
+if ! command -v openssl >/dev/null 2>&1; then
+  echo "ERROR: ไม่มี openssl — ติดตั้งก่อน: sudo apt-get install -y openssl แล้วรัน ./install.sh ใหม่" >&2
+  exit 1
+fi
+
+env_val() { grep -E "^$1=" .env | head -1 | cut -d= -f2- | tr -d ' \r' || true; }
+
+# volume ที่ "จำรหัสผ่านไว้แล้ว" ของแต่ละ key — postgres/grafana/pgadmin/rabbitmq ตั้งรหัส
+# ตอน init ครั้งแรกเท่านั้น redis/minio มี project ที่ copy รหัสไปแล้ว → ถ้า volume มีอยู่
+# ห้ามสุ่มใหม่ ไม่งั้นรหัสใน .env จะไม่ตรงของจริง (auth failed)
+password_volume() {
+  case "$1" in
+    POSTGRES_PASSWORD)      echo postgres_data ;;
+    REDIS_PASSWORD)         echo redis_data ;;
+    GRAFANA_ADMIN_PASSWORD) echo grafana_data ;;
+    PGADMIN_PASSWORD)       echo pgadmin_data ;;
+    RABBITMQ_PASSWORD)      echo rabbitmq_data ;;
+    MINIO_ROOT_PASSWORD)    echo minio_data ;;
+    *)                      echo "" ;;
+  esac
+}
+
+# สุ่มรหัสให้ทุก *_PASSWORD ที่ยังเป็น CHANGE_ME — มือใหม่ไม่ต้องตั้งเองทีละตัว และไม่มีทาง
+# เผลอ start database ด้วยรหัส CHANGE_ME (postgres จะจำรหัสนั้นถาวร)
+# hex = ไม่มีอักขระพิเศษ → ใส่ใน URL/DSN (DATABASE_URL, REDIS_URL) ได้โดยไม่ต้อง encode
+fill_passwords() {
+  local key vol generated="" skipped=""
+  # .env เก่าก่อนมี DASHBOARD_* → เติมให้ (basicauth กลางของหน้าแอดมิน)
+  grep -qE '^DASHBOARD_USER=' .env || printf '\nDASHBOARD_USER=admin\n' >> .env
+  grep -qE '^DASHBOARD_PASSWORD=' .env || printf '\nDASHBOARD_PASSWORD=CHANGE_ME\n' >> .env
+  for key in $(grep -E '^[A-Z0-9_]+_PASSWORD=CHANGE_ME$' .env | cut -d= -f1); do
+    vol="$(password_volume "$key")"
+    if [ -n "$vol" ] && { docker volume inspect "$vol" >/dev/null 2>&1 \
+                          || docker volume inspect "docker_$vol" >/dev/null 2>&1; }; then
+      skipped="$skipped $key"
+      continue
+    fi
+    sed -i "s|^$key=CHANGE_ME\$|$key=$(openssl rand -hex 24)|" .env
+    generated="$generated $key"
+  done
+  [ -z "$generated" ] || echo "      สุ่มรหัสผ่านให้แล้ว:$generated  (ดูได้ด้วย: grep PASSWORD .env)"
+  [ -z "$skipped" ] || echo "⚠️  ไม่ได้สุ่ม:$skipped — service นี้มีข้อมูลอยู่แล้วและจำรหัสเดิมไว้ ตั้งใน .env ให้ตรงของจริงเอง"
+}
 
 # ── 4. Environment file ──────────────────────────────
 if [ ! -f .env ]; then
   # หยุดแทนการรอ Enter — ระหว่างรอแก้ .env ใน terminal เดียวกันไม่ได้
   cp .env.example .env
   chmod 600 .env
-  echo "[4/6] Created .env from .env.example — แก้ค่าแล้วรัน ./install.sh อีกครั้ง:"
+  echo "[4/8] Created .env from .env.example"
+  fill_passwords
   echo ""
-  echo "  nano .env   # BASE_DOMAIN, ACME_EMAIL และรหัสผ่านทุกตัวที่เป็น CHANGE_ME"
+  echo "  แก้แค่ 2 ค่า แล้วรัน ./install.sh อีกครั้ง:"
+  echo "  nano .env   # BASE_DOMAIN = โดเมนของคุณ, ACME_EMAIL = อีเมลจริง (รหัสผ่านสุ่มให้แล้ว)"
   exit 0
 else
-  echo "[4/6] .env already exists — keeping it."
+  echo "[4/8] .env already exists — keeping it."
+  fill_passwords
 fi
-
-env_val() { grep -E "^$1=" .env | head -1 | cut -d= -f2- | tr -d ' ' || true; }
 
 # ค่าที่ core stack ต้องใช้ — ถ้ายังเป็น example.com จะไม่ได้ cert ทั้งเครื่อง
 # (Let's Encrypt ปฏิเสธ @example.com) → หยุดก่อน start ดีกว่าขึ้นมาแบบใช้ไม่ได้
@@ -87,29 +133,72 @@ case "$ACME_EMAIL_VAL" in
     exit 1 ;;
 esac
 
-# รหัสผ่านไม่ได้ใช้ใน core stack แต่ต้องตั้ง "ก่อน" start database stack ครั้งแรก
-# postgres บันทึกรหัสลง volume ตอน init — แก้ .env ทีหลังจะไม่มีผล (auth failed)
-for key in POSTGRES_PASSWORD REDIS_PASSWORD GRAFANA_ADMIN_PASSWORD; do
+# เหลือ CHANGE_ME ได้เฉพาะตัวที่ fill_passwords ข้าม (มีข้อมูลเดิม) — ย้ำอีกรอบก่อนไปต่อ
+for key in $(grep -E '^[A-Z0-9_]+_PASSWORD=' .env | cut -d= -f1); do
   if [ "$(env_val "$key")" = "CHANGE_ME" ]; then
-    echo "⚠️  $key ยังเป็น CHANGE_ME — ตั้งค่าจริงก่อน start database/monitoring stack"
+    echo "⚠️  $key ยังเป็น CHANGE_ME — ตั้งให้ตรงรหัสจริงของ service ก่อน start stack นั้น"
   fi
 done
 
 # Traefik อ่าน ACME email จาก .env ตรง ๆ (CLI flag ใน compose) — ไม่แก้ไฟล์ใน Git
 echo "      Traefik ACME email → $ACME_EMAIL_VAL"
 
-# ── 5. Traefik ACME storage ──────────────────────────
-echo "[5/6] Preparing Traefik certificate storage…"
+# ── 5. Dashboard basicauth ───────────────────────────
+# หน้าแอดมินที่ไม่มี login ของตัวเอง (Traefik dashboard, Netdata, Dozzle, Redis Insight)
+# ใช้ middleware กลาง dashboard-auth@file — สร้างใหม่จาก .env ทุกครั้งที่รัน install.sh
+# ไฟล์อยู่นอก Git (.gitignore): ไม่ต้องแก้ compose เอง ไม่ต้อง escape $ และ git pull ไม่ชน
+echo "[5/8] Writing dashboard login (DASHBOARD_USER / DASHBOARD_PASSWORD)…"
+DASH_USER="$(env_val DASHBOARD_USER)"
+DASH_USER="${DASH_USER:-admin}"
+# อ่านรหัสแบบไม่ตัดช่องว่าง (env_val ตัด) — ตัดแค่ quote ครอบและ \r
+DASH_PASS="$(grep -E '^DASHBOARD_PASSWORD=' .env | head -1 | cut -d= -f2- | tr -d '\r' || true)"
+case "$DASH_PASS" in
+  \"*\"|\'*\') DASH_PASS="${DASH_PASS:1:-1}" ;;
+esac
+if ! [[ "$DASH_USER" =~ ^[A-Za-z0-9._-]+$ ]]; then
+  echo "ERROR: DASHBOARD_USER ใน .env ใช้ได้แค่ A-Z a-z 0-9 . _ - — แก้แล้วรัน ./install.sh ใหม่" >&2
+  exit 1
+fi
+if [ -z "$DASH_PASS" ] || [ "$DASH_PASS" = "CHANGE_ME" ]; then
+  echo "ERROR: DASHBOARD_PASSWORD ใน .env ว่าง — ใส่รหัสแล้วรัน ./install.sh ใหม่" >&2
+  exit 1
+fi
+# ส่งรหัสทาง stdin — ไม่ให้โผล่ใน argument (ps เห็น)
+DASH_HASH="$(printf '%s\n' "$DASH_PASS" | openssl passwd -apr1 -stdin)"
+(
+  umask 077
+  cat > services/traefik/dynamic/auth.yml <<EOF
+# สร้างโดย install.sh จาก DASHBOARD_USER / DASHBOARD_PASSWORD ใน .env
+# ห้ามแก้มือ ห้าม commit — เปลี่ยนรหัส: แก้ .env แล้วรัน ./install.sh (Traefik โหลดใหม่เอง)
+http:
+  middlewares:
+    dashboard-auth:
+      basicAuth:
+        users:
+          - "$DASH_USER:$DASH_HASH"
+EOF
+)
+
+# ── 6. DNS ───────────────────────────────────────────
+# core stack ขอ cert ทันทีที่ start — ไม่มี record = ล้มซ้ำจน Let's Encrypt แบน ~1 ชม.
+echo "[6/8] Checking DNS records for core stack…"
+./scripts/check-dns.sh core
+
+# ── 7. Traefik ACME storage ──────────────────────────
+echo "[7/8] Preparing Traefik certificate storage…"
 touch services/traefik/acme.json
 chmod 600 services/traefik/acme.json
 
-# ── 6. Core stack ────────────────────────────────────
-echo "[6/6] Starting core stack (Traefik + Portainer)…"
+# ── 8. Core stack ────────────────────────────────────
+echo "[8/8] Starting core stack (Traefik + Portainer)…"
 docker compose --env-file .env -f docker/docker-compose.core.yml up -d
 
 echo ""
 echo "✅ Core stack running."
+echo "หน้าแอดมิน (Traefik / Netdata / Dozzle / Redis Insight): user = $DASH_USER"
+echo "  รหัส = DASHBOARD_PASSWORD ใน .env   (ดู: grep DASHBOARD_PASSWORD .env)"
 echo "Next steps:"
 echo "  docker compose --env-file .env -f docker/docker-compose.database.yml up -d"
+echo "  ./scripts/check-dns.sh monitoring     # เช็ค DNS ก่อนเปิด monitoring"
 echo "  docker compose --env-file .env -f docker/docker-compose.monitoring.yml up -d"
 echo "  ./scripts/create-project.sh <name> <laravel|nextjs|n8n|ai-worker>"

@@ -18,10 +18,9 @@ services:
       - "traefik.http.routers.redisinsight.entrypoints=websecure"
       - "traefik.http.routers.redisinsight.tls.certresolver=letsencrypt"
       - "traefik.http.services.redisinsight.loadbalancer.server.port=5540"
-      - "traefik.http.routers.redisinsight.middlewares=redisinsight-auth"
-      # RedisInsight ไม่มี login ของตัวเอง — บังคับ basicauth ที่ Traefik
-      # htpasswd -nb admin <password> — เปลี่ยนก่อนใช้
-      - "traefik.http.middlewares.redisinsight-auth.basicauth.users=admin:$$apr1$$CHANGE_ME$$CHANGE_ME"
+      # RedisInsight ไม่มี login ของตัวเอง — บังคับ basicauth กลางที่ Traefik
+      # (install.sh สร้างจาก DASHBOARD_USER/DASHBOARD_PASSWORD ใน .env)
+      - "traefik.http.routers.redisinsight.middlewares=dashboard-auth@file"
 
 volumes:
   # pin ชื่อ volume ให้คงที่ — ไม่ผูกกับชื่อ project
