@@ -44,10 +44,12 @@ done
 if [ "$count" -gt 0 ]; then
   echo "" >&2
   echo "ERROR: ยังไม่มี DNS record $count ตัว — ยังไม่ start เพื่อกัน Let's Encrypt แบน" >&2
-  echo "  ไปที่ Cloudflare → DNS → Add record ทีละตัว:" >&2
+  echo "  ไปที่ Cloudflare → DNS → Add record ทีละตัว (ช่อง Name ใส่ชื่อเต็มได้ Cloudflare ตัดโดเมนหลักให้เอง):" >&2
   for sub in $missing; do
-    echo "    Type: A   Name: $sub   IPv4: <IP ของ VPS>" >&2
+    echo "    Type: A   Name: $sub.$DOMAIN   IPv4: <IP ของ VPS>" >&2
   done
+  echo "  BASE_DOMAIN เป็นชื่อย่อย (เช่น sg.example.com — เครื่องเสริม)? ตั้ง Proxy เป็น DNS only (เมฆเทา)" >&2
+  echo "  หรือสร้าง record เดียว Name: *.$DOMAIN แบบ DNS only ก็ครบทุกตัว — docs/11-cloudflare.md" >&2
   echo "  (IP ของ VPS ดูได้จากหน้า provider — เครื่องนี้เห็นตัวเองเป็น: $(hostname -I 2>/dev/null | awk '{print $1}'))" >&2
   echo "  สร้างแล้วรอ 1–5 นาที แล้วรันคำสั่งเดิมอีกครั้ง" >&2
   echo "  ถ้าเพิ่งย้าย nameserver ไป Cloudflare อาจต้องรอหลายชั่วโมง — docs/11-cloudflare.md" >&2

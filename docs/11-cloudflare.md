@@ -36,6 +36,27 @@ A    *  (หรือรายตัว) <server-ip>   Proxied 🟠
 3. SSL/TLS → mode **Full (strict)** (เรามี cert จริงจาก Let's Encrypt ฝั่ง Traefik)
 4. เปิด: Always Use HTTPS, WAF managed rules (ฟรี tier), Bot Fight Mode
 
+## 🖥️ เครื่องที่ 2, 3, … ใช้โดเมนเดียวกัน (รันคู่เครื่องเดิม)
+
+subdomain อย่าง `portainer.<โดเมน>` ชี้ไปเครื่องแรกอยู่แล้ว — ห้ามใช้ `BASE_DOMAIN` เดียวกัน
+(เครื่องใหม่ขอ cert ไม่ผ่านเพราะ DNS ชี้ไปเครื่องอื่น และ `check-dns.sh` จับไม่ได้เพราะชื่อ resolve ได้)
+ให้ตั้งชื่อย่อยของเครื่องนั้นแทน:
+
+```bash
+BASE_DOMAIN=sg.example.com      # ใน .env ของเครื่องใหม่ → portainer.sg.example.com ฯลฯ
+```
+
+สร้าง record เดียวครบทุกตัว — **ต้องเป็น DNS only (เมฆเทา)**:
+
+```text
+A    *.sg    <IP เครื่องใหม่>    DNS only ⚪
+```
+
+ทำไมเมฆเทา: SSL ฟรีของ Cloudflare ครอบแค่ชื่อชั้นเดียว (`*.example.com`) ไม่ครอบ
+`portainer.sg.example.com` — ถ้าเปิดส้มจะได้ error SSL ที่ browser ส่วน cert ของเครื่องเองยังได้จาก
+Let's Encrypt ตามปกติ (ข้อเสีย: ไม่ได้ WAF/ซ่อน IP ของ Cloudflare — ใช้กับหน้าแอดมินได้ ส่วนเว็บของ
+ลูกค้าบนเครื่องนี้ให้ใช้ชื่อชั้นเดียว เช่น `APP_DOMAIN=shop.example.com` แบบส้มได้ตามปกติ)
+
 ## ⚠️ ระวัง
 
 - **ห้ามใช้ mode "Flexible"** — จะเกิด redirect loop กับ Traefik
