@@ -1,7 +1,7 @@
 # 📖 InfraStack คืออะไร — คู่มือฉบับคนไม่รู้อะไรเลย
 
 > เอกสารนี้เขียนสำหรับคนที่ได้ repo นี้ไปแล้วสงสัยว่า "มันคืออะไร ใช้ยังไง ทำอะไรได้บ้าง"
-> ไม่ต้องมีพื้นฐาน DevOps มาก่อน — ถ้าพร้อมลงมือติดตั้งจริง ไปต่อที่ [docs/00-introduction.md](docs/00-introduction.md)
+> ไม่ต้องมีพื้นฐาน DevOps มาก่อน — ถ้าพร้อมลงมือติดตั้งจริง ไปต่อที่ [docs/INSTALL.md](docs/INSTALL.md)
 
 ---
 
@@ -109,8 +109,8 @@ infra-stack/
 7. ไล่ทำ TODO.md
 ```
 
-เวอร์ชันละเอียดทีละคลิก: [docs/00-introduction.md](docs/00-introduction.md) → ไล่ตามบท
-(บทที่คนพลาดบ่อยมีหัวข้อ "🩹 ปัญหาที่เจอจริง" บอกทางแก้ไว้แล้ว)
+เวอร์ชันละเอียดทีละคลิก (ตั้งแต่เช่า VPS, Cloudflare, SSH key — บอกทุกขั้นว่าสำเร็จแล้วจะเห็นอะไร):
+**[docs/INSTALL.md](docs/INSTALL.md)** · ติดปัญหา: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
 
 ### 5.2 เอาเว็บขึ้น (deploy)
 
@@ -176,7 +176,9 @@ Checklist สุขภาพประจำสัปดาห์ (5 นาที
 
 | อยาก | ไปที่ |
 |------|-------|
-| ติดตั้งจริงทีละขั้น | [docs/00-introduction.md](docs/00-introduction.md) |
+| ติดตั้งจริงทีละขั้น | [docs/INSTALL.md](docs/INSTALL.md) |
+| ติดปัญหา / error | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) |
+| อ่านทีละบทเชิงลึก | [docs/00-introduction.md](docs/00-introduction.md) |
 | เข้าใจภาพรวมสถาปัตยกรรม | [docs/architecture.md](docs/architecture.md) |
 | รู้ว่าระบบนี้ตั้งใจรองรับอะไร | [docs/requirements.md](docs/requirements.md) |
 | ดูว่ามีแผนพัฒนาอะไรต่อ | [docs/roadmap.md](docs/roadmap.md) |

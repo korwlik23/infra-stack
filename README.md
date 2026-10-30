@@ -78,7 +78,11 @@ infra-stack/
 
 ## Quick Start
 
-ลำดับนี้ตรงกับ [TODO.md](TODO.md) (checklist ละเอียด) — ทำตามลำดับ ห้ามข้าม
+> **ไม่เคยทำมาก่อน? อ่าน [docs/INSTALL.md](docs/INSTALL.md)** — คู่มือทีละขั้นตั้งแต่เช่า VPS,
+> ย้ายโดเมนเข้า Cloudflare, ทำ SSH key จนเปิดหน้าแอดมินได้ บอกทุกขั้นว่าสำเร็จแล้วจะเห็นอะไร
+> ติดปัญหา: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
+
+สรุปคำสั่งสำหรับคนที่เคยทำแล้ว — ลำดับตรงกับ [TODO.md](TODO.md) ทำตามลำดับ ห้ามข้าม
 
 ```bash
 # 0. ก่อนเริ่ม: ใส่ SSH public key ให้ root (docs/02) และสร้าง DNS A record ของทุก
@@ -140,7 +144,7 @@ docker compose --env-file .env -f docker/docker-compose.storage.yml up -d    # M
 ## Documentation
 
 **มือใหม่ / ได้ repo นี้มาแล้วงง เริ่มที่ [GUIDE.md](GUIDE.md)** — อธิบายว่าแต่ละตัวคืออะไร
-ใช้ยังไง ทำอะไรได้บ้าง แบบไม่ต้องมีพื้นฐาน
+ใช้ยังไง ทำอะไรได้บ้าง แบบไม่ต้องมีพื้นฐาน แล้วติดตั้งตาม [docs/INSTALL.md](docs/INSTALL.md)
 
 Start at [docs/00-introduction.md](docs/00-introduction.md).
 Architecture details in [docs/architecture.md](docs/architecture.md),

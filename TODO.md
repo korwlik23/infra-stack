@@ -1,8 +1,9 @@
 # InfraStack Installation Checklist
 
 ใช้ checklist นี้กับ Ubuntu VPS เครื่องใหม่หนึ่งเครื่อง งานทั้งหมดเริ่มเป็นสถานะยังไม่ทำ
-และต้องตรวจผลจริงก่อนติ๊กเสร็จ อ่านภาพรวมที่ [GUIDE.md](GUIDE.md) และลำดับคู่มือที่
-[docs/00-introduction.md](docs/00-introduction.md)
+และต้องตรวจผลจริงก่อนติ๊กเสร็จ อ่านภาพรวมที่ [GUIDE.md](GUIDE.md) — ไม่เคยติดตั้งมาก่อน
+ให้ทำตาม [docs/INSTALL.md](docs/INSTALL.md) ทีละขั้น แล้วใช้ไฟล์นี้ติ๊กตรวจ
+(ติดปัญหา: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md))
 
 > เก็บ `.env`, private keys, certificates, backup archives และข้อมูล runtime ไว้นอก
 > Git เสมอ ตัวอย่างใน repository ใช้ค่าจำลองเท่านั้น

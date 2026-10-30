@@ -5,6 +5,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
 
 ## [Unreleased]
 
+### Added — คู่มือสำหรับมือใหม่
+- `docs/INSTALL.md` คู่มือติดตั้งทีละขั้นตั้งแต่เช่า VPS, ย้ายโดเมนเข้า Cloudflare, เปิด terminal,
+  ทำ SSH key (Windows + Mac), ใช้ nano จนเปิดหน้าแอดมินครบ — ทุกขั้นบอกว่าสำเร็จแล้วจะเห็นอะไร
+- `docs/TROUBLESHOOTING.md` รวมอาการที่เจอบ่อยตามลำดับขั้นติดตั้ง พร้อมวิธีแก้และวิธีกู้รหัสผ่าน
+- README / GUIDE / TODO / docs/00 ชี้มาที่ INSTALL.md เป็นจุดเริ่มต้นเดียว; docs/11 แนะนำ
+  เมฆเทาตอนขอ cert ครั้งแรก
+
 ### Fixed — จุดที่ทำให้ติดตั้งบนเครื่องใหม่ล้ม
 - watchtower: `DOCKER_API_VERSION` 1.40 → 1.44 (Docker 29 รับขั้นต่ำ 1.44 — 1.40 restart loop)
 - postgres: network `backend` เป็น `external` เหมือน service อื่น (สร้างโดย install.sh)

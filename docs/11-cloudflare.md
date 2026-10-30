@@ -60,7 +60,8 @@ Let's Encrypt ตามปกติ (ข้อเสีย: ไม่ได้ W
 ## ⚠️ ระวัง
 
 - **ห้ามใช้ mode "Flexible"** — จะเกิด redirect loop กับ Traefik
-- ตอนขอ cert ครั้งแรก ถ้า HTTP challenge ล้ม: ปิด Proxy (เมฆเทา) ชั่วคราว
-  ให้ Traefik ออก cert ก่อน แล้วค่อยเปิดส้มกลับ
+- **ติดตั้งครั้งแรกแนะนำสร้างทุก record เป็นเมฆเทา (DNS only)** ก่อน ([INSTALL.md](INSTALL.md) ขั้นที่ 5)
+  ให้ Traefik ออก cert ให้ครบ (เปิดทุกหน้าแล้วเห็นรูปกุญแจ) แล้วค่อยเปิดส้มกลับ — ถ้าเปิดส้มตอนเครื่อง
+  ยังไม่มี cert จะได้ Cloudflare error 526 หรือ HTTP challenge ล้ม
 - อย่า proxy (ส้ม) record ที่ไม่ใช่ HTTP เช่น SSH
 - API token ของ Cloudflare = secret — ห้าม commit
