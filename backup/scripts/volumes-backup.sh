@@ -5,7 +5,7 @@
 # ไม่ใส่ชื่อ = ค้นทุก volume ที่มีอยู่จริง แทนรายการตายตัว — volume ของ project ใหม่
 # (เช่น n8n) และ service ที่เพิ่มทีหลังถูก backup เองโดยไม่ต้องจำแก้ script
 # ข้ามเสมอ:
-#   - postgres_data       — ใช้ pg_dumpall แทน (copy ไฟล์ database ขณะรัน = ไฟล์เสีย)
+#   - postgres_data, mysql_data — ใช้ pg_dumpall / mysqldump แทน (copy ไฟล์ database ขณะรัน = ไฟล์เสีย)
 #   - docker_*            — volume ชื่อเก่าที่เหลือหลัง migrate-volumes.sh (ข้อมูลซ้ำ)
 #   - anonymous (64 hex)  — volume ชั่วคราวที่ไม่มีชื่อ
 #   - BACKUP_EXCLUDE_VOLUMES ใน .env — default: ประวัติ metrics/log ที่ใหญ่และสร้างใหม่ได้
@@ -18,7 +18,7 @@ STAMP="$(date +%Y%m%d_%H%M%S)"
 # $ ช่องว่าง & ; ทำ script พัง (set -u → unbound variable) หรือได้ค่าผิด
 env_val() { grep -E "^$1=" "$ROOT/.env" 2>/dev/null | head -1 | cut -d= -f2- | sed -E 's/^"(.*)"$/\1/' || true; }
 KEEP_DAYS="$(env_val BACKUP_KEEP_DAYS)"; KEEP_DAYS="${KEEP_DAYS:-7}"
-EXCLUDE=" postgres_data $(env_val BACKUP_EXCLUDE_VOLUMES) "
+EXCLUDE=" postgres_data mysql_data $(env_val BACKUP_EXCLUDE_VOLUMES) "
 
 VOLUMES=("$@")
 if [ ${#VOLUMES[@]} -eq 0 ]; then

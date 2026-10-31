@@ -1,6 +1,6 @@
 # InfraStack
 
-Production Infrastructure Stack — v2.5.1
+Production Infrastructure Stack — v2.6.0
 
 ## Goal
 

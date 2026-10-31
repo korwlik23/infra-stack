@@ -1,0 +1,38 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: mysql
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    # เครื่อง 8 GB รันหลาย project — จำกัด buffer pool ไว้ ไม่งั้น MySQL จองตามขนาดเครื่อง
+    command:
+      - --innodb-buffer-pool-size=${MYSQL_BUFFER_POOL:-256M}
+      - --max-connections=200
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    environment:
+      - TZ=${TZ:-Asia/Bangkok}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:?set in .env}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - backend
+    healthcheck:
+      # MYSQL_PWD แทน -p<รหัส> — รหัสไม่โผล่ใน process list
+      test: ["CMD-SHELL", "MYSQL_PWD=$${MYSQL_ROOT_PASSWORD} mysqladmin ping -h 127.0.0.1 -uroot --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    # ไม่ expose port ออก internet — ทุก app ต่อผ่าน network `backend` (เหมือน postgres)
+
+volumes:
+  # pin ชื่อ volume ให้คงที่ — ไม่ผูกกับชื่อ project
+  mysql_data:
+    name: mysql_data
+
+networks:
+  backend:
+    external: true
+    name: backend

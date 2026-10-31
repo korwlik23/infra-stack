@@ -40,6 +40,7 @@ cd /opt/infra-stack
 # 1) สร้าง project จาก template (laravel / nextjs / n8n / ai-worker)
 #    database stack ต้องรันอยู่ — script สร้าง database <ชื่อ>_db ให้ด้วย
 ./scripts/create-project.sh <ชื่อ> laravel
+#    app เขียนมากับ MySQL (เช่น XAMPP) → เติม --mysql ท้ายคำสั่ง (docs/27-mysql.md)
 
 # 2) clone โค้ด app เข้าไปใน src/ (ใช้ deploy key + host alias — docs/19-cicd.md)
 cd projects/<ชื่อ>

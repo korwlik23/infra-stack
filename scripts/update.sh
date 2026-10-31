@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # อัปเดต image ของ stack ที่เลือกแบบ manual (ปลอดภัยกว่า auto ทั้งหมด)
-# ใช้: ./scripts/update.sh [core|database|monitoring|all]
+# ใช้: ./scripts/update.sh [core|database|mysql|monitoring|all]
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -19,12 +19,16 @@ case "$TARGET" in
     echo "⚠️  Database update — ควร backup ก่อน (./scripts/backup.sh)"
     read -rp "Type 'yes' to continue: " OK; [ "$OK" = "yes" ] || exit 1
     update_stack docker/docker-compose.database.yml ;;
+  mysql)
+    echo "⚠️  MySQL update — ควร backup ก่อน (./scripts/backup.sh)"
+    read -rp "Type 'yes' to continue: " OK; [ "$OK" = "yes" ] || exit 1
+    update_stack docker/docker-compose.mysql.yml ;;
   monitoring) update_stack docker/docker-compose.monitoring.yml ;;
   all)
     update_stack docker/docker-compose.core.yml
     update_stack docker/docker-compose.monitoring.yml
-    echo "ℹ️  database stack ข้ามไว้ — รัน './scripts/update.sh database' แยก" ;;
-  *) echo "usage: $0 [core|database|monitoring|all]" >&2; exit 1 ;;
+    echo "ℹ️  database / mysql stack ข้ามไว้ — รัน './scripts/update.sh database' (หรือ mysql) แยก" ;;
+  *) echo "usage: $0 [core|database|mysql|monitoring|all]" >&2; exit 1 ;;
 esac
 
 echo "pruning unused images…"

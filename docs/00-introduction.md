@@ -20,7 +20,7 @@ InfraStack คือ **"ระบบปฏิบัติการของ Serv
 |------|--------|
 | เตรียมเครื่อง | [01-server-setup.md](01-server-setup.md) → [02-security.md](02-security.md) |
 | ฐาน | [03-docker.md](03-docker.md) → [04-traefik.md](04-traefik.md) → [05-portainer.md](05-portainer.md) |
-| Database | [06-postgresql.md](06-postgresql.md) → [07-redis.md](07-redis.md) |
+| Database | [06-postgresql.md](06-postgresql.md) → [07-redis.md](07-redis.md) · MySQL (ทางเลือก): [27-mysql.md](27-mysql.md) |
 | Monitoring | [08-netdata.md](08-netdata.md) → [09-grafana.md](09-grafana.md) → [10-uptime-kuma.md](10-uptime-kuma.md) |
 | Network/Storage | [11-cloudflare.md](11-cloudflare.md) → [12-r2.md](12-r2.md) |
 | Ops | [13-backup.md](13-backup.md) → [14-monitoring.md](14-monitoring.md) |

@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # ส่ง backup 1 ไฟล์ขึ้น off-site (Cloudflare R2 ผ่าน rclone) แล้วตรวจว่าขนาดตรงกัน
-# ใช้: ./offsite.sh <kind> <file>      kind = postgres | volumes | secrets
+# ใช้: ./offsite.sh <kind> <file>      kind = postgres | mysql | volumes | secrets
 # ปลายทาง: <remote>:<R2_BUCKET_BACKUP>/<BACKUP_HOST>/<kind>/<ไฟล์>
 #   remote = BACKUP_RCLONE_REMOTE (default r2), BACKUP_HOST (default hostname) — แยกโฟลเดอร์ต่อเครื่อง
 # ยังไม่ได้ตั้ง rclone / bucket → เตือนดัง ๆ แล้ว exit 0 (backup ในเครื่องยังใช้ได้)
 # ตั้งแล้วแต่ upload / ตรวจไม่ผ่าน → exit 1
 set -euo pipefail
 
-KIND="${1:?usage: offsite.sh <postgres|volumes|secrets> <file>}"
-FILE="${2:?usage: offsite.sh <postgres|volumes|secrets> <file>}"
+KIND="${1:?usage: offsite.sh <postgres|mysql|volumes|secrets> <file>}"
+FILE="${2:?usage: offsite.sh <postgres|mysql|volumes|secrets> <file>}"
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 env_val() { grep -E "^$1=" "$ROOT/.env" 2>/dev/null | head -1 | cut -d= -f2- | sed -E 's/^"(.*)"$/\1/' || true; }
 

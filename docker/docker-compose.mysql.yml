@@ -1,0 +1,6 @@
+# MySQL stack — เปิดเฉพาะเมื่อมี project ที่ใช้ MySQL (ไม่อยู่ใน database stack หลัก)
+# create-project.sh <name> <laravel|nextjs> --mysql เปิดให้เอง หรือรันเอง:
+#   docker compose --env-file .env -f docker/docker-compose.mysql.yml up -d
+name: infra-mysql
+include:
+  - ../services/mysql/docker-compose.yml

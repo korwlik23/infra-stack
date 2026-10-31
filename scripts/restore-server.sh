@@ -2,7 +2,7 @@
 # กู้ทั้งเครื่องจาก backup ลง VPS ใหม่ (เครื่องพัง / ย้ายเครื่อง) — docs/13-backup.md
 # ใช้: ./scripts/restore-server.sh <source>
 #   source = rclone path ของเครื่องเดิม เช่น r2:backup/old-vps  (rclone config ก่อน — docs/12)
-#          | โฟลเดอร์ที่มี postgres/ volumes/ secrets/ เช่น backup/archives (copy มาเอง)
+#          | โฟลเดอร์ที่มี postgres/ mysql/ volumes/ secrets/ เช่น backup/archives (copy มาเอง)
 # ก่อนรันบนเครื่องใหม่: prepare.sh (ช่วง A — ได้ user deploy + Docker) แล้วตอบ n ที่
 #   "เริ่มติดตั้ง InfraStack ต่อเลยไหม" → su - deploy → รัน script นี้ (.env มาจากเครื่องเดิม)
 #
@@ -32,7 +32,7 @@ latest_file() {   # latest_file <glob> — ไฟล์ชื่อท้าย�
 if [[ "$SRC" == *:* ]]; then
   command -v rclone >/dev/null 2>&1 || { echo "ERROR: ไม่มี rclone — ติดตั้ง + config ตาม docs/12-r2.md" >&2; exit 1; }
   WORK="$ROOT/backup/archives/restore-$(date +%Y%m%d_%H%M%S)"
-  mkdir -p "$WORK/postgres" "$WORK/volumes" "$WORK/secrets"
+  mkdir -p "$WORK/postgres" "$WORK/mysql" "$WORK/volumes" "$WORK/secrets"
   echo "[1/7] Downloading latest backup from $SRC…"
   fetch_latest() {   # fetch_latest <kind> <regex>
     local f
@@ -42,6 +42,7 @@ if [[ "$SRC" == *:* ]]; then
   }
   fetch_latest secrets '^secrets_[0-9_]+\.tar\.gz\.gpg$'
   fetch_latest postgres '^all_[0-9_]+\.sql\.gz$'
+  fetch_latest mysql '^all_[0-9_]+\.sql\.gz$'
   declare -A VLATEST=()
   while IFS= read -r f; do
     v="$(printf '%s' "$f" | sed -E 's/_[0-9]{8}_[0-9]{6}\.tar\.gz$//')"
@@ -56,12 +57,14 @@ fi
 
 SECRETS="$(latest_file "$WORK/secrets/secrets_*.tar.gz.gpg")"
 PGDUMP="$(latest_file "$WORK/postgres/all_*.sql.gz")"
+MYDUMP="$(latest_file "$WORK/mysql/all_*.sql.gz")"
 [ -n "$SECRETS" ] || { echo "ERROR: ไม่พบ secrets backup ใน $WORK/secrets — ไม่มี .env/รหัสผ่าน กู้เครื่องไม่ได้" >&2; exit 1; }
 
 echo ""
 echo "จะกู้จาก:"
 echo "  secrets : $(basename "$SECRETS")"
 echo "  postgres: $( [ -n "$PGDUMP" ] && basename "$PGDUMP" || echo '(ไม่มี — ข้าม)')"
+echo "  mysql   : $( [ -n "$MYDUMP" ] && basename "$MYDUMP" || echo '(ไม่มี — ข้าม)')"
 echo "  volumes : $(ls "$WORK/volumes" 2>/dev/null | grep -c '\.tar\.gz$' || true) ไฟล์"
 echo ""
 echo "⚠️  ใช้กับเครื่องใหม่เท่านั้น — .env ของเครื่องนี้จะถูกแทนด้วยของเครื่องเดิม"
@@ -92,6 +95,17 @@ if [ "$(docker inspect -f '{{.State.Health.Status}}' postgres 2>/dev/null || tru
   warn "postgres ไม่ healthy ใน 2 นาที — ยังไม่ได้ restore database (docker logs postgres)"
 elif [ -n "$PGDUMP" ]; then
   ./backup/scripts/postgres-restore.sh --yes "$PGDUMP" || warn "restore PostgreSQL มี error — ดูรายการด้านบน"
+fi
+
+# MySQL — เฉพาะเครื่องเดิมที่มี project ใช้ --mysql (มี dump)
+if [ -n "$MYDUMP" ]; then
+  echo "[5/7] Starting MySQL + restoring…"
+  docker compose --env-file .env -f docker/docker-compose.mysql.yml up -d
+  for _ in $(seq 1 60); do
+    [ "$(docker inspect -f '{{.State.Health.Status}}' mysql 2>/dev/null || true)" = "healthy" ] && break
+    sleep 2
+  done
+  ./backup/scripts/mysql-restore.sh --yes "$MYDUMP" || warn "restore MySQL ไม่สำเร็จ — ดู error ด้านบน"
 fi
 
 # ── 6. stack อื่น — เปิดเฉพาะตัวที่มี volume ถูก restore (= เครื่องเดิมเปิดไว้) ──

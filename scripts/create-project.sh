@@ -1,15 +1,27 @@
 #!/usr/bin/env bash
 # สร้าง project ใหม่จาก template
-# ใช้: ./scripts/create-project.sh <name> <laravel|nextjs|n8n|ai-worker>
+# ใช้: ./scripts/create-project.sh <name> <laravel|nextjs|n8n|ai-worker> [--mysql]
+#   --mysql  ใช้ MySQL แทน PostgreSQL (laravel/nextjs) — เปิด MySQL stack ให้ถ้ายังไม่เปิด
+#            แล้วสร้าง database + user ของ project (สิทธิ์เฉพาะ database ตัวเอง)
 # ผลลัพธ์: projects/<name>/ พร้อม docker-compose.yml + .env (แก้ค่าแล้ว up ได้เลย)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-NAME="${1:?usage: create-project.sh <name> <laravel|nextjs|n8n|ai-worker>}"
-TEMPLATE="${2:?usage: create-project.sh <name> <laravel|nextjs|n8n|ai-worker>}"
+USAGE="usage: create-project.sh <name> <laravel|nextjs|n8n|ai-worker> [--mysql]"
+NAME="${1:?$USAGE}"
+TEMPLATE="${2:?$USAGE}"
+USE_MYSQL=0
+case "${3:-}" in
+  --mysql) USE_MYSQL=1 ;;
+  "") ;;
+  *) echo "$USAGE" >&2; exit 1 ;;
+esac
 
 [[ "$NAME" =~ ^[a-z0-9-]+$ ]] || { echo "ERROR: name must be lowercase [a-z0-9-]" >&2; exit 1; }
 [ -d "templates/$TEMPLATE" ] || { echo "ERROR: unknown template '$TEMPLATE' (have: $(ls templates))" >&2; exit 1; }
+if [ "$USE_MYSQL" = 1 ] && [ "$TEMPLATE" != laravel ] && [ "$TEMPLATE" != nextjs ]; then
+  echo "ERROR: --mysql ใช้ได้กับ template laravel / nextjs เท่านั้น" >&2; exit 1
+fi
 # ยอมรับโฟลเดอร์ที่มีอยู่แล้ว (เช่น clone src/ ไว้ก่อน) — แต่ห้ามมี docker-compose.yml ซ้ำ
 if [ -f "projects/$NAME/docker-compose.yml" ]; then
   echo "ERROR: projects/$NAME ถูก setup ไปแล้ว (มี docker-compose.yml)" >&2; exit 1
@@ -90,7 +102,54 @@ ensure_project_db() {
     echo "✅ created database '$db'"
   fi
 }
-ensure_project_db "projects/$NAME/.env"
+
+# ── MySQL (--mysql) — database + user ต่อ project ใน MySQL กลาง ──
+# user แยกต่อ project (ไม่ใช้ root) → project หนึ่งหลุด อ่าน database ของ project อื่นไม่ได้
+setup_mysql_db() {
+  local penv="projects/$NAME/.env" root_pw db user pw
+  root_pw="$(grep -E '^MYSQL_ROOT_PASSWORD=' .env 2>/dev/null | head -1 | cut -d= -f2- || true)"
+  if [ -z "$root_pw" ] || [ "$root_pw" = "CHANGE_ME" ]; then
+    root_pw="$(openssl rand -hex 24)"
+    sed -i '/^MYSQL_ROOT_PASSWORD=/d' .env
+    printf 'MYSQL_ROOT_PASSWORD=%s\n' "$root_pw" >> .env
+    echo "✅ สร้าง MYSQL_ROOT_PASSWORD ใน .env กลาง (backup ด้วย ./scripts/backup.sh)"
+  fi
+  if [ "$(docker inspect -f '{{.State.Running}}' mysql 2>/dev/null || true)" != "true" ]; then
+    echo "[create-project] เปิด MySQL stack…"
+    docker compose --env-file .env -f docker/docker-compose.mysql.yml up -d
+  fi
+  for _ in $(seq 1 60); do
+    [ "$(docker inspect -f '{{.State.Health.Status}}' mysql 2>/dev/null || true)" = "healthy" ] && break
+    sleep 2
+  done
+  if [ "$(docker inspect -f '{{.State.Health.Status}}' mysql 2>/dev/null || true)" != "healthy" ]; then
+    echo "❌ mysql ไม่ healthy ใน 2 นาที — ดู: docker logs mysql --tail 50" >&2; exit 1
+  fi
+
+  db="${NAME}_db"
+  user="${NAME:0:32}"                 # MySQL จำกัดชื่อ user 32 ตัวอักษร
+  pw="$(openssl rand -hex 24)"        # hex ล้วน — ใส่ใน URL / sed ได้โดยไม่ต้อง escape
+  # รหัส root อ่านจาก env ใน container — ไม่ส่งผ่าน argument (ไม่โผล่ใน ps)
+  docker exec -i mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot' <<SQL
+CREATE DATABASE IF NOT EXISTS \`$db\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS '$user'@'%' IDENTIFIED BY '$pw';
+ALTER USER '$user'@'%' IDENTIFIED BY '$pw';
+GRANT ALL PRIVILEGES ON \`$db\`.* TO '$user'@'%';
+SQL
+  if grep -qE '^DB_CONNECTION=' "$penv"; then
+    sed -i -e "s|^DB_CONNECTION=.*|DB_CONNECTION=mysql|" -e "s|^DB_HOST=.*|DB_HOST=mysql|" \
+      -e "s|^DB_PORT=.*|DB_PORT=3306|" -e "s|^DB_DATABASE=.*|DB_DATABASE=$db|" \
+      -e "s|^DB_USERNAME=.*|DB_USERNAME=$user|" -e "s|^DB_PASSWORD=.*|DB_PASSWORD=$pw|" "$penv"
+  fi
+  sed -i "s|^DATABASE_URL=.*|DATABASE_URL=mysql://$user:$pw@mysql:3306/$db|" "$penv"
+  echo "✅ MySQL database '$db' + user '$user' (รหัสอยู่ใน projects/$NAME/.env)"
+}
+
+if [ "$USE_MYSQL" = 1 ]; then
+  setup_mysql_db
+else
+  ensure_project_db "projects/$NAME/.env"
+fi
 
 echo "✅ created projects/$NAME from template '$TEMPLATE'"
 echo "   (ค่า DB/Redis/domain ดึงจาก .env กลางให้แล้ว — เหลือเฉพาะ per-project keys)"

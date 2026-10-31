@@ -5,6 +5,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
 
 ## [Unreleased]
 
+## [2.6.0] - 2026-10-31
+
+### Added — MySQL ทางเลือก
+- `create-project.sh <name> <laravel|nextjs> --mysql` — สำหรับ app ที่เขียนมากับ MySQL (XAMPP):
+  สุ่ม `MYSQL_ROOT_PASSWORD` ถ้ายังไม่มี, เปิด MySQL 8.4 stack (`docker/docker-compose.mysql.yml`)
+  ถ้ายังไม่เปิด, สร้าง database + user ต่อ project ที่มีสิทธิ์เฉพาะ database ตัวเอง แล้วเขียน `DB_*` /
+  `DATABASE_URL` ลง `.env` ของ project · MySQL ไม่เปิดตอนติดตั้ง (เครื่องที่ไม่ใช้ไม่เสีย RAM)
+- backup: `mysql-backup.sh` (`mysqldump --single-transaction` + off-site) อยู่ใน `scripts/backup.sh`;
+  `mysql_data` ไม่ถูก copy เป็นไฟล์ใน volumes-backup · `mysql-restore.sh` และ `restore-server.sh`
+  เปิด MySQL + restore ให้เมื่อ backup มี dump · `update.sh mysql`
+- docs/27-mysql.md
+
 ## [2.5.1] - 2026-10-31
 
 ### Fixed
