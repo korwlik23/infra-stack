@@ -5,6 +5,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
 
 ## [Unreleased]
 
+### Fixed — จากการติดตั้งจริงบน VPS ใหม่ (2026-10-31)
+- `harden.sh` ไม่ล็อกตัวเองออกอีก: ถามรหัส sudo ของ `deploy` ให้เลย (ถ้ารันใน terminal) และ
+  ปิด root login เฉพาะเมื่อ `deploy` มีรหัสแล้ว — ถ้าไม่มี (เช่นรันผ่าน ssh แบบไม่ interactive)
+  root ยังเข้าได้ด้วย key เท่านั้นพร้อมคำเตือน เดิม root ถูกปิดทั้งที่ `deploy` sudo ไม่ได้ → ต้องแก้ผ่าน VNC
+- `harden.sh` โอน repo ที่ clone ด้วย root ให้ `deploy` เอง (เฉพาะตอนยังเป็นของ root)
+- `check-dns.sh` เช็คว่า record ชี้มา**เครื่องนี้** ไม่ใช่แค่มีชื่อ — ชี้ไป IP อื่นจะหยุดและบอก IP ที่เจอ
+  (เดิม BASE_DOMAIN ซ้ำกับเครื่องเก่าแล้วผ่าน), Proxied ผ่าน Cloudflare เตือนให้ตรวจ IP ใน dashboard
+  และข้อความ error ใส่ IP จริงของเครื่องแทน `<IP ของ VPS>`
+- templates: comment `__ROOT:KEY__` ใน `.env.example` ทำให้ `create-project.sh` เตือน
+  `ไม่มีค่าใน .env กลาง: KEY` ทุกครั้ง → เปลี่ยนเป็น `__ROOT:<ชื่อค่า>__`
+
 ### Added — คู่มือสำหรับมือใหม่
 - `docs/INSTALL.md` คู่มือติดตั้งทีละขั้นตั้งแต่เช่า VPS, ย้ายโดเมนเข้า Cloudflare, เปิด terminal,
   ทำ SSH key (Windows + Mac), ใช้ nano จนเปิดหน้าแอดมินครบ — ทุกขั้นบอกว่าสำเร็จแล้วจะเห็นอะไร

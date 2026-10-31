@@ -41,22 +41,44 @@ chown -R "$DEPLOY_USER:$DEPLOY_USER" "/home/$DEPLOY_USER/.ssh"
 chmod 700 "/home/$DEPLOY_USER/.ssh"
 chmod 600 "/home/$DEPLOY_USER/.ssh/authorized_keys" 2>/dev/null || true
 
+# deploy ถูกสร้างแบบไม่มีรหัส → sudo ไม่ได้ ถ้าปิด root login ไปด้วยจะไม่มี user ไหนได้สิทธิ์ root
+# ผ่าน SSH เลย (เจอจริง 2026-10: ปิด terminal root ก่อน passwd deploy → ต้องแก้ผ่าน VNC console)
+deploy_has_password() { [ "$(passwd -S "$DEPLOY_USER" 2>/dev/null | awk '{print $2}')" = "P" ]; }
+if ! deploy_has_password && [ -t 0 ]; then
+  echo "ตั้งรหัสสำหรับ sudo ของ '$DEPLOY_USER' (ใช้กับ sudo เท่านั้น — SSH login ยังใช้ key):"
+  for _ in 1 2 3; do passwd "$DEPLOY_USER" && break; done
+fi
+
+# repo ที่ clone ด้วย root → โอนให้ deploy (ทำเฉพาะตอนยังเป็นของ root — รันซ้ำหลังติดตั้งแล้วไม่แตะ data)
+REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+if [ "$(stat -c %U "$REPO_DIR")" = "root" ]; then
+  chown -R "$DEPLOY_USER:$DEPLOY_USER" "$REPO_DIR"
+  echo "      $REPO_DIR → owner $DEPLOY_USER"
+fi
+
 echo "[4/6] SSH hardening (no root login, no password auth)…"
 if [ ! -s "/home/$DEPLOY_USER/.ssh/authorized_keys" ]; then
   echo "⚠️  no SSH key found for $DEPLOY_USER — add one BEFORE disabling password auth!"
   echo "   skipping SSH hardening. Add key then re-run."
 else
-  sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
+  # ปิด root login เฉพาะเมื่อ deploy sudo ได้แล้ว — ไม่งั้นเหลือ root เข้าด้วย key ไว้ก่อน
+  if deploy_has_password; then
+    ROOT_LOGIN=no
+  else
+    ROOT_LOGIN=prohibit-password
+  fi
+  sed -i "s/^#\?PermitRootLogin.*/PermitRootLogin $ROOT_LOGIN/" /etc/ssh/sshd_config
   sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
   # Ubuntu cloud image มัก include sshd_config.d/50-cloud-init.conf ที่ตั้ง
   # PasswordAuthentication yes — sshd ใช้ค่าแรกที่เจอ จึงต้องมี drop-in ที่เรียงก่อน (00-)
   if [ -d /etc/ssh/sshd_config.d ]; then
-    printf 'PermitRootLogin no\nPasswordAuthentication no\n' > /etc/ssh/sshd_config.d/00-infra-hardening.conf
+    printf 'PermitRootLogin %s\nPasswordAuthentication no\n' "$ROOT_LOGIN" > /etc/ssh/sshd_config.d/00-infra-hardening.conf
   fi
   # ตรวจ config ก่อน restart — config พังแล้ว restart = ล็อกตัวเองออก
   /usr/sbin/sshd -t
   systemctl restart ssh || systemctl restart sshd
-  # ค่าที่ sshd ใช้จริง — ต้องเห็น "no" ทั้งสองบรรทัด
+  # ค่าที่ sshd ใช้จริง — ต้องเห็น "no" ทั้งสองบรรทัด (permitrootlogin เป็น without-password
+  # ถ้า deploy ยังไม่มีรหัส sudo)
   /usr/sbin/sshd -T | grep -Ei '^(permitrootlogin|passwordauthentication) ' || true
 fi
 
@@ -75,3 +97,8 @@ echo ""
 echo "✅ Hardening done. IMPORTANT:"
 echo "  - เปิด terminal ใหม่ทดสอบ 'ssh $DEPLOY_USER@<ip>' ให้ผ่าน ก่อนปิด session นี้"
 echo "  - จากนี้ deploy ทุกอย่างด้วย user '$DEPLOY_USER' ไม่ใช่ root"
+if [ -s "/home/$DEPLOY_USER/.ssh/authorized_keys" ] && ! deploy_has_password; then
+  echo ""
+  echo "⚠️  '$DEPLOY_USER' ยังไม่มีรหัส sudo → ยังไม่ปิด root login (root เข้าได้ด้วย key เท่านั้น)"
+  echo "   ตั้งรหัสแล้วรันซ้ำเพื่อปิด root:  passwd $DEPLOY_USER && $0"
+fi

@@ -44,4 +44,4 @@ Thumbs.db
 .vscode/
 
 # Local operator notes — never publish
-/TODO.private.md
+/*.private.md
