@@ -5,7 +5,8 @@ InfraStack คือ **"ระบบปฏิบัติการของ Serv
 
 ## ทำไมต้องมี
 
-- ซื้อ VPS ใหม่ (Contabo / GreenCloud / Hetzner / Oracle) → clone + `./install.sh` → พร้อมใน 10–15 นาที
+- ซื้อ VPS ใหม่ (Contabo / GreenCloud / Hetzner / Oracle) → วางคำสั่งเดียว (`prepare.sh`) → พร้อมใน 20–30 นาที
+  ทีละขั้นสำหรับมือใหม่: [INSTALL.md](INSTALL.md)
 - ทุกเครื่องมีโครงสร้าง เครื่องมือ และมาตรฐานเดียวกัน
 - ลดเวลาติดตั้งจากหลายชั่วโมงเหลือไม่กี่นาที
 - เป็นทรัพย์สิน (Asset) ระยะยาวของบริษัท

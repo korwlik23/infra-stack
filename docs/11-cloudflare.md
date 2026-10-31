@@ -12,22 +12,28 @@ A    @              <server-ip>   Proxied 🟠
 A    *  (หรือรายตัว) <server-ip>   Proxied 🟠
 ```
 
-แนะนำสร้างรายตัว — **ครบทุก subdomain ของ stack ที่จะเปิด และสร้างก่อน start stack นั้น**
+**ติดตั้งครั้งแรกไม่ต้องสร้างล่วงหน้า** — `install.sh` เปิดทุกอย่างยกเว้น Traefik แล้วโชว์ตารางชื่อที่ต้องสร้าง
+พร้อม IP ของเครื่อง เช็คให้ทุก 30 วินาที และเปิด Traefik (ขอ cert) เมื่อครบเท่านั้น จึงไม่โดน rate limit
+
+เปิด stack เพิ่มทีหลัง: **สร้างให้ครบทุก subdomain ของ stack นั้นก่อน start**
 (service ที่มี traefik labels แต่ไม่มี DNS → ACME ล้มซ้ำจนโดน rate limit — ดู [04-traefik.md](04-traefik.md)):
 
 | Stack | Subdomain |
 |-------|-----------|
-| Core (`install.sh` start ให้ทันที) | `traefik`, `portainer` |
+| Core | `traefik`, `portainer` |
 | Monitoring | `grafana`, `netdata`, `uptime`, `logs`, `servers` |
 | Tools | `pgadmin`, `redis` |
 | Messaging | `mq` |
 | Storage | `s3`, `minio` |
 | Projects | `<ชื่อ project>` เช่น `app`, `n8n` (หรือค่า `APP_DOMAIN` ใน `.env` ของ project) |
 
-เช็คว่าครบก่อน start stack ไหนก็ได้ — script อ่านรายชื่อจาก compose จริง และบอกว่าขาดตัวไหน:
+เช็คว่าครบก่อน start stack ไหนก็ได้ — script อ่านรายชื่อจาก compose จริง บอกว่าขาดตัวไหน และ**ชี้มาเครื่องนี้จริงไหม**
+(ชื่อที่ชี้ไปเครื่องอื่นขึ้น ❌ พร้อม IP; Proxied เมฆส้มเทียบ IP ไม่ได้ จึงเตือนให้ตรวจใน dashboard):
 
 ```bash
-./scripts/check-dns.sh core monitoring     # install.sh เช็ค core ให้อัตโนมัติ
+./scripts/check-dns.sh tools                 # stack เดียว
+./scripts/check-dns.sh --wait tools          # รอจนครบ (เช็คทุก 30 วินาที)
+./scripts/check-dns.sh core app.example.com  # ชื่อเต็มของเว็บ project ก็ได้
 ```
 
 ⏳ ถ้าเพิ่งเปลี่ยน nameserver ที่ registrar ไป Cloudflare อาจใช้เวลาหลายชั่วโมง (สูงสุด ~24 ชม.)

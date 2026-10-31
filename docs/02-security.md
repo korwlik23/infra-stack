@@ -4,6 +4,9 @@
 
 ## ⚙️ ขั้นที่ 0: เตรียม SSH key ก่อนรัน harden (สำคัญกับ Contabo)
 
+> ติดตั้งด้วย `prepare.sh` ([INSTALL.md](INSTALL.md)) ไม่ต้องทำขั้นนี้ — สคริปต์ถามให้วาง public key เอง
+> ขั้นนี้สำหรับคนที่อยากส่ง key ขึ้นเครื่องก่อน หรือรัน `harden.sh` แบบไม่มีจอ
+
 Contabo (และ provider ส่วนใหญ่) ให้แค่**รหัสผ่าน root** ไม่มี SSH key มาให้ —
 ถ้ารัน `harden.sh` โดยที่เครื่องยังไม่มี key script จะ**ข้ามการปิด password login
 โดยตั้งใจ** (กันโดนล็อกออกจากเครื่อง) ดังนั้นเตรียม key ก่อน:
@@ -36,22 +39,29 @@ cat /root/.ssh/authorized_keys   # ต้องเห็น ssh-ed25519 AAAA... 
 
 ## ⚙️ วิธีทำ
 
+ปกติ `prepare.sh` เรียกให้ (ช่วง A ของ [INSTALL.md](INSTALL.md)) — รันเองได้:
+
 ```bash
 sudo ./scripts/harden.sh
 ```
 
-สิ่งที่ script ทำ:
+สิ่งที่ script ทำ (คำถามทั้งหมดอยู่ต้นสคริปต์ ตอบแล้วปล่อยทำงานจนจบ):
 
-1. สร้าง user `deploy` + sudo (เลิกใช้ root)
-2. copy SSH key จาก root → deploy
-3. ปิด Root Login + Password Login (เหลือ SSH key เท่านั้น) — แก้ทั้ง `sshd_config` และเขียน
+1. สร้าง user `deploy` + sudo (เลิกใช้ root) และ**ถามรหัส sudo ของ deploy** (ถ้ารันใน terminal)
+2. copy SSH key จาก root → deploy — ถ้าไม่มี key ที่ไหนเลย (login ด้วยรหัสผ่าน) **ถามให้วาง public key**
+   และตรวจด้วย `ssh-keygen -l` ก่อนรับ
+3. ใส่ deploy ใน group `docker` ไว้ก่อน + ติด Docker — `su - deploy` ต่อได้ทันที ไม่ต้อง logout/login
+4. โอน repo ที่ clone ด้วย root ให้ deploy + ลิงก์คำสั่ง `infra` ไว้ที่ `/usr/local/bin`
+5. ปิด Root Login + Password Login (เหลือ SSH key เท่านั้น) — แก้ทั้ง `sshd_config` และเขียน
    `/etc/ssh/sshd_config.d/00-infra-hardening.conf` (กัน `50-cloud-init.conf` ของ cloud image
    ที่ตั้ง `PasswordAuthentication yes` มาชนะ) แล้ว `sshd -t` ตรวจก่อน restart
-4. UFW: deny ทุกอย่างขาเข้า ยกเว้น SSH / 80 / 443
-5. Fail2ban กัน brute force
-6. ติดตั้ง `apache2-utils` (`htpasswd`) ไว้ใช้เอง — basicauth ของหน้าแอดมิน `install.sh` สร้างให้แล้ว
-7. รัน apt แบบไม่ถาม (`DEBIAN_FRONTEND=noninteractive`, needrestart อัตโนมัติ, เก็บ config เดิม)
-   — ไม่มีหน้าจอม่วงเด้งกลางทาง
+   root login ถูกปิด**เฉพาะเมื่อ deploy มีรหัส sudo แล้ว** — ไม่มีรหัส (รันแบบไม่มีจอ) จะเหลือ root
+   เข้าด้วย key ไว้ก่อน กันไม่มี user ไหนได้สิทธิ์ root ผ่าน SSH (เจอจริง 2026-10)
+6. UFW: deny ทุกอย่างขาเข้า ยกเว้น SSH / 80 / 443
+7. Fail2ban กัน brute force
+8. ติดตั้ง `apache2-utils` (`htpasswd`) ไว้ใช้เอง — basicauth ของหน้าแอดมิน `install.sh` สร้างให้แล้ว
+9. รัน apt แบบไม่ถาม (`DEBIAN_FRONTEND=noninteractive`, needrestart อัตโนมัติ, เก็บ config เดิม)
+   — ไม่มีหน้าจอม่วงเด้งกลางทาง; ข้อความยาวลง `/var/log/infra-prepare.log` ล้มเมื่อไหร่โชว์ท้าย log ให้
 
 ## ⚠️ ระวัง (สำคัญที่สุดในเล่มนี้)
 
@@ -60,10 +70,10 @@ sudo ./scripts/harden.sh
 - ห้าม commit private key / `.env` เข้า Git เด็ดขาด — ดู `.gitignore`
 - Database ports (5432, 6379) ไม่เปิดใน UFW — app ต่อผ่าน Docker network เท่านั้น
 
-## หลัง harden: ตั้งรหัส sudo ให้ deploy
+## ถ้าข้ามการตั้งรหัส sudo ของ deploy
 
-user `deploy` ถูกสร้างแบบ**ไม่มีรหัสผ่าน** (login ใช้ SSH key เท่านั้น) แต่คำสั่ง
-`sudo` ยังต้องใช้รหัส — ตั้งในหน้าต่าง root ก่อนปิด:
+harden.sh ถามรหัสให้แล้ว — ถ้าข้ามไป (หรือรันแบบไม่มีจอ) ท้ายสคริปต์จะเตือนว่ายังไม่ปิด root login
+ตั้งรหัสในหน้าต่าง root แล้วรัน `sudo ./scripts/harden.sh` ซ้ำเพื่อปิด root:
 
 ```bash
 passwd deploy

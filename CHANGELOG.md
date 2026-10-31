@@ -5,6 +5,34 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-10-31
+
+### Changed — ติดตั้งด้วยคำสั่งเดียว เข้าเครื่องครั้งเดียว
+- ใหม่ `prepare.sh` (root, `curl … | bash`): ช่วง A — clone → `harden.sh` → ถาม "เริ่มติดตั้งต่อเลยไหม"
+  แล้ว `su - deploy` รัน `install.sh` (ช่วง B) ให้ใน session เดียว ไม่ต้อง logout/login
+- `harden.sh` ทำ user ให้เสร็จก่อนงานอื่น: ถามรหัส sudo ของ deploy + ให้วาง SSH public key
+  (ถ้า login ด้วยรหัสผ่าน, ตรวจด้วย `ssh-keygen -l`) + ใส่ group `docker` ล่วงหน้า + ติด Docker;
+  ข้อความยาวของ apt / Docker ลง `/var/log/infra-prepare.log` ล้มเมื่อไหร่โชว์ท้าย log
+- `install.sh` รอบเดียวจบ: ถามโดเมน / อีเมล / ติดตั้ง n8n ไหม แทนการ `nano .env`; ไม่อยู่ใน group
+  docker ของ session → รันตัวเองใหม่ผ่าน `sg docker` แทนการบอกให้ login ใหม่; เปิด Portainer,
+  database, monitoring, n8n ก่อน แล้วโชว์ตาราง DNS ที่ต้องสร้าง รอ (`check-dns.sh --wait`) จนครบ
+  ค่อยเปิด Traefik — DNS ไม่ต้องสร้างล่วงหน้าอีก และไม่โดน Let's Encrypt แบน; Ctrl+C = รอต่อเบื้องหลัง
+  แล้วเปิด HTTPS เองเมื่อพร้อม; จบด้วยสรุป URL / รหัส / ของที่ต้องจด; อัตโนมัติไม่ถาม:
+  `INFRA_DOMAIN=… INFRA_EMAIL=… [INFRA_N8N_DOMAIN=…] ./install.sh`
+- Portainer: `install.sh` สร้าง admin ผ่าน API ทันทีด้วย `PORTAINER_ADMIN_PASSWORD` (ใหม่ใน `.env`)
+  — ไม่ต้องแข่งกับเวลา 5 นาที
+- `check-dns.sh` แสดงเป็นตาราง Type / Name / IPv4 / สถานะ, รับชื่อเต็ม (เว็บของ project), `--wait`,
+  `--list`; ถาม 1.1.1.1 ผ่าน DNS-over-HTTPS ตรง ๆ (systemd-resolved จำ "ไม่มีชื่อนี้" ได้นานถึง 30 นาที)
+- template n8n: `N8N_ENCRYPTION_KEY=__GENERATE__` — `create-project.sh` สุ่ม secret ให้ (token ใหม่)
+- ใหม่ `infra status` (container + DNS + HTTPS) และ `infra secrets` (รหัสทั้งหมด) ที่ `/usr/local/bin/infra`
+- `restore-server.sh` ตั้ง `SKIP_DNS_CHECK=1` — ระหว่างย้ายเครื่อง DNS ยังชี้เครื่องเดิม cert มาจาก acme.json
+- docs: INSTALL.md เขียนใหม่ตาม flow คำสั่งเดียว (9 ขั้น), TROUBLESHOOTING แยกช่วง A / ช่วง B,
+  README / GUIDE / TODO / docs 00, 02, 03, 05, 11, 13, 17 และ scripts/README ปรับตาม
+
+**อัปเกรดเครื่องเดิม:** `git pull` แล้ว `./install.sh` — `.env` เดิมไม่ถูกถามซ้ำ, เติม
+`PORTAINER_ADMIN_PASSWORD` / `INFRA_N8N_DOMAIN` ให้ (Portainer ที่มี admin อยู่แล้วไม่ถูกแตะ) และ
+install.sh จะเปิด database + monitoring ด้วยถ้ายังไม่ได้เปิด
+
 ### Fixed — จากการติดตั้งจริงบน VPS ใหม่ (2026-10-31)
 - `harden.sh` ไม่ล็อกตัวเองออกอีก: ถามรหัส sudo ของ `deploy` ให้เลย (ถ้ารันใน terminal) และ
   ปิด root login เฉพาะเมื่อ `deploy` มีรหัสแล้ว — ถ้าไม่มี (เช่นรันผ่าน ssh แบบไม่ interactive)

@@ -5,7 +5,8 @@
 ## ⚙️ วิธีทำ
 
 ```bash
-./install.sh        # ติดตั้ง Docker + สร้าง network proxy/backend/monitoring + up core stack
+# prepare.sh (ช่วง A, root) ติด Docker + ใส่ deploy ใน group docker ก่อน `su - deploy`
+./install.sh        # (deploy) สร้าง network proxy/backend/monitoring + ทุก stack
 ```
 
 หรือ manual:

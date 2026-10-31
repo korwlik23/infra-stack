@@ -6,7 +6,7 @@ Automation platform — ใช้ PostgreSQL เป็น database (ไม่ใ
 
 ```bash
 # database __PROJECT___db ถูกสร้างให้แล้วตอน create-project.sh (ถ้า postgres รันอยู่)
-nano .env      # ตั้ง N8N_ENCRYPTION_KEY (openssl rand -hex 24) — เก็บรักษาให้ดี
+# N8N_ENCRYPTION_KEY สุ่มให้แล้ว — จดเก็บนอกเครื่อง: grep N8N_ENCRYPTION_KEY .env
 cd ../.. && ./scripts/deploy.sh __PROJECT__
 ```
 

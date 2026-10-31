@@ -59,6 +59,12 @@ EOF
 }
 resolve_root_tokens "projects/$NAME/.env"
 
+# __GENERATE__ = สุ่ม secret ใหม่ต่อค่า (เช่น N8N_ENCRYPTION_KEY) — ไม่ต้องพิมพ์ openssl เอง
+# hex ล้วน → แทนด้วย sed ได้ปลอดภัย; ทีละบรรทัดเพื่อให้แต่ละค่าไม่ซ้ำกัน
+while grep -q '__GENERATE__' "projects/$NAME/.env" 2>/dev/null; do
+  sed -i "0,/__GENERATE__/s//$(openssl rand -hex 24)/" "projects/$NAME/.env"
+done
+
 # สร้าง database ของ project ใน postgres กลาง (ถ้า template ใช้ DB_DATABASE)
 # init SQL ของ postgres รันแค่ครั้งแรก — ไม่สร้างให้ project ใหม่
 # ถ้าไม่สร้าง: deploy.sh (DEPLOY_MIGRATE=1) ล้มที่ migrate "database does not exist"

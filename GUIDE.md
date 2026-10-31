@@ -12,9 +12,7 @@ InfraStack คือ **ชุดติดตั้งเซิร์ฟเวอ
 ระบบเฝ้าดูว่าเว็บล่มไหม ฯลฯ ใช้เวลาหลายวันและพลาดง่าย repo นี้ย่อทั้งหมดนั้นเหลือ:
 
 ```bash
-git clone <repo นี้> /opt/infra-stack
-cd /opt/infra-stack
-./install.sh
+curl -fsSL https://raw.githubusercontent.com/korwlik23/infra-stack/main/prepare.sh | bash
 ```
 
 ประมาณ 10–15 นาที (ไม่นับเวลารอ DNS — ถ้าเพิ่งย้ายโดเมนเข้า Cloudflare อาจรอหลายชั่วโมง
@@ -76,7 +74,7 @@ cd /opt/infra-stack
 
 ```text
 infra-stack/
-├── install.sh        ← จุดเริ่มต้น รันตัวนี้บนเครื่องใหม่
+├── prepare.sh        ← จุดเริ่มต้น รันตัวนี้บนเครื่องใหม่ (แล้วมันเรียก install.sh ต่อให้)
 ├── TODO.md           ← checklist งานหลังติดตั้ง
 ├── docs/             ← คู่มือทุกเรื่อง เรียงเป็นบท 00–26 (เริ่มที่ 00)
 ├── services/         ← "พิมพ์เขียว" ของแต่ละโปรแกรมข้างบน (1 ตัว = 1 โฟลเดอร์)
@@ -97,16 +95,14 @@ infra-stack/
 ### 5.1 ติดตั้งเครื่องใหม่ครั้งแรก
 
 ```text
-1. เช่า VPS (Ubuntu) → ได้ IP มา → ใส่ SSH key ให้ root (docs/02)
-2. ชี้ DNS: สร้าง A record ทุก subdomain ที่จะเปิด → IP เครื่อง
-   (อย่างน้อย traefik, portainer, grafana, netdata, uptime, logs, servers — รายการเต็มใน docs/11)
-3. ssh เข้าเครื่อง (root) → clone ลง /opt/infra-stack → ./scripts/harden.sh   (ล็อกประตูบ้านก่อน)
-4. login ใหม่เป็น user deploy → cp .env.example .env → แก้ .env แค่ 2 ค่า: โดเมน + อีเมล
-   (รหัสผ่านทุกตัว install.sh สุ่มให้เอง)
-5. ./install.sh  (ติด Docker + เช็ค DNS + เปิด Traefik/Portainer — ถ้าบอกให้ login ใหม่
-   หรือบอกว่าขาด DNS record ตัวไหน ก็ทำตามแล้วรันซ้ำ)
-6. เปิด database stack → ./scripts/check-dns.sh monitoring → เปิด monitoring stack ตามคู่มือ
-7. ไล่ทำ TODO.md
+1. เช่า VPS (Ubuntu) + ย้ายโดเมนเข้า Cloudflare ไว้ล่วงหน้า (ต้องรอเป็น Active)
+2. ทำ SSH key บนคอมตัวเอง: ssh-keygen -t ed25519
+3. ssh root@<IP> แล้ววางคำสั่งเดียว:
+     curl -fsSL https://raw.githubusercontent.com/korwlik23/infra-stack/main/prepare.sh | bash
+4. ตอบคำถามบนจอ: รหัส sudo ของ deploy, วาง SSH key, โดเมน, อีเมล, ติดตั้ง n8n ไหม
+5. สคริปต์โชว์ตาราง DNS record → ไปสร้างใน Cloudflare (มันรอและเช็คให้เองทุก 30 วินาที)
+6. จบด้วยสรุป: เปิดลิงก์สร้างบัญชี n8n / Uptime Kuma / Beszel + จดรหัส 2 ตัวที่สำคัญ
+   ไม่ต้อง logout/login ระหว่างทาง ไม่ต้องแก้ไฟล์เอง ไม่ต้องรันซ้ำ
 ```
 
 เวอร์ชันละเอียดทีละคลิก (ตั้งแต่เช่า VPS, Cloudflare, SSH key — บอกทุกขั้นว่าสำเร็จแล้วจะเห็นอะไร):
@@ -142,7 +138,8 @@ nano projects/myapp/.env
 
 | อยากรู้ว่า... | ทำแบบนี้ |
 |---------------|----------|
-| ทุกอย่างยังปกติไหม | ไม่ต้องทำอะไร — ถ้าผิดปกติ Telegram จะเด้งเอง (หลังตั้ง notification ใน Uptime Kuma / Alertmanager แล้ว) |
+| ทุกอย่างยังปกติไหม | `infra status` — หรือไม่ต้องทำอะไร ถ้าผิดปกติ Telegram จะเด้งเอง (หลังตั้ง notification ใน Uptime Kuma / Alertmanager แล้ว) |
+| ลืมรหัส | `infra secrets` |
 | แอปตัวไหน error | เปิด `logs.<โดเมน>` (Dozzle) คลิกดูตัวนั้น |
 | ทำไมเครื่องช้า | เปิด `netdata.<โดเมน>` ดู CPU/RAM ตอนนี้ |
 | อยาก restart แอป | เปิด `portainer.<โดเมน>` → Containers → เลือก → Restart |

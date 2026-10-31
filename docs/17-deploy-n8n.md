@@ -6,7 +6,7 @@
 
 ```bash
 ./scripts/create-project.sh n8n n8n     # ใช้ database n8n_db (สร้างให้ถ้ายังไม่มี)
-nano projects/n8n/.env     # N8N_ENCRYPTION_KEY (openssl rand -hex 24) — APP_DOMAIN/DB เติมให้แล้ว
+# N8N_ENCRYPTION_KEY สุ่มให้แล้ว, APP_DOMAIN/DB เติมให้แล้ว — จด key เก็บนอกเครื่อง
 # DNS: n8n.<domain> ใน Cloudflare (ก่อน deploy)
 ./scripts/deploy.sh n8n
 ```

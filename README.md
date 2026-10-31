@@ -1,6 +1,6 @@
 # InfraStack
 
-Production Infrastructure Stack — v2.3.0
+Production Infrastructure Stack — v2.4.0
 
 ## Goal
 
@@ -11,9 +11,8 @@ standardized server in 10–15 minutes (plus waiting for DNS — a fresh Cloudfl
 nameserver change can take hours, so set up DNS the day before).
 
 ```bash
-git clone https://github.com/korwlik23/infra-stack.git /opt/infra-stack
-cd /opt/infra-stack
-./install.sh        # ลำดับเต็ม (harden → .env → DNS → install) ดู Quick Start ด้านล่าง
+# บน VPS ใหม่ เข้าเป็น root แล้ววางคำสั่งเดียว — ตอบคำถามบนจอจนจบ
+curl -fsSL https://raw.githubusercontent.com/korwlik23/infra-stack/main/prepare.sh | bash
 ```
 
 ## Architecture
@@ -64,7 +63,8 @@ Three layers:
 
 ```text
 infra-stack/
-├── install.sh       # Installer — Docker, networks, .env, core stack
+├── prepare.sh       # ช่วง A (root): user deploy + Docker + ล็อกเครื่อง → ต่อช่วง B ให้
+├── install.sh       # ช่วง B (deploy): ถามโดเมน → database / monitoring / n8n → DNS → HTTPS
 ├── docs/            # คู่มือทั้งหมด (00-introduction … 26-new-project)
 ├── docker/          # Stack aggregation (core / database / monitoring / tools / messaging / storage)
 ├── services/        # หนึ่ง service = หนึ่งโฟลเดอร์ = หนึ่ง docker-compose.yml
@@ -82,51 +82,42 @@ infra-stack/
 > ย้ายโดเมนเข้า Cloudflare, ทำ SSH key จนเปิดหน้าแอดมินได้ บอกทุกขั้นว่าสำเร็จแล้วจะเห็นอะไร
 > ติดปัญหา: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
 
-สรุปคำสั่งสำหรับคนที่เคยทำแล้ว — ลำดับตรงกับ [TODO.md](TODO.md) ทำตามลำดับ ห้ามข้าม
+ติดตั้งเครื่องใหม่ — เข้าเครื่องครั้งเดียว ไม่ต้อง logout/login ไม่ต้องแก้ไฟล์เอง:
 
 ```bash
-# 0. ก่อนเริ่ม: ใส่ SSH public key ให้ root (docs/02) และสร้าง DNS A record ของทุก
-#    subdomain ที่จะเปิด → IP เครื่อง (docs/11) — Traefik ขอ cert ทันทีที่ stack start
-#    ถ้าเพิ่งย้าย nameserver ไป Cloudflare อาจรอหลายชั่วโมง → ทำข้อนี้ล่วงหน้า
-#    (install.sh เช็ค DNS ให้ก่อน start และบอกว่าขาด record ตัวไหน)
+# 0. ก่อนเริ่ม: โดเมนอยู่ใน Cloudflare และเป็น Active แล้ว (ย้าย nameserver อาจรอหลายชั่วโมง)
+#    มี SSH key บนคอมตัวเอง (ssh-keygen -t ed25519)
 
-# 1. (root) clone + harden — สร้าง user deploy, ปิด root/password login, UFW, Fail2ban
-apt update && apt install -y git
-git clone https://github.com/korwlik23/infra-stack.git /opt/infra-stack
+# 1. เข้าเครื่องเป็น root (หรือ user ที่ sudo ได้ → ใช้ "| sudo bash")
+ssh root@<server-ip>
+
+# 2. ช่วง A + B ในคำสั่งเดียว
+curl -fsSL https://raw.githubusercontent.com/korwlik23/infra-stack/main/prepare.sh | bash
+#    ช่วง A (root):   ถามรหัส sudo ของ deploy + SSH public key → อัปเดตระบบ, Docker, UFW,
+#                     Fail2ban, ปิด root/password login (session นี้ไม่หลุด)
+#    "เริ่มติดตั้งต่อเลยไหม? [Y/n]" → Enter = สลับเป็น deploy (su - deploy) แล้วรันช่วง B
+#    ช่วง B (deploy): ถามโดเมน, อีเมล, ติดตั้ง n8n ไหม → รหัสผ่านสุ่มให้ทุกตัว → Portainer
+#                     (สร้าง admin ให้), database, monitoring, n8n → โชว์ตาราง DNS record ที่ต้องสร้าง
+#                     รอจน DNS ครบ → เปิด Traefik + HTTPS → สรุป URL / รหัส / ของที่ต้องจด
+
+# หลังติดตั้ง (ssh deploy@<server-ip>)
+infra status                        # container + DNS + HTTPS
+infra secrets                       # รหัสทั้งหมดอีกครั้ง
+
+# เว็บของคุณ (docs/26)
 cd /opt/infra-stack
-./scripts/harden.sh
-passwd deploy                              # รหัสสำหรับ sudo
-chown -R deploy:deploy /opt/infra-stack
-
-# 2. (deploy) login ใหม่เป็น deploy แล้วตั้งค่า — ทุกขั้นต่อจากนี้รันด้วย deploy
-ssh deploy@<server-ip>
-cd /opt/infra-stack
-cp .env.example .env && chmod 600 .env
-nano .env        # แก้แค่ BASE_DOMAIN กับ ACME_EMAIL — รหัสผ่านทุกตัว install.sh สุ่มให้
-#                  (รวม DASHBOARD_PASSWORD ที่ใช้ login Traefik / Netdata / Dozzle / Redis Insight)
-
-# 3. Docker + networks + core stack (Traefik + Portainer)
-./install.sh     # ถ้าถูกเพิ่มเข้า group docker → logout/login แล้วรัน ./install.sh ซ้ำ
-#                  ถ้า DNS ยังไม่ครบ จะหยุดและบอกว่าต้องสร้าง record ไหน → สร้างแล้วรันซ้ำ
-#                  เปิด https://portainer.<BASE_DOMAIN> สร้าง admin ภายใน 5 นาที (docs/05)
-
-# 4. Databases
-docker compose --env-file .env -f docker/docker-compose.database.yml up -d
-
-# 5. Monitoring
-./scripts/check-dns.sh monitoring   # ครบแล้วค่อย start (ไม่ครบ = cert ล้มจนโดนแบน)
-docker compose --env-file .env -f docker/docker-compose.monitoring.yml up -d
-
-# 6. Create a project from a template (database stack ต้อง start ก่อน)
 ./scripts/create-project.sh myapp laravel
-nano projects/myapp/.env        # APP_IMAGE, APP_KEY และ per-project keys (docs/26)
+nano projects/myapp/.env            # APP_IMAGE, APP_KEY และ per-project keys
 ./scripts/deploy.sh myapp
 
-# Optional stacks (v2.0) — เช็ค DNS ก่อนเปิดแต่ละตัว: ./scripts/check-dns.sh tools (messaging / storage)
+# Optional stacks — เช็ค DNS ก่อนเปิดแต่ละตัว: ./scripts/check-dns.sh tools (messaging / storage)
 docker compose --env-file .env -f docker/docker-compose.tools.yml up -d      # pgAdmin, Redis Insight
 docker compose --env-file .env -f docker/docker-compose.messaging.yml up -d  # RabbitMQ
 docker compose --env-file .env -f docker/docker-compose.storage.yml up -d    # MinIO
 ```
+
+ทำทีละขั้นเอง: `git clone` → `sudo ./scripts/harden.sh` → `su - deploy` → `./install.sh`
+(ทั้งสองสคริปต์รันซ้ำได้ ทำต่อจากที่ค้าง) · อัตโนมัติไม่ถาม: `INFRA_DOMAIN=… INFRA_EMAIL=… ./install.sh`
 
 เครื่องที่ติดตั้งไว้ก่อนแล้วและจะ `git pull` เวอร์ชันนี้: อ่าน upgrade notes ใน
 [docker/README.md](docker/README.md) ก่อน (ต้องย้าย volume ครั้งเดียว)
@@ -155,8 +146,8 @@ Installation checklist in [TODO.md](TODO.md).
 ## Versioning
 
 Infrastructure is versioned like software — see [CHANGELOG.md](CHANGELOG.md).
-Current: **v2.3.0** — project `.env` auto-fill from shared root configuration, on top
-of v2.2 auto-migration/rollback and the v2.0 service expansion.
+Current: **v2.4.0** — one-command install (`prepare.sh` → `install.sh`): no logout/login,
+no hand-edited `.env`, DNS records created while the installer waits.
 
 ## License
 

@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+# คำสั่งสั้นหลังติดตั้ง — harden.sh ลิงก์ไว้ที่ /usr/local/bin/infra
+#   infra status    container ที่ล้ม/ไม่ healthy + DNS + HTTPS ของทุกหน้าเว็บ
+#   infra secrets   รหัสที่ต้องจดเก็บนอกเครื่อง + รหัส login หน้าแอดมิน
+set -euo pipefail
+cd "$(dirname "$(readlink -f "$0")")/.."
+
+env_val() { grep -E "^$1=" .env 2>/dev/null | head -1 | cut -d= -f2- | tr -d '\r' || true; }
+
+# stack ที่เปิดอยู่จริง (project name infra-<stack>) + เว็บของ project ที่ deploy แล้ว
+installed_targets() {
+  local s f
+  for s in core monitoring tools messaging storage; do
+    [ -n "$(docker ps -q --filter "label=com.docker.compose.project=infra-$s" 2>/dev/null)" ] && echo "$s"
+  done
+  for f in projects/*/.env; do
+    [ -f "$f" ] || continue
+    s="$(grep -E '^APP_DOMAIN=' "$f" | head -1 | cut -d= -f2- | tr -d ' \r' || true)"
+    [ -z "$s" ] || echo "$s"
+  done
+}
+
+cmd_status() {
+  local bad targets h code
+  echo "── Containers"
+  docker ps -a --format '{{.Names}}\t{{.Status}}' | sort | awk -F'\t' '{printf "  %-20s %s\n", $1, $2}'
+  bad="$(docker ps -a --format '{{.Names}} {{.Status}}' | grep -E 'Exited|Restarting|unhealthy' || true)"
+  if [ -n "$bad" ]; then
+    echo "  ⚠️  มีปัญหา — ดู log: docker logs <ชื่อ> --tail 50"
+  else
+    echo "  ✅ ทุกตัวทำงานปกติ"
+  fi
+  echo ""
+  mapfile -t targets < <(installed_targets)
+  [ ${#targets[@]} -gt 0 ] || { echo "ยังไม่มี stack ที่เปิดอยู่ — รัน ./install.sh"; return 0; }
+  echo "── DNS"
+  ./scripts/check-dns.sh "${targets[@]}" || true
+  echo ""
+  echo "── HTTPS"
+  if [ -f /tmp/infra-dns-wait.log ] && pgrep -f 'check-dns.sh --wait' >/dev/null; then
+    echo "  ⏳ กำลังรอ DNS เบื้องหลัง — Traefik จะเปิดเองเมื่อ record ครบ"
+  fi
+  while read -r h; do
+    # ตรวจ cert จริง (ไม่ใส่ -k) ผ่าน Traefik ในเครื่อง — ไม่ขึ้นกับ DNS/Cloudflare
+    code="$(curl -s -o /dev/null -w '%{http_code}' -m 5 --resolve "$h:443:127.0.0.1" "https://$h/" || true)"
+    if [ "$code" = "000" ]; then
+      echo "  ⏳ $h — ยังไม่มี cert (DNS ยังไม่ครบ หรือ Traefik ยังไม่เปิด)"
+    else
+      echo "  ✅ https://$h"
+    fi
+  done < <(./scripts/check-dns.sh --list "${targets[@]}")
+}
+
+cmd_secrets() {
+  local f
+  echo "🔑 จดเก็บนอกเครื่อง (password manager) — หายแล้วกู้ข้อมูลไม่ได้:"
+  echo "  BACKUP_ENCRYPTION_PASSWORD   $(env_val BACKUP_ENCRYPTION_PASSWORD)"
+  for f in projects/*/.env; do
+    [ -f "$f" ] || continue
+    grep -E '^(N8N_ENCRYPTION_KEY|APP_KEY)=' "$f" | sed "s|^|  $(basename "$(dirname "$f")") · |; s|=|   |" || true
+  done
+  echo ""
+  echo "login หน้าแอดมิน:"
+  echo "  Portainer   admin / $(env_val PORTAINER_ADMIN_PASSWORD)   (ถ้าสร้างเองตอนติดตั้ง = รหัสที่คุณตั้ง)"
+  echo "  Grafana     $(env_val GRAFANA_ADMIN_USER) / $(env_val GRAFANA_ADMIN_PASSWORD)"
+  echo "  Netdata · Logs · Traefik · Redis Insight   $(env_val DASHBOARD_USER) / $(env_val DASHBOARD_PASSWORD)"
+  echo "  pgAdmin     $(env_val PGADMIN_EMAIL) / $(env_val PGADMIN_PASSWORD)"
+  echo ""
+  echo "รหัสทั้งหมดอยู่ใน $(pwd)/.env"
+}
+
+case "${1:-}" in
+  status)  cmd_status ;;
+  secrets) cmd_secrets ;;
+  *)
+    echo "ใช้: infra <status|secrets>"
+    echo "  status    container + DNS + HTTPS ของทุกหน้าเว็บ"
+    echo "  secrets   รหัสที่ต้องจด + รหัส login หน้าแอดมิน"
+    exit 1 ;;
+esac

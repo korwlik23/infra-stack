@@ -3,8 +3,8 @@
 # ใช้: ./scripts/restore-server.sh <source>
 #   source = rclone path ของเครื่องเดิม เช่น r2:backup/old-vps  (rclone config ก่อน — docs/12)
 #          | โฟลเดอร์ที่มี postgres/ volumes/ secrets/ เช่น backup/archives (copy มาเอง)
-# ก่อนรันบนเครื่องใหม่: harden.sh → ./install.sh จนติดตั้ง Docker เสร็จ
-#   (install.sh หยุดที่ "แก้ .env" ก็พอ — ไม่ต้องแก้ เพราะ .env จะถูกแทนด้วยของเครื่องเดิม)
+# ก่อนรันบนเครื่องใหม่: prepare.sh (ช่วง A — ได้ user deploy + Docker) แล้วตอบ n ที่
+#   "เริ่มติดตั้ง InfraStack ต่อเลยไหม" → su - deploy → รัน script นี้ (.env มาจากเครื่องเดิม)
 #
 # ขั้นตอน: ดึง backup ล่าสุด → ยืนยัน → secrets → volumes → core (install.sh)
 #          → database + PostgreSQL → stack อื่นที่มีข้อมูล → บอกขั้นต่อ (projects + ย้าย DNS)
@@ -13,6 +13,9 @@ cd "$(dirname "$0")/.."
 ROOT="$(pwd)"
 
 SRC="${1:?usage: restore-server.sh <r2:bucket/host | local-dir>}"
+# ระหว่างย้ายเครื่อง DNS ยังชี้เครื่องเดิม (check-dns จะบอก "ชี้ไปเครื่องอื่น") — cert ทุกชื่อมาจาก
+# acme.json ที่ restore แล้ว Traefik ไม่ต้องขอใหม่ จึงข้ามการเช็ค/รอ DNS ทั้ง install.sh และ stack อื่น
+export SKIP_DNS_CHECK=1
 WARN=""
 warn() { echo "⚠️  $*"; WARN="$WARN"$'\n'"  - $*"; }
 
@@ -76,7 +79,7 @@ echo "[3/7] Restoring volumes…"
 
 # ── 4. core: networks + basicauth + DNS check + Traefik/Portainer (cert จาก acme.json เดิม) ──
 echo "[4/7] Starting core stack (./install.sh)…"
-./install.sh
+./install.sh </dev/null
 
 # ── 5. database + PostgreSQL ──
 echo "[5/7] Starting database stack…"
@@ -100,11 +103,7 @@ for STACK in monitoring tools messaging storage; do
     docker volume inspect "$V" >/dev/null 2>&1 && USED=1
   done
   [ -n "$USED" ] || { echo "  - $STACK: ไม่มีข้อมูลจากเครื่องเดิม — ข้าม"; continue; }
-  if ./scripts/check-dns.sh "$STACK"; then
-    docker compose --env-file .env -f "$FILE" up -d || warn "start $STACK ไม่สำเร็จ"
-  else
-    warn "$STACK ยังไม่ start — DNS ไม่ครบ (สร้าง record แล้ว: docker compose --env-file .env -f $FILE up -d)"
-  fi
+  docker compose --env-file .env -f "$FILE" up -d || warn "start $STACK ไม่สำเร็จ"
 done
 
 # ── 7. ขั้นต่อที่ต้องทำเอง ──

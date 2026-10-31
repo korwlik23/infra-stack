@@ -68,10 +68,11 @@ crontab -e
 ## 🔄 กู้ทั้งเครื่องลง VPS ใหม่ (เครื่องพัง / ย้ายเครื่อง)
 
 ```bash
-# บนเครื่องใหม่ — เหมือนติดตั้งปกติ (README Quick Start ข้อ 0–1) จนมี Docker
-git clone https://github.com/korwlik23/infra-stack.git /opt/infra-stack && cd /opt/infra-stack
-sudo ./scripts/harden.sh                  # (root) ตั้ง passwd deploy + chown แล้ว login ใหม่เป็น deploy
-./install.sh                              # ติด Docker → login ใหม่ → รันซ้ำจนบอกให้แก้ .env (ไม่ต้องแก้)
+# บนเครื่องใหม่ (root) — ช่วง A ของการติดตั้งปกติ (docs/INSTALL.md ขั้น 4–5) ได้ user deploy + Docker
+curl -fsSL https://raw.githubusercontent.com/korwlik23/infra-stack/main/prepare.sh | bash
+#   ตอบ n ที่ "เริ่มติดตั้ง InfraStack ต่อเลยไหม?" — .env จะมาจาก backup ของเครื่องเดิม
+su - deploy
+cd /opt/infra-stack
 
 # ตั้ง rclone remote "r2" ด้วย R2 key ที่จดไว้ (docs/12) แล้ว:
 ./scripts/restore-server.sh r2:<bucket>/<host-เครื่องเดิม>

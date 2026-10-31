@@ -10,67 +10,43 @@
 
 ## 1. Prerequisites — เตรียมเครื่องและสิทธิ์เข้าถึง
 
-- [ ] เตรียม Ubuntu VPS ที่เข้าผ่าน SSH หรือ provider console ได้
-- [ ] สร้าง SSH key บนเครื่องผู้ดูแลและสำรอง private key ในที่ปลอดภัย
-- [ ] เพิ่ม public key ให้ `root` แล้วเปิด terminal ใหม่ทดสอบว่าเข้าได้จริง
-- [ ] เตรียม domain และสิทธิ์แก้ DNS; เปิด inbound เฉพาะ SSH, HTTP และ HTTPS
-- [ ] สร้าง DNS A record ของทุก subdomain ที่จะเปิด → IP เครื่อง **ก่อนรัน `install.sh`**
-      (core: `traefik`, `portainer` — installer start ให้ทันที; รายการต่อ stack ดู
-      [docs/11-cloudflare.md](docs/11-cloudflare.md)) ไม่งั้น ACME ล้มซ้ำจนโดน rate limit
-      — ถ้าเพิ่งย้าย nameserver ไป Cloudflare อาจรอหลายชั่วโมง ทำข้อนี้ล่วงหน้า
-- [ ] ติดตั้ง Git แล้ว clone repository ลง `/opt/infra-stack`
+- [ ] เตรียม Ubuntu VPS (22.04 / 24.04) ที่เข้าผ่าน SSH หรือ provider console ได้ — มีรหัส root
+- [ ] สร้าง SSH key บนเครื่องผู้ดูแล (`ssh-keygen -t ed25519`) และสำรอง private key ในที่ปลอดภัย
+- [ ] โดเมนอยู่ใน Cloudflare สถานะ **Active** แล้ว (ย้าย nameserver อาจรอหลายชั่วโมง — ทำล่วงหน้า)
+      และ SSL/TLS mode = **Full (strict)**
+- [ ] เปิด inbound เฉพาะ SSH, HTTP และ HTTPS ที่ firewall ของ provider (ถ้ามี)
+
+DNS record **ไม่ต้องสร้างล่วงหน้า** — `install.sh` โชว์ตารางชื่อที่ต้องสร้างพร้อม IP และรอให้ระหว่างติดตั้ง
+
+รายละเอียด: [docs/INSTALL.md](docs/INSTALL.md) ขั้นที่ 1–3
+
+## 2. ช่วง A — เตรียมเครื่องและ user (root)
+
+- [ ] เข้าเครื่องเป็น root แล้ววางคำสั่งเดียว (user ที่ sudo ได้: ใช้ `| sudo bash`)
 
 ```bash
-apt update && apt install -y git
-git clone https://github.com/korwlik23/infra-stack.git /opt/infra-stack
-cd /opt/infra-stack
+curl -fsSL https://raw.githubusercontent.com/korwlik23/infra-stack/main/prepare.sh | bash
 ```
 
-รายละเอียด: [docs/01-server-setup.md](docs/01-server-setup.md)
+- [ ] ตั้งรหัส sudo ของ `deploy` (จดไว้) และวาง SSH public key เมื่อถูกถาม
+- [ ] จบช่วง A เห็น `permitrootlogin no` / `passwordauthentication no` และ `✅ ช่วง A เสร็จ`
+- [ ] ตอบ Enter ที่ `เริ่มติดตั้ง InfraStack ต่อเลยไหม?` (สลับเป็น deploy ให้เอง ไม่ต้อง logout)
 
-## 2. Security — Harden server ก่อนเปิดบริการ
-
-- [ ] อ่านคำเตือนเรื่อง SSH key และ lockout ใน [docs/02-security.md](docs/02-security.md)
-- [ ] รัน hardening script จาก session ที่ยังเปิด provider console สำรองไว้ได้
-
-```bash
-cd /opt/infra-stack
-sudo ./scripts/harden.sh
-```
-
-- [ ] ตั้งรหัสสำหรับ `sudo` ของ user `deploy` และโอน ownership ของ repository
-
-```bash
-sudo passwd deploy
-sudo chown -R deploy:deploy /opt/infra-stack
-```
-
-- [ ] เปิด terminal ใหม่ทดสอบ `ssh deploy@<server-ip>` ก่อนปิด session เดิม
-- [ ] ยืนยันว่า root login และ password login ถูกปิดตามนโยบายที่เลือก
-- [ ] ตรวจ UFW และ Fail2ban
+ตรวจ (ทีหลังได้):
 
 ```bash
 sudo ufw status verbose
 sudo fail2ban-client status sshd
+id deploy                      # มี group sudo และ docker
 ```
 
-## 3. Configuration — ตั้งค่าที่ไม่อยู่ใน Git
+รายละเอียด: [docs/02-security.md](docs/02-security.md)
 
-- [ ] Login ใหม่เป็น `deploy` แล้วสร้าง `.env` จากตัวอย่าง
+## 3. ช่วง B — ติดตั้งระบบ (deploy)
 
-```bash
-cd /opt/infra-stack
-cp .env.example .env
-chmod 600 .env
-nano .env
-```
-
-- [ ] เปลี่ยน `BASE_DOMAIN` และ `ACME_EMAIL` — รหัสผ่าน `*_PASSWORD` ที่เป็น `CHANGE_ME`
-      ไม่ต้องตั้งเอง `install.sh` สุ่มให้ทุกตัว (ดูทีหลังได้ด้วย `grep PASSWORD .env`)
-- [ ] ตั้งค่า R2 เฉพาะเมื่อพร้อมใช้ offsite backup; อย่าใส่ secret ลงไฟล์ตัวอย่าง
-- [ ] หน้า Traefik dashboard, Netdata, Dozzle และ Redis Insight login ด้วย `DASHBOARD_USER` /
-      `DASHBOARD_PASSWORD` ใน `.env` — `install.sh` สร้าง basicauth ให้ ไม่ต้องแก้ compose
-      ([docs/04-traefik.md](docs/04-traefik.md))
+- [ ] ตอบโดเมน, อีเมล (Let's Encrypt), ติดตั้ง n8n ไหม → ยืนยัน
+      (โดเมนเดียวกับเครื่องอื่นที่ยังใช้งาน → ใช้ชื่อย่อย เช่น `sg.example.com` — [docs/11](docs/11-cloudflare.md))
+- [ ] สร้าง DNS record ใน Cloudflare ตามตารางที่สคริปต์แสดง จนขึ้น `✅ DNS ครบ` และ `✅ ครบ … ชื่อ` (HTTPS)
 - [ ] ตรวจว่า `.env` ถูก ignore และไม่มี secret ถูก stage
 
 ```bash
@@ -78,65 +54,41 @@ git check-ignore -v .env
 git status --short
 ```
 
-## 4. Core — Docker, networks, Traefik และ Portainer
+## 4. Core — Traefik และ Portainer
 
-- [ ] รัน installer; ถ้าเพิ่ม user เข้า group `docker` ให้ logout/login แล้วรันซ้ำ
-      (installer เช็ค DNS ของ `traefik` / `portainer` ก่อน start — ขาดตัวไหนจะหยุดและบอก)
-
-```bash
-cd /opt/infra-stack
-./install.sh
-```
-
-- [ ] ตรวจ Docker, Compose, shared networks และ core containers
-
-```bash
-docker --version
-docker compose version
-docker network ls | grep -E 'proxy|backend|monitoring'
-docker compose --env-file .env -f docker/docker-compose.core.yml ps
-```
-
-- [ ] ตรวจว่า Traefik ออก TLS certificate สำเร็จ (`docker logs traefik --tail 50 | grep -i acme`)
-- [ ] สร้างบัญชี Portainer ครั้งแรก**ภายใน 5 นาที**หลัง start และใช้รหัสผ่านเฉพาะระบบ
+- [ ] `infra status` ไม่มี container ที่ Exited / Restarting / unhealthy และ HTTPS ✅ ทุกชื่อ
+- [ ] login Portainer ด้วย `admin` / `PORTAINER_ADMIN_PASSWORD` (`infra secrets`) — ถ้าสรุปท้ายบอกให้สร้างเอง
+      ต้องสร้าง**ภายใน 5 นาที**
+- [ ] หน้า Traefik dashboard, Netdata, Dozzle login ด้วย `DASHBOARD_USER` / `DASHBOARD_PASSWORD`
 
 รายละเอียด: [docs/03-docker.md](docs/03-docker.md),
 [docs/04-traefik.md](docs/04-traefik.md), [docs/05-portainer.md](docs/05-portainer.md)
 
 ## 5. Database — PostgreSQL และ Redis
 
-- [ ] Start database stack
+- [ ] PostgreSQL และ Redis `healthy` และไม่เปิด ports สู่ public network
 
 ```bash
-docker compose --env-file .env -f docker/docker-compose.database.yml up -d
 docker compose --env-file .env -f docker/docker-compose.database.yml ps
 ```
 
-- [ ] ยืนยันว่า PostgreSQL และ Redis healthy และไม่เปิด ports สู่ public network
 - [ ] ใช้ database แยกต่อ application (`create-project.sh` สร้างให้เมื่อ postgres รันอยู่)
 
 รายละเอียด: [docs/06-postgresql.md](docs/06-postgresql.md),
 [docs/07-redis.md](docs/07-redis.md)
 
-## 6. Monitoring — Metrics, logs และ uptime
+## 6. Monitoring และ n8n
 
-- [ ] เช็ค DNS ของ monitoring ให้ครบ แล้ว start monitoring stack
-
-```bash
-./scripts/check-dns.sh monitoring
-docker compose --env-file .env -f docker/docker-compose.monitoring.yml up -d
-docker compose --env-file .env -f docker/docker-compose.monitoring.yml ps
-```
-
-- [ ] login Grafana ด้วย `GRAFANA_ADMIN_USER`/`GRAFANA_ADMIN_PASSWORD` จาก `.env` และตรวจ Prometheus targets
-- [ ] สร้าง DNS `servers.` ไว้แล้ว (Beszel hub อยู่ใน monitoring stack)
-- [ ] สร้าง Uptime Kuma owner account, monitors และ notification channel
+- [ ] สร้างบัญชี owner ของ n8n, Uptime Kuma และ Beszel (`servers.`) **ทันที** — ใครเปิดก่อนได้เป็นเจ้าของ
+- [ ] จด `BACKUP_ENCRYPTION_PASSWORD` และ `N8N_ENCRYPTION_KEY` ลง password manager (`infra secrets`)
+- [ ] login Grafana ด้วย `GRAFANA_ADMIN_USER`/`GRAFANA_ADMIN_PASSWORD` และตรวจ Prometheus targets
+- [ ] ตั้ง Uptime Kuma monitors และ notification channel
 - [ ] ทดสอบ alert ด้วย service ทดลอง แล้วเปิด service กลับทันที
 - [ ] ตรวจว่า token หรือ chat ID ไม่ถูก commit ใน tracked configuration
 
 รายละเอียด: [docs/08-netdata.md](docs/08-netdata.md),
 [docs/09-grafana.md](docs/09-grafana.md), [docs/10-uptime-kuma.md](docs/10-uptime-kuma.md),
-[docs/14-monitoring.md](docs/14-monitoring.md)
+[docs/14-monitoring.md](docs/14-monitoring.md), [docs/17-deploy-n8n.md](docs/17-deploy-n8n.md)
 
 ## 7. Backup — สำรองและซ้อมกู้คืน
 
