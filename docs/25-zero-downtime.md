@@ -73,6 +73,24 @@ rolling deploy เลยคิดว่าสำเร็จ ทั้งที�
 
 **project เก่าที่สร้างก่อน v2.2.0:** เพิ่ม `DEPLOY_MIGRATE=1` ใน `.env` เอง
 
+## 🌱 seed ตอน deploy — ถามก่อนเสมอ (v2.5.0+)
+
+หลัง migrate (เฉพาะ project ที่มี `DEPLOY_MIGRATE=1`) `deploy.sh` เทียบ hash ของไฟล์ใน
+`database/seeders/` ของ image ใหม่กับครั้งที่ seed/ตอบไปล่าสุด (`projects/<ชื่อ>/.deploy-seeders.sha256`)
+
+| สถานการณ์ | ผล |
+|-----------|----|
+| deploy ครั้งแรก / seeder ใหม่ หรือแก้ไข + รันใน terminal | โชว์ไฟล์ที่เปลี่ยน แล้วถาม `รัน db:seed ด้วยไหม? [y/N]` |
+| ตอบ N | ข้าม และจำไว้ — ไม่ถามซ้ำจนกว่า seeder จะเปลี่ยนอีก |
+| auto-deploy (cron, ไม่มีคนตอบ) | **ไม่ seed** — เขียนเตือนใน log ให้รัน `deploy.sh <ชื่อ> --seed` เอง |
+| `deploy.sh <ชื่อ> --seed` / `--no-seed` | รันเลยไม่ถาม / ไม่รันและไม่ถาม |
+
+รันด้วย image ใหม่ก่อนสลับ traffic เหมือน migrate — seed ล้ม = deploy หยุด เว็บเดิมยังอยู่
+
+⚠️ คำสั่งที่ใช้คือ `db:seed --force` — **เติม**ข้อมูลลง DB เดิม ไม่ล้างตาราง แต่ seeder ต้องรันซ้ำได้
+(`firstOrCreate` / `updateOrCreate` / `upsert`) ถ้าใช้ `create()` หรือ factory ตรง ๆ จะได้ข้อมูลซ้ำทุกครั้ง
+และ seeder ที่สร้าง user ห้ามมีรหัสผ่าน default ที่เดาได้บน production
+
 ## 🔄 Rollback
 
 ```bash

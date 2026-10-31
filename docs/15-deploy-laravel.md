@@ -14,7 +14,8 @@ nano projects/app/.env    # APP_IMAGE + APP_KEY: echo "base64:$(openssl rand -ba
 
 # 3. DNS: เพิ่ม A record app.<domain> ใน Cloudflare (ก่อน deploy)
 
-# 4. Deploy — pull/build + migrate (DEPLOY_MIGRATE=1) + start
+# 4. Deploy — pull/build + migrate (DEPLOY_MIGRATE=1) + ถาม seed + start
+#    ครั้งแรก/seeder เปลี่ยน → ถาม "รัน db:seed ด้วยไหม?" (ไม่ล้าง DB) — docs/25
 ./scripts/deploy.sh app
 ```
 

@@ -11,7 +11,8 @@ Database `__PROJECT___db` ถูกสร้างให้แล้วตอน
 #    และ APP_KEY: echo "base64:$(openssl rand -base64 32)"
 nano .env
 
-# 2. Deploy (build/pull + migrate + start) — รันจาก repo root
+# 2. Deploy (build/pull + migrate + ถาม seed + start) — รันจาก repo root
+#    ครั้งแรกตอบ y ที่ "รัน db:seed ด้วยไหม?" ถ้าต้องใช้ข้อมูลเริ่มต้น (role, admin, setting)
 cd ../.. && ./scripts/deploy.sh __PROJECT__
 ```
 

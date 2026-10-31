@@ -5,6 +5,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-10-31
+
+### Added — seed ตอน deploy แบบถามก่อน
+- `deploy.sh` หลัง migrate (project ที่มี `DEPLOY_MIGRATE=1`) เทียบ hash ของ `database/seeders/` ใน image ใหม่
+  กับครั้งล่าสุด → ครั้งแรกหรือ seeder ใหม่/แก้ไข จะโชว์ไฟล์แล้วถาม `รัน db:seed ด้วยไหม? [y/N]`
+  (`db:seed --force` เติมข้อมูล ไม่ล้าง DB) · ตอบ N = จำไว้ ไม่ถามซ้ำจนกว่าจะเปลี่ยน · auto-deploy
+  (ไม่มีคนตอบ) ไม่ seed เอง แค่เตือนใน log · `--seed` / `--no-seed` รัน/ข้ามโดยไม่ถาม
+- template Laravel / docs 15, 25, 26 / `create-project.sh` อธิบายว่า migrate + seed เกิดตอน deploy
+  (ตอน create-project ยังไม่มีโค้ดและ image ให้รัน) และ seeder ต้องรันซ้ำได้
+
+### Fixed
+- `deploy.sh` build จาก `src/` ที่ copy มาเอง (ไม่ใช่ git clone) แทนการ `docker compose pull`
+  ที่ล้มด้วย "pull access denied" (เจอตอน deploy laravel-starter บน VPS จริง)
+
 ## [2.4.0] - 2026-10-31
 
 ### Changed — ติดตั้งด้วยคำสั่งเดียว เข้าเครื่องครั้งเดียว
