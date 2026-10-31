@@ -10,6 +10,7 @@
 # โหมด deploy:
 #   - .env มี ROLLOUT_SERVICE + มี docker-rollout plugin → rolling (เว็บไม่ดับ)
 #   - ไม่งั้น → docker compose up -d (ดับสั้น ๆ ตอน recreate)
+#   - service อื่น (queue/scheduler) ที่ยังรัน image เก่า → recreate ให้เสมอ
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -128,6 +129,24 @@ fi
 # ตัวที่ rollout ไปแล้ว config ตรง compose อยู่แล้ว → up -d ไม่แตะซ้ำ
 echo "[deploy:$NAME] updating remaining services…"
 docker compose up -d
+
+# up -d ไม่ recreate ถ้า tag ใน compose เท่าเดิม (APP_IMAGE=x:latest) แม้ image ข้างในเปลี่ยน
+# → queue/scheduler ค้างโค้ดเก่า (เจอ 2026-10-31) — เทียบ image ที่ container รันกับที่ tag ชี้อยู่
+STALE=""
+for svc in $(docker compose ps --services); do
+  for cid in $(docker compose ps -q "$svc"); do
+    ref="$(docker inspect -f '{{.Config.Image}}' "$cid")"
+    if [ "$(docker inspect -f '{{.Image}}' "$cid")" != "$(docker image inspect -f '{{.Id}}' "$ref" 2>/dev/null)" ]; then
+      STALE="$STALE $svc"
+      break
+    fi
+  done
+done
+if [ -n "$STALE" ]; then
+  echo "[deploy:$NAME] recreating on new image:$STALE"
+  # shellcheck disable=SC2086
+  docker compose up -d --force-recreate --no-deps $STALE
+fi
 
 docker image prune -f >/dev/null
 echo "✅ [deploy:$NAME] done — $(date '+%F %T')"

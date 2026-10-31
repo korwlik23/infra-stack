@@ -113,7 +113,7 @@ rolling deploy เลยคิดว่าสำเร็จ ทั้งที�
 | ตัว | เหตุผล | ผลตอน deploy |
 |-----|--------|---------------|
 | n8n | instance เดียวต่อ encryption key + volume | restart สั้น ๆ, workflow ค้างคิวไว้รันต่อ |
-| queue/scheduler | ไม่รับ traffic จาก user | restart แล้วหยิบงานจากคิวต่อ ไม่มีใครเห็น |
+| queue/scheduler | ไม่รับ traffic จาก user | `deploy.sh` recreate ด้วย image ใหม่ทุกครั้งที่ image เปลี่ยน (v2.5.1+) แล้วหยิบงานจากคิวต่อ ไม่มีใครเห็น |
 | AI worker | ไม่รับ traffic | เหมือน queue |
 
 ## 🧪 วิธีทดสอบว่า zero-downtime จริง

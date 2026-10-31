@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
 
 ## [Unreleased]
 
+## [2.5.1] - 2026-10-31
+
+### Fixed
+- `deploy.sh` recreate service ที่ยังรัน image เก่าหลัง deploy (queue / scheduler ฯลฯ): `docker compose up -d`
+  ไม่ recreate เมื่อ tag ใน compose เท่าเดิม (`APP_IMAGE=x:latest`) แม้ image ข้างในเปลี่ยน → job และ cron
+  รันโค้ดเก่าค้างไว้ (เจอบน VPS จริง: app ใหม่ แต่ queue/scheduler ยังเป็น image ก่อน deploy)
+  ตอนนี้เทียบ image ของแต่ละ container กับที่ tag ชี้ แล้ว `up -d --force-recreate --no-deps` เฉพาะตัวที่ค้าง
+
 ## [2.5.0] - 2026-10-31
 
 ### Added — seed ตอน deploy แบบถามก่อน
