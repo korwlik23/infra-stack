@@ -5,6 +5,7 @@
 #
 # โหมด image:
 #   - มี projects/<name>/src/ (git clone ของ app) → git pull + build บนเครื่อง
+#   - มี src/ แต่ไม่ใช่ git + compose เปิด build: → build จาก src/ ที่มี
 #   - ไม่มี src/ → docker compose pull จาก registry
 # โหมด deploy:
 #   - .env มี ROLLOUT_SERVICE + มี docker-rollout plugin → rolling (เว็บไม่ดับ)
@@ -44,6 +45,11 @@ if [ -d src/.git ]; then
   AFTER="$(git -C src rev-parse --short HEAD)"
   echo "[deploy:$NAME] source $BEFORE → $AFTER"
   echo "[deploy:$NAME] building image on server…"
+  docker compose build
+elif [ -d src ] && grep -qE '^[[:space:]]*build:' docker-compose.yml; then
+  # src/ เป็นไฟล์ที่ copy มาเอง (ไม่ใช่ git clone) — build จากที่มี ไม่ pull โค้ด
+  # (เดิมตกไป docker compose pull → "pull access denied" เพราะ image ไม่มีใน registry)
+  echo "[deploy:$NAME] src/ ไม่ใช่ git clone — building from local src/ (auto-deploy ใช้ไม่ได้จนกว่าจะ clone)…"
   docker compose build
 else
   echo "[deploy:$NAME] pulling image from registry…"
