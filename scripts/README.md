@@ -11,7 +11,7 @@
 | `restore.sh [file]` | restore PostgreSQL (default = ล่าสุด) | เขียนทับข้อมูล — มี confirmation |
 | `restore-server.sh <r2:bucket/host \| dir>` | กู้ทั้งเครื่องลง VPS ใหม่: secrets → volumes → core → database → stack ที่มีข้อมูล | เครื่องใหม่เท่านั้น — มี confirmation (docs/13) |
 | `create-project.sh <name> <template> [--mysql]` | สร้าง project จาก template (laravel/nextjs/go/n8n/ai-worker) + database | — |
-| `setup-git.sh <project> <owner/repo> [branch]` | เชื่อม GitHub: deploy key (repo private) + clone เข้า `src/` + เปิด build → auto-deploy ใช้ได้ | private repo: ต้องวาง key ใน GitHub แล้วรันซ้ำ |
+| `setup-git.sh <project> [<owner/repo> [branch]]` | clone เข้า `src/` (repo private → deploy key) + เปิด build → auto-deploy ใช้ได้ · clone เองแล้วใส่แค่ชื่อ project |  private repo: ต้องวาง key ใน GitHub แล้วรันซ้ำ |
 | `deploy.sh <project> [--seed\|--no-seed]` | **zero-downtime rolling deploy** (build-on-server หรือ pull) + migrate/seed ทุก stack (`lib/deploy-db.sh`) — ของพังไม่ได้รับ traffic | migration ต้อง expand/contract (docs/25) |
 | `smoke.sh <project> [path…]` | smoke test หลัง deploy (อ่านอย่างเดียว): container/healthy, image ค้าง, health 200 ผ่าน Traefik, cert, error ใน log, migration ค้าง | exit 1 เมื่อมี ❌ (docs/28) |
 | `load-src.sh <project> <tar.gz>` | แทน `src/` ด้วยโค้ดจาก `git archive` (project ที่ src ไม่ใช่ git clone) — ของเดิมเก็บที่ `src.prev/` | ยังไม่ deploy — รัน `deploy.sh` ต่อ |

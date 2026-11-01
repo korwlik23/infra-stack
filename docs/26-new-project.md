@@ -42,9 +42,11 @@ cd /opt/infra-stack
 ./scripts/create-project.sh <ชื่อ> laravel
 #    app เขียนมากับ MySQL (เช่น XAMPP) → เติม --mysql ท้ายคำสั่ง (docs/27-mysql.md)
 
-# 2) เชื่อม GitHub: clone เข้า src/ + เปิด build + ตั้ง APP_IMAGE (docs/19-cicd.md)
+# 2) clone repo เข้า src/ + เปิด build + ตั้ง APP_IMAGE (docs/19-cicd.md)
 #    repo private → script โชว์ deploy key + ลิงก์ ให้ไปกด Add ใน GitHub แล้วรันคำสั่งเดิมซ้ำ
 ./scripts/setup-git.sh <ชื่อ> <github-user>/<repo>
+#    หรือ clone เอง แล้วรันแค่ชื่อ project (ข้าม clone — ตรวจว่า cron fetch ได้ไม่ต้องถามรหัส):
+#    git clone <url> projects/<ชื่อ>/src && ./scripts/setup-git.sh <ชื่อ>
 
 # 3) ตั้งค่า .env (ที่เหลือ — ดูด้านล่าง)
 nano projects/<ชื่อ>/.env

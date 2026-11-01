@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
 
 ## [Unreleased]
 
+## [2.12.0] - 2026-11-01
+
+### Changed
+- `setup-git.sh <project>` (ไม่ใส่ repo) ใช้กับ src/ ที่ `git clone` เองได้: ข้ามการ clone แต่ยังเปิด `build: ./src`
+  + ตั้ง `APP_IMAGE` (เดิมจบทันทีว่า "เป็น git clone อยู่แล้ว" → build ไม่เปิด) · ตรวจว่า `git fetch` ได้โดยไม่ถามรหัส
+  (cron ไม่มีคนพิมพ์ token) และ branch track remote — ไม่ผ่าน = หยุดพร้อมวิธีแก้ · ซ่อน token ใน URL ตอนแสดงผล
+- docs/19 หัวข้อ "clone เองก็ได้" + ตารางเทียบ deploy key / fine-grained token / key ส่วนตัว
+
 ## [2.11.1] - 2026-11-01
 
 ### Docs

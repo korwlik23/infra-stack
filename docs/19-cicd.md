@@ -39,6 +39,22 @@ cd /opt/infra-stack
 > host key ของ GitHub อ่านจาก `https://api.github.com/meta` (ผ่าน HTTPS) — ไม่เชื่อ key ที่ ssh เจอครั้งแรกแบบมั่ว ๆ
 > 1 deploy key ใช้ได้กับ repo เดียว — GitHub ไม่ให้ใช้ key ซ้ำข้าม repo
 
+### clone เองก็ได้ (แบบที่คุ้นมือ)
+
+```bash
+git clone <url> projects/<project>/src
+./scripts/setup-git.sh <project>        # ไม่ต้องใส่ repo — ข้ามการ clone, เปิด build, ตั้ง APP_IMAGE
+```
+
+script ตรวจว่า `git fetch` ได้**โดยไม่ถามรหัส** — cron ไม่มีคนพิมพ์ username/token
+clone ที่ต้องพิมพ์รหัสทุกครั้ง (https ของ repo private ไม่มี token) → script หยุดพร้อมวิธีแก้
+
+| repo private clone ด้วย | auto-deploy | ความเสี่ยงถ้าเครื่องโดนเจาะ |
+|---|---|---|
+| deploy key (`setup-git.sh <project> <owner/repo>`) | ✅ | อ่านได้ repo เดียว |
+| fine-grained token (เลือก repo เดียว, Contents: Read-only) — `https://<token>@github.com/…` | ✅ | อ่านได้ repo ที่เลือก · token หมดอายุต้องเปลี่ยน · เก็บเป็นข้อความใน `src/.git/config` |
+| SSH key / classic token ของบัญชีตัวเอง | ✅ | ⚠️ เข้าได้**ทุก repo และ push ได้** — ไม่แนะนำ |
+
 ## ⚙️ เปิด auto deploy (ครั้งเดียวต่อเครื่อง)
 
 ```bash
