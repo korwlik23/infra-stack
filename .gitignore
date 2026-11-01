@@ -31,6 +31,9 @@ projects/**/data/
 
 # App source clones สำหรับ build-on-server (เป็น repo ของ app เอง — docs/19-cicd.md)
 projects/**/src/
+# ของเดิม / ของที่กำลังแตกจาก scripts/load-src.sh
+projects/**/src.prev/
+projects/**/src.new/
 backup/archives/
 *.dump
 *.sql.gz
