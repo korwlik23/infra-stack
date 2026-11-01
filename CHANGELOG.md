@@ -5,6 +5,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
 
 ## [Unreleased]
 
+## [2.7.0] - 2026-11-01
+
+### Added — ทดสอบ project บน VPS
+- `scripts/smoke.sh <project> [path…]` — smoke test อ่านอย่างเดียว: container รัน/healthy, service ที่ค้าง
+  image เก่า, health endpoint 200 + หน้าแรก < 500 ผ่าน Traefik ของเครื่องเอง (`--resolve` ใช้ได้ก่อนย้าย DNS),
+  cert, error ใน log 15 นาทีล่าสุด, migration ค้าง (Laravel) · queue ที่ restart ตามรอบ `--max-time` ไม่นับเป็นปัญหา
+- `scripts/load-src.sh <project> <tar.gz>` — แทน `src/` ด้วย `git archive` (project ที่ src ไม่ใช่ git clone)
+  ตรวจว่ามี Dockerfile ที่ compose ใช้ก่อนสลับ เก็บของเดิมไว้ที่ `src.prev/`
+- docs/28-testing-on-vps.md — คู่มือสำหรับคนและ AI agent: ทำได้เลย / ต้องถามเจ้าของ / ห้าม
+  (เช่น `artisan test` บน production ล้าง database จริงผ่าน `RefreshDatabase`)
+
 ## [2.6.0] - 2026-10-31
 
 ### Added — MySQL ทางเลือก

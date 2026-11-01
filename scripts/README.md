@@ -12,6 +12,8 @@
 | `restore-server.sh <r2:bucket/host \| dir>` | กู้ทั้งเครื่องลง VPS ใหม่: secrets → volumes → core → database → stack ที่มีข้อมูล | เครื่องใหม่เท่านั้น — มี confirmation (docs/13) |
 | `create-project.sh <name> <template>` | สร้าง project จาก template (laravel/nextjs/n8n/ai-worker) | — |
 | `deploy.sh <project>` | **zero-downtime rolling deploy** (build-on-server หรือ pull) — ของพังไม่ได้รับ traffic | migration ต้อง expand/contract (docs/25) |
+| `smoke.sh <project> [path…]` | smoke test หลัง deploy (อ่านอย่างเดียว): container/healthy, image ค้าง, health 200 ผ่าน Traefik, cert, error ใน log, migration ค้าง | exit 1 เมื่อมี ❌ (docs/28) |
+| `load-src.sh <project> <tar.gz>` | แทน `src/` ด้วยโค้ดจาก `git archive` (project ที่ src ไม่ใช่ git clone) — ของเดิมเก็บที่ `src.prev/` | ยังไม่ deploy — รัน `deploy.sh` ต่อ |
 | `artisan.sh <project> <args>` | รัน artisan ใน container จากที่ไหนก็ได้ (เช่น `migrate --force`) | — |
 | `rollback.sh <project> <tag>` | กลับ image tag เก่า แบบ rolling (`previous` = ก่อน deploy ล่าสุด) — retag ไม่แก้ `.env` | migration ไม่ย้อนเอง (docs/25) |
 | `auto-deploy.sh` | cron: poll git ทุก project → deploy เมื่อมี commit ใหม่ | ดู docs/19-cicd.md |
