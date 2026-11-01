@@ -5,6 +5,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
 
 ## [Unreleased]
 
+## [2.8.1] - 2026-11-01
+
+### Fixed
+- rolling deploy ทำ request หลุด: `docker rollout` stop container เก่าทันทีที่ตัวใหม่ healthy ขณะที่ Traefik
+  ยังส่ง request ให้ตัวเก่า (วัดบน VPS จริง: ยิงทุก 0.5s ระหว่าง deploy → 1/100 ได้ `000` ซ้ำ 2 ครั้ง)
+  → templates laravel/nextjs: healthcheck ล้มเมื่อมี `/tmp/drain` + label
+  `docker-rollout.pre-stop-hook=touch /tmp/drain && sleep 35` → ตัวเก่าหลุดจาก Traefik ก่อนถูก stop
+  (วัดหลังแก้: 210/210 ได้ 200) · deploy นานขึ้น ~35s · มีผลตั้งแต่ deploy ครั้งที่ 2 (rollout อ่าน label จากตัวเก่า)
+  · project เดิม: แก้ compose ตาม docs/25 หัวข้อ Drain
+
 ## [2.8.0] - 2026-11-01
 
 ### Added

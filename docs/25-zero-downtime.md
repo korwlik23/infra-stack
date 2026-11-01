@@ -19,7 +19,8 @@
 1. เปิด container ใหม่ (v2) ขึ้นมา "คู่กับ" ตัวเก่า (v1)
 2. รอ v2 ผ่าน Docker healthcheck (app ตอบ HTTP ได้จริง)
 3. Traefik เริ่มกระจาย traffic ให้ v2 (LB สองตัวอัตโนมัติ)
-4. ถอด v1 ออก → เหลือ v2 ตัวเดียว
+4. drain v1: สร้าง /tmp/drain → healthcheck ของ v1 ล้ม → Traefik เลิกส่ง request ให้ v1 (รอ 35s)
+5. ถอด v1 ออก → เหลือ v2 ตัวเดียว
    ✅ user ไม่เจอช่องว่างเลย
 
 ถ้า v2 healthcheck ไม่ผ่าน:
@@ -37,6 +38,28 @@ Plugin ติดตั้งโดย `install.sh` อยู่แล้ว (ไ
 | ไม่มี `container_name` บน service ที่รับ traffic | ✅ templates laravel/nextjs (v2.1) |
 | มี `healthcheck` จริง (ตอบ HTTP ไม่ใช่แค่ process ขึ้น) | ✅ Laravel `/up`, Next.js fetch |
 | Traefik healthcheck labels — ส่ง traffic เฉพาะตัว healthy | ✅ ใส่ให้แล้ว |
+| drain ตัวเก่าก่อน stop (`docker-rollout.pre-stop-hook` + healthcheck เช็ค `/tmp/drain`) | ✅ templates (v2.8.1) |
+
+### Drain — ทำไมต้องมี (วัดจริง 2026-11-01)
+
+ไม่มี drain: `docker rollout` stop ตัวเก่าทันทีที่ตัวใหม่ healthy แต่ Traefik ยังส่ง request ให้ตัวเก่าอยู่
+→ request ที่วิ่งอยู่ช่วงนั้นหลุด (ยิงทุก 0.5s ระหว่าง deploy: **1/100 ได้ `000`**, ซ้ำได้ 2 ครั้ง)
+มี drain: ตัวเก่าสร้าง `/tmp/drain` → Docker healthcheck ล้ม → Traefik ตัดออกเอง (ไม่ส่ง traffic ให้
+container ที่ไม่ healthy) → รอ 35s แล้วค่อย stop → **210/210 ได้ 200** · deploy นานขึ้น ~35s
+
+```yaml
+healthcheck:
+  test: ["CMD-SHELL", "test ! -f /tmp/drain && curl -fsS http://localhost:8080/up || exit 1"]
+labels:
+  # 35s = interval 10s × retries 3 ให้เป็น unhealthy + 5s ให้ request ที่ค้างจบ
+  - "docker-rollout.pre-stop-hook=touch /tmp/drain && sleep 35"
+```
+
+⚠️ rollout อ่าน label จาก**ตัวเก่า** → drain มีผลตั้งแต่ deploy ครั้งที่ 2 หลังแก้ compose ·
+เปลี่ยน interval/retries ของ healthcheck ต้องปรับ sleep ตาม
+
+project ที่สร้างก่อน v2.8.1: เพิ่ม 2 จุดด้านบนใน `projects/<name>/docker-compose.yml` เอง
+(compose ของ project ไม่อยู่ใน Git — `git pull` ไม่แก้ให้) แล้ว deploy 2 ครั้ง
 
 ⚠️ **Healthcheck ต้อง "จริง"** — endpoint ควรแตะ database/Redis เบา ๆ ด้วย
 ถ้าตอบ 200 ทั้งที่ต่อ db ไม่ได้ ของพังจะผ่านด่านเข้าไปรับ traffic
