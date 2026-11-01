@@ -128,6 +128,24 @@ chmod 600 /home/deploy/.ssh/authorized_keys
 user ถูกสร้างแบบ disabled-password — ตั้งด้วย `passwd deploy` จากหน้าต่าง root
 (ดูหัวข้อ "หลัง harden" ด้านบน)
 
+## 🛡️ อัปเดต kernel (ช่องโหว่ kernel)
+
+`unattended-upgrades` ลง security update ให้ทุกวัน แต่**ไม่ reboot** — kernel ใหม่ใช้จริงหลัง reboot เท่านั้น
+
+```bash
+sudo apt update && sudo apt full-upgrade -y
+cat /var/run/reboot-required 2>/dev/null && sudo reboot   # เว็บดับ ~1–2 นาที
+uname -r                                                   # ต้องเป็นเวอร์ชันที่ประกาศว่าแก้แล้ว
+```
+
+เทียบกับประกาศของ Ubuntu (`ubuntu.com/security/CVE-…`) ไม่ใช่เลขเวอร์ชันของ kernel.org —
+Ubuntu ใส่ patch ลง kernel สายของตัวเอง (24.04 = 6.8.x) เลขจึงดูเก่ากว่าแต่แก้แล้วได้
+
+**CVE-2026-98432** (TCP use-after-free, CVSS 9.8, 2026-10): exploit ที่ได้ root ใช้ listener แบบ MPTCP —
+Traefik (Go ≥ 1.24) เปิด MPTCP เอง → compose ของ Traefik ตั้ง `net.mptcp.enabled=0` ไว้แล้ว
+(ค่านี้แยกตาม network namespace — ตั้งบน host อย่างเดียวไม่ถึง container) เป็นการลดความเสี่ยงเท่านั้น
+ยังต้องอัปเดต kernel ที่แก้แล้ว (24.04: `6.8.0-149` ขึ้นไป) + reboot · ตรวจ: `docker exec traefik cat /proc/sys/net/mptcp/enabled` = `0`
+
 ## 🔄 Rollback
 
 ถ้าล็อกตัวเองออก: ใช้ VNC console ของ provider (Contabo CCP มีให้)

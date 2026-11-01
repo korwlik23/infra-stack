@@ -7,6 +7,11 @@ services:
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
+    # ปิด MPTCP ใน network namespace ของ Traefik — Go ≥ 1.24 เปิด MPTCP ให้ listener เอง และ listener MPTCP
+    # คือทางที่ exploit CVE-2026-98432 (TCP use-after-free, CVSS 9.8) ใช้ได้ root · client MPTCP ต่อเป็น TCP ปกติแทน
+    # ⚠️ ลดความเสี่ยงเท่านั้น บั๊กอยู่ใน TCP — ต้องอัปเดต kernel ที่แก้แล้ว + reboot (docs/02-security.md)
+    sysctls:
+      - net.mptcp.enabled=0
     # Static config ผ่าน CLI แทน traefik.yml — ACME email มาจาก .env ที่เดียว
     # (เดิม install.sh sed แก้ traefik.yml ที่อยู่ใน Git → git status ไม่ clean + pull ชน)
     # ⚠️ ห้าม mount ไฟล์ /etc/traefik/traefik.yml กลับเข้ามา — ถ้ามีไฟล์ Traefik จะใช้ไฟล์และข้าม flag ทั้งหมด

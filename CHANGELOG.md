@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
 
 ## [Unreleased]
 
+## [2.7.1] - 2026-11-01
+
+### Security
+- Traefik: `sysctls: net.mptcp.enabled=0` — ปิด MPTCP ใน namespace ของ Traefik ซึ่งเปิดเองเพราะ build ด้วย
+  Go ≥ 1.24 · listener MPTCP คือทางที่ exploit CVE-2026-98432 (Linux TCP use-after-free, CVSS 9.8, ยิงจาก
+  เน็ตได้ root) ใช้ ขณะที่ Ubuntu 24.04 ยังไม่ออก kernel ที่แก้ · ลดความเสี่ยงเท่านั้น ยังต้องอัปเดต kernel + reboot
+- docs/02-security.md: วิธีอัปเดต kernel + reboot และการเทียบกับประกาศ Ubuntu แทนเลข kernel.org
+
 ## [2.7.0] - 2026-11-01
 
 ### Added — ทดสอบ project บน VPS
