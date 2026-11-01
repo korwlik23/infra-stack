@@ -5,6 +5,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
 
 ## [Unreleased]
 
+## [2.10.0] - 2026-11-01
+
+### Changed — auto-deploy ถามก่อนเมื่อ commit แก้ seeder
+- `auto-deploy.sh` เจอ commit ที่แก้ไฟล์ใน `DEPLOY_SEED_PATHS` (เทียบ `git diff` กับ commit ที่ขึ้นเว็บ — รู้ก่อน build)
+  → **ไม่ deploy** พักรอคำตอบ: เขียน log + แจ้ง Telegram ครั้งเดียวต่อ commit (`.deploy-waiting`) แล้วให้คนรัน
+  `./scripts/deploy.sh <project>` ซึ่งถาม seed y/N (หรือ `--seed` / `--no-seed`) · deploy ผ่านแล้วล้างสถานะพักให้
+  · เดิม: deploy โค้ดไปเลยแต่ข้าม seed (เตือนแค่ใน log) · project ที่ตั้ง `DEPLOY_AUTO_SEED=1` ไม่พัก
+
+### Added
+- `scripts/lib/notify.sh` — แจ้งเตือน Telegram จาก `NOTIFY_TELEGRAM_BOT_TOKEN` + `NOTIFY_TELEGRAM_CHAT_ID`
+  ใน `.env` กลาง (ไม่ตั้ง = เงียบ) · auto-deploy แจ้งเมื่อพักรอคำตอบ และเมื่อ deploy ล้ม
+
 ## [2.9.0] - 2026-11-01
 
 ### Added — auto-deploy + migrate/seed ทุก stack

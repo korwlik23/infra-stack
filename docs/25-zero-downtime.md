@@ -118,7 +118,7 @@ rolling deploy เลยคิดว่าสำเร็จ ทั้งที�
 |-----------|----|
 | deploy ครั้งแรก / seeder ใหม่ หรือแก้ไข + รันใน terminal | โชว์ไฟล์ที่เปลี่ยน แล้วถาม `รัน db:seed ด้วยไหม? [y/N]` |
 | ตอบ N | ข้าม และจำไว้ — ไม่ถามซ้ำจนกว่า seeder จะเปลี่ยนอีก |
-| auto-deploy (cron, ไม่มีคนตอบ) | **ไม่ seed** — เขียนเตือนใน log ให้รัน `deploy.sh <ชื่อ> --seed` เอง |
+| auto-deploy (cron) เจอ commit ที่แก้ seeder | **ยังไม่ deploy** — พักรอคำตอบ แจ้งใน log + Telegram แล้วคนรัน `deploy.sh <ชื่อ>` ซึ่งถาม y/N (v2.10.0) |
 | auto-deploy + `DEPLOY_AUTO_SEED=1` | seed เองเมื่อ seeder เปลี่ยน — ตั้งเฉพาะ project ที่ seeder รันซ้ำได้แน่ ๆ |
 | `deploy.sh <ชื่อ> --seed` / `--no-seed` | รันเลยไม่ถาม / ไม่รันและไม่ถาม |
 

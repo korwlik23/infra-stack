@@ -112,6 +112,6 @@ docker image prune -f >/dev/null
 # จำ commit ที่ขึ้นเว็บจริงแล้ว — auto-deploy เทียบกับค่านี้ (ไม่ใช่ HEAD ของ src/ ที่ pull แล้วแต่ build อาจล้ม)
 if [ -d src/.git ]; then
   git -C src rev-parse HEAD > .deploy-commit
-  rm -f .deploy-failed
+  rm -f .deploy-failed .deploy-waiting
 fi
 echo "✅ [deploy:$NAME] done — $(date '+%F %T')"

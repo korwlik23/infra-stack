@@ -58,7 +58,8 @@ crontab -e
 | `flock` — รันทีละรอบ | deploy หนึ่งตัวใช้ 1–2 นาที (build + drain 35s) — cron รอบถัดไปมาก่อนจบได้ |
 | เทียบกับ `.deploy-commit` ไม่ใช่ HEAD | deploy.sh `git pull` ก่อน build — build ล้มแล้ว HEAD ก็เป็น commit ใหม่ไปแล้ว |
 | commit ที่ล้มจำใน `.deploy-failed` | ไม่ลอง build ซ้ำทุก 2 นาที — รอ commit ใหม่ หรือ `deploy.sh` มือ (ผ่านแล้วล้างให้) |
-| seed ไม่รันเอง | ไม่มีคนตอบ — เตือนใน log · ตั้ง `DEPLOY_AUTO_SEED=1` ถ้า seeder รันซ้ำได้แน่ ๆ (docs/25) |
+| commit แก้ seeder → **พักรอคำตอบ** | cron ไม่มีคนตอบว่าจะ seed ไหม — ไม่ deploy commit นั้น แจ้งใน log + Telegram (ถ้าตั้ง) ครั้งเดียว → คนรัน `./scripts/deploy.sh <ชื่อ>` (ถาม y/N หรือ `--seed` / `--no-seed`) · `DEPLOY_AUTO_SEED=1` = ไม่พัก seed เอง |
+| deploy ล้ม → แจ้ง Telegram | ตั้ง `NOTIFY_TELEGRAM_BOT_TOKEN` + `NOTIFY_TELEGRAM_CHAT_ID` ใน `.env` กลาง (ไม่ตั้ง = มีแค่ log) |
 
 `deploy.sh` เป็น **zero-downtime rolling deploy** (เปิดตัวใหม่รอ healthy → drain ตัวเก่า → ถอด)
 ของพังไม่ได้รับ traffic — ดู [25-zero-downtime.md](25-zero-downtime.md)

@@ -17,7 +17,7 @@
 | `load-src.sh <project> <tar.gz>` | แทน `src/` ด้วยโค้ดจาก `git archive` (project ที่ src ไม่ใช่ git clone) — ของเดิมเก็บที่ `src.prev/` | ยังไม่ deploy — รัน `deploy.sh` ต่อ |
 | `artisan.sh <project> <args>` | รัน artisan ใน container จากที่ไหนก็ได้ (เช่น `migrate --force`) | — |
 | `rollback.sh <project> <tag>` | กลับ image tag เก่า แบบ rolling (`previous` = ก่อน deploy ล่าสุด) — retag ไม่แก้ `.env` | migration ไม่ย้อนเอง (docs/25) |
-| `auto-deploy.sh` | cron: poll git ทุก project → deploy เมื่อมี commit ใหม่ (ทีละตัว, ไม่ลอง commit ที่ล้มซ้ำ) | ดู docs/19-cicd.md |
+| `auto-deploy.sh` | cron: poll git ทุก project → deploy เมื่อมี commit ใหม่ (ทีละตัว, ไม่ลอง commit ที่ล้มซ้ำ) · commit แก้ seeder → พักรอคำตอบ + แจ้ง Telegram | ดู docs/19-cicd.md |
 | `migrate-volumes.sh` | ย้าย volume `docker_<name>` → `<name>` (อัปเกรดเครื่องเก่า ครั้งเดียว) | stop container เดิม — backup ก่อน (docker/README.md) |
 
 ทุก script รันจาก repo root บนเซิร์ฟเวอร์ (แนะนำ clone ไว้ที่ `/opt/infra-stack`)
