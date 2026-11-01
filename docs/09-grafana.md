@@ -15,14 +15,22 @@ Data source Prometheus + Loki ถูก provision อัตโนมัติ
 
 ## Dashboard เริ่มต้น
 
-Import จาก grafana.com (Dashboards → New → Import):
+มาพร้อมระบบแล้ว — Dashboards → โฟลเดอร์ **InfraStack** (ไม่ต้อง import):
 
-| ID | ชื่อ |
-|----|------|
-| 1860 | Node Exporter Full |
-| 193 | Docker monitoring |
+| Dashboard | ใช้ดู |
+|-----------|-------|
+| Node Exporter Full (1860) | ทั้งเครื่อง: CPU, RAM, swap, ดิสก์, network |
+| Docker monitoring (193) | ราย container: ตัวไหนกิน CPU / RAM |
 
-แล้ว export JSON เก็บที่ `monitoring/dashboards/` เพื่อให้เครื่องใหม่ได้ dashboard เดียวกัน
+ไฟล์อยู่ที่ `monitoring/dashboards/` — วิธีเพิ่มตัวใหม่ดู [README ในโฟลเดอร์นั้น](../monitoring/dashboards/README.md)
+
+⚠️ import 193 เองใน UI จะได้ทุก panel เป็นสามเหลี่ยมแดง / N/A — มันอ้าง `${DS_PROMETHEUS}` แต่ไม่มีช่องให้เลือก
+data source ตอน import → ใช้ตัวในโฟลเดอร์ InfraStack แทน
+
+## ดู log
+
+Explore → data source **Loki** → `{container="<ชื่อ container>"}` (กรอง: `|= "ERROR"`)
+— ดู log สดทีละตัวง่ายกว่าที่ `https://logs.<BASE_DOMAIN>` (Dozzle)
 
 ## Alert rules
 

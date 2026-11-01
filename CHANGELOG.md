@@ -5,6 +5,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
 
 ## [Unreleased]
 
+## [2.8.0] - 2026-11-01
+
+### Added
+- Grafana dashboard มากับระบบ (provisioned โฟลเดอร์ InfraStack): **Node Exporter Full** (1860) และ
+  **Docker monitoring** (193) ใน `monitoring/dashboards/` — ไม่ต้อง import เอง · อ้าง data source ด้วยชื่อ
+  `Prometheus` (ไม่ใช่ uid ที่สุ่มต่อเครื่อง) จึงใช้ได้ทุกเครื่อง
+- `monitoring/dashboards/README.md`: วิธีเพิ่ม dashboard ให้ใช้ได้ทุกเครื่อง · docs/09: ดู log ผ่าน Loki
+
+### Fixed
+- import 193 เองใน UI ได้ทุก panel เป็น N/A / สามเหลี่ยมแดง: panel อ้าง `${DS_PROMETHEUS}` แต่ dashboard เก่าตัวนี้
+  ไม่มีช่องเลือก data source ตอน import — ตัวที่ provision ผูก Prometheus ไว้แล้ว
+
 ## [2.7.1] - 2026-11-01
 
 ### Security

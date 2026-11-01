@@ -11,8 +11,8 @@ docker compose --env-file .env -f docker/docker-compose.monitoring.yml up -d gra
 ```
 
 - Data source **Prometheus** ถูก provision อัตโนมัติ
-- Dashboard JSON วางไว้ที่ `monitoring/dashboards/` → โผล่ในโฟลเดอร์ "InfraStack" เอง
-- Dashboard แนะนำให้ import: **1860** (Node Exporter Full), **193** (Docker)
+- Dashboard JSON ใน `monitoring/dashboards/` → โผล่ในโฟลเดอร์ "InfraStack" เอง
+  มาให้แล้ว: **Node Exporter Full** (1860), **Docker monitoring** (193)
 
 ## Rollback
 
