@@ -1,0 +1,37 @@
+services:
+  __PROJECT__:
+    image: ${APP_IMAGE:?set in .env}
+    # ไม่ใส่ container_name — เพื่อให้ rolling deploy รัน 2 ตัวคู่กันได้ (docs/25)
+    restart: unless-stopped
+    # build บนเครื่องแทน registry: ./scripts/setup-git.sh เปิดบรรทัดล่างให้ (docs/19-cicd.md)
+    # build: ./src
+    env_file: .env
+    healthcheck:
+      # image ต้องเป็น alpine (มี sh + wget) — scratch/distroless ไม่มี shell ให้ healthcheck/drain ใช้ (docs/29)
+      # /tmp/drain = ตัวเก่ากำลังถูกถอดตอน rolling deploy → unhealthy → Traefik เลิกส่ง request ให้ก่อนถูก stop
+      test: ["CMD-SHELL", "test ! -f /tmp/drain && wget -qO /dev/null http://localhost:8080${HEALTHCHECK_PATH:-/healthz} || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - proxy
+      - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.__PROJECT__.rule=Host(`${APP_DOMAIN:?set in .env}`)"
+      - "traefik.http.routers.__PROJECT__.entrypoints=websecure"
+      - "traefik.http.routers.__PROJECT__.tls.certresolver=letsencrypt"
+      - "traefik.http.services.__PROJECT__.loadbalancer.server.port=8080"
+      # Traefik ส่ง traffic เฉพาะ replica ที่ health ผ่าน
+      - "traefik.http.services.__PROJECT__.loadbalancer.healthcheck.path=${HEALTHCHECK_PATH:-/healthz}"
+      - "traefik.http.services.__PROJECT__.loadbalancer.healthcheck.interval=10s"
+      # drain ก่อน docker rollout stop ตัวเก่า — 35s = interval 10s × retries 3 + 5s ให้ request ที่ค้างจบ (docs/25)
+      - "docker-rollout.pre-stop-hook=touch /tmp/drain && sleep 35"
+
+networks:
+  proxy:
+    external: true
+  backend:
+    external: true
+    name: backend

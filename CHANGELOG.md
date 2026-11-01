@@ -5,6 +5,28 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
 
 ## [Unreleased]
 
+## [2.9.0] - 2026-11-01
+
+### Added — auto-deploy + migrate/seed ทุก stack
+- `scripts/setup-git.sh <project> <owner/repo> [branch]` — เชื่อม project กับ GitHub: repo public clone ผ่าน https,
+  repo private สร้าง deploy key อ่านอย่างเดียว + host alias แล้วโชว์ key + ลิงก์หน้า Deploy keys (รันซ้ำหลังกด Add)
+  · host key ของ GitHub จาก api.github.com/meta · clone เข้า `src/` (เดิมเก็บ `src.prev/`) · ตรวจ Dockerfile
+  · เปิด `build: ./src` · แก้ `APP_IMAGE` placeholder
+- `scripts/lib/deploy-db.sh` — migrate + seed ตอน deploy สำหรับทุก stack ผ่าน `.env` ของ project:
+  `DEPLOY_MIGRATE_CMD` / `DEPLOY_SEED_CMD` (`none` = ไม่ seed) / `DEPLOY_SEED_PATHS` / `DEPLOY_TOOLS_TARGET`
+  (build stage ใน Dockerfile ที่มีเครื่องมือ migrate เช่น prisma CLI) / `DEPLOY_AUTO_SEED=1` (auto-deploy seed เอง)
+  · ค่า default = Laravel → project Laravel เดิมไม่ต้องแก้
+- template `go` (alpine, `/healthz`, `server migrate` / `seed`, drain) + `examples/go-app/` ตัวอย่าง app ครบข้อตกลง
+  · `create-project.sh … go [--mysql]` · docs/29-deploy-go.md
+- template `nextjs`: `DEPLOY_*` สำหรับ Prisma (`prisma migrate deploy` ผ่าน stage `migrate`) + `DB_DATABASE`
+  → `create-project.sh` สร้าง database ให้ (เดิมต้องสร้างเอง)
+
+### Changed
+- `auto-deploy.sh`: `flock` กันรันซ้อน (deploy ใช้ 1–2 นาที > รอบ cron) · เทียบ branch กับ commit ที่ขึ้นเว็บแล้ว
+  (`.deploy-commit` — deploy.sh เขียนเมื่อสำเร็จ) แทน HEAD ที่ pull แล้วแต่ build อาจล้ม · commit ที่ deploy ล้ม
+  จำใน `.deploy-failed` ไม่ลองซ้ำทุก 2 นาที · log แนะนำ `/opt/infra-stack/logs/` (ไม่ต้อง sudo)
+- docs/19 เขียนใหม่ตาม setup-git.sh · docs/16, 25, 26 ตาม migrate ทุก stack
+
 ## [2.8.1] - 2026-11-01
 
 ### Fixed

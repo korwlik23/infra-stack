@@ -8,76 +8,73 @@ provider และ image ไม่ต้องเดินทางผ่าน 
 ## แนวคิด: Build on Server + Git Poll
 
 ```text
-push → GitHub ← (poll ทุก 2 นาที) เซิร์ฟเวอร์
-                        │ มี commit ใหม่
-                        ▼
-              git pull → docker compose build → up -d
+push main → GitHub ← (poll ทุก 2 นาที) เซิร์ฟเวอร์
+                             │ มี commit ใหม่
+                             ▼
+       git pull → build → migrate (+ seed) → rolling deploy (drain ตัวเก่า)
 ```
 
-## ⚙️ Setup ต่อ project
+deploy เฉพาะ branch ที่ clone ไว้ (default `main`) — push branch อื่นไม่ขึ้นเว็บ
+
+## ⚙️ เชื่อม project กับ GitHub (ครั้งเดียวต่อ project)
 
 ```bash
-# 1. clone source ของ app ไว้ใน project (ผ่าน SSH deploy key แบบ read-only — ดูหัวข้อล่าง)
-#    ใช้ host alias "github.com-app" จาก ~/.ssh/config เพื่อให้ ssh ใช้ deploy key ของ repo นี้
-cd projects/app
-git clone git@github.com-app:<github-user>/<repo>.git src
-
-# 2. เปิดโหมด build ใน docker-compose.yml ของ project
-#    (uncomment บรรทัด "build: ./src" — ทุก template มีเตรียมไว้)
-#    และตั้ง APP_IMAGE ใน .env เป็นชื่อ image ที่ถูกต้อง เช่น app:latest
-#    (placeholder ghcr.io/<github-user>/… มี < > → build ล้ม "invalid reference format")
-
-# 3. deploy ครั้งแรก
-cd ../.. && ./scripts/deploy.sh app
+cd /opt/infra-stack
+./scripts/setup-git.sh <project> <owner>/<repo>          # branch default: main
 ```
 
-## ⚙️ เปิด auto deploy
+| repo | สิ่งที่ script ทำ |
+|------|------------------|
+| public | clone ผ่าน https เลย |
+| private | สร้าง deploy key `~/.ssh/deploy_<project>` + host alias `github.com-<project>` แล้ว**โชว์ public key + ลิงก์** หน้า Deploy keys ของ repo → ไปกด Add (ไม่ติ๊ก write access) → รันคำสั่งเดิมซ้ำ |
 
-⚠️ สร้างไฟล์ log ก่อน (deploy เขียนไฟล์ใหม่ใน /var/log เองไม่ได้ — cron จะล้มเงียบ):
+จากนั้น script: clone เข้า `src/` (ของเดิมเก็บที่ `src.prev/`) · ตรวจว่ามี Dockerfile ·
+เปิด `build: ./src` · แก้ `APP_IMAGE` ที่ยังเป็น placeholder → `<project>:latest`
 
 ```bash
-sudo touch /var/log/infra-deploy.log && sudo chown deploy:deploy /var/log/infra-deploy.log
+./scripts/deploy.sh <project>      # deploy ครั้งแรกจาก git — เว็บตรงกับ main
+./scripts/smoke.sh <project>
+```
+
+> host key ของ GitHub อ่านจาก `https://api.github.com/meta` (ผ่าน HTTPS) — ไม่เชื่อ key ที่ ssh เจอครั้งแรกแบบมั่ว ๆ
+> 1 deploy key ใช้ได้กับ repo เดียว — GitHub ไม่ให้ใช้ key ซ้ำข้าม repo
+
+## ⚙️ เปิด auto deploy (ครั้งเดียวต่อเครื่อง)
+
+```bash
+mkdir -p /opt/infra-stack/logs
 crontab -e
 ```
 
 ```cron
-*/2 * * * * /opt/infra-stack/scripts/auto-deploy.sh >> /var/log/infra-deploy.log 2>&1
+*/2 * * * * /opt/infra-stack/scripts/auto-deploy.sh >> /opt/infra-stack/logs/auto-deploy.log 2>&1
 ```
 
-`auto-deploy.sh` วนทุก project ที่มี `src/` → fetch → ถ้ามี commit ใหม่ → `deploy.sh`
+`auto-deploy.sh` วนทุก project ที่ `src/` เป็น git clone → fetch → ถ้า commit ล่าสุดของ branch
+≠ commit ที่ขึ้นเว็บแล้ว (`projects/<ชื่อ>/.deploy-commit`) → `deploy.sh`
 
-`deploy.sh` เป็น **zero-downtime rolling deploy** อัตโนมัติ (เปิดตัวใหม่รอ healthy
-ก่อนถอดตัวเก่า — ของพังไม่ได้รับ traffic) — ดู [25-zero-downtime.md](25-zero-downtime.md)
+| กลไก | ทำไม |
+|------|------|
+| `flock` — รันทีละรอบ | deploy หนึ่งตัวใช้ 1–2 นาที (build + drain 35s) — cron รอบถัดไปมาก่อนจบได้ |
+| เทียบกับ `.deploy-commit` ไม่ใช่ HEAD | deploy.sh `git pull` ก่อน build — build ล้มแล้ว HEAD ก็เป็น commit ใหม่ไปแล้ว |
+| commit ที่ล้มจำใน `.deploy-failed` | ไม่ลอง build ซ้ำทุก 2 นาที — รอ commit ใหม่ หรือ `deploy.sh` มือ (ผ่านแล้วล้างให้) |
+| seed ไม่รันเอง | ไม่มีคนตอบ — เตือนใน log · ตั้ง `DEPLOY_AUTO_SEED=1` ถ้า seeder รันซ้ำได้แน่ ๆ (docs/25) |
 
-## Deploy key (read-only — ปลอดภัยกว่าใช้ key ส่วนตัว)
-
-```bash
-ssh-keygen -t ed25519 -f ~/.ssh/deploy_app -N ""
-cat ~/.ssh/deploy_app.pub
-# GitHub → repo → Settings → Deploy keys → Add (ไม่ติ๊ก write access)
-cat >> ~/.ssh/config <<'EOF'
-Host github.com-app
-  HostName github.com
-  User git
-  IdentityFile ~/.ssh/deploy_app
-  IdentitiesOnly yes
-EOF
-ssh -T git@github.com-app      # ต้องเห็น "successfully authenticated"
-```
-
-1 deploy key ใช้ได้กับ repo เดียว — repo ถัดไปสร้าง key + Host alias ใหม่ (เช่น `github.com-shop`)
+`deploy.sh` เป็น **zero-downtime rolling deploy** (เปิดตัวใหม่รอ healthy → drain ตัวเก่า → ถอด)
+ของพังไม่ได้รับ traffic — ดู [25-zero-downtime.md](25-zero-downtime.md)
 
 ## ⚠️ ระวัง
 
-- Build บนเครื่องกิน CPU/RAM ชั่วคราว — เครื่อง 8GB build Next.js ได้ แต่อย่า build
-  พร้อมกันหลายตัว (auto-deploy.sh รันทีละตัวอยู่แล้ว)
+- **ทุกอย่างที่เข้า branch ที่ clone ไว้ = ขึ้นเว็บจริง** — ทำงานบน feature branch แล้ว merge เมื่อพร้อม
+- Build บนเครื่องกิน CPU/RAM ชั่วคราว — auto-deploy.sh build ทีละตัวอยู่แล้ว
 - `src/` ไม่ถูก commit เข้า infra-stack (อยู่ใน .gitignore) — มันเป็น repo ของ app เอง
-- เปิด migration อัตโนมัติด้วย `DEPLOY_MIGRATE=1` เฉพาะ project ที่ใช้
-  expand/contract migrations ตาม [25-zero-downtime.md](25-zero-downtime.md)
+- migration ต้องเป็น expand/contract ตาม [25-zero-downtime.md](25-zero-downtime.md)
+- force-push branch → `git pull --ff-only` ล้ม → deploy ล้ม (กันโค้ดหาย) — แก้: `git -C projects/<ชื่อ>/src reset --hard @{u}` แล้ว deploy มือ
 
 ## 🧪 ทดสอบ
 
 ```bash
-./scripts/deploy.sh <name>            # deploy มือผ่านก่อน
-tail -f /var/log/infra-deploy.log     # ดู auto-deploy ทำงาน
+tail -f /opt/infra-stack/logs/auto-deploy.log           # push แล้วดู — ภายใน 2 นาทีต้องเห็น "deploying…" → ✅
+cat projects/<ชื่อ>/.deploy-commit                       # commit ที่ขึ้นเว็บอยู่
+git -C projects/<ชื่อ>/src log -1 --oneline @{u}          # commit ล่าสุดบน GitHub (หลัง fetch)
 ```

@@ -81,10 +81,22 @@ project ที่สร้างก่อน v2.8.1: เพิ่ม 2 จุด
 
 กติกาสั้น ๆ: **migration ทุกตัวต้องรันได้โดยโค้ดเวอร์ชันก่อนหน้ายังทำงานต่อได้**
 
-## ⚙️ migrate อัตโนมัติตอน deploy (v2.2.0+)
+## ⚙️ migrate อัตโนมัติตอน deploy (v2.2.0+ · ทุก stack ตั้งแต่ v2.9.0)
 
-`deploy.sh` จะรัน `php artisan migrate --force` **ก่อนสลับ traffic** อัตโนมัติ
-ถ้า project มี `DEPLOY_MIGRATE=1` ใน `.env` (template Laravel ตั้งให้แล้ว)
+`deploy.sh` รันคำสั่ง migrate **ก่อนสลับ traffic** อัตโนมัติ ถ้า project มี `DEPLOY_MIGRATE=1` ใน `.env`
+(template laravel / nextjs / go ตั้งให้แล้ว) — โค้ดอยู่ที่ `scripts/lib/deploy-db.sh`
+
+| ค่าใน `.env` ของ project | Laravel (default) | Next.js + Prisma | Go |
+|---|---|---|---|
+| `DEPLOY_MIGRATE_CMD` | `php artisan migrate --force` | `npx prisma migrate deploy` | `/app/server migrate` |
+| `DEPLOY_SEED_CMD` | `php artisan db:seed --force` | `npx prisma db seed` | `/app/server seed` |
+| `DEPLOY_SEED_PATHS` | `database/seeders` | `prisma/seed.ts …` | `seeds` |
+| `DEPLOY_TOOLS_TARGET` | — (ใช้ image ของ app) | `migrate` (stage ใน Dockerfile) | — |
+
+- `DEPLOY_TOOLS_TARGET` = stage ใน Dockerfile ที่มีเครื่องมือ migrate — Next.js standalone image ไม่มี prisma CLI
+  จึง build stage `migrate` แยก (ไม่ build Next.js ซ้ำ) แล้วรันบน network `backend` ด้วย `.env` เดียวกัน
+- `DEPLOY_SEED_CMD=none` = project นี้ไม่ seed ตอน deploy (เช่น seed มีรหัส/ข้อมูลตัวอย่างที่ไม่ควรขึ้น production)
+- project Laravel เดิมไม่ต้องแก้ — ไม่ตั้งค่าเหล่านี้ = ใช้ค่า Laravel
 
 ลำดับ: build image ใหม่ → **migrate ด้วย image ใหม่** → rolling deploy
 → schema พร้อมก่อนโค้ดใหม่รับ traffic ถ้า migrate ล้ม `set -e` หยุดทันที ไม่ deploy ต่อ
@@ -98,14 +110,16 @@ rolling deploy เลยคิดว่าสำเร็จ ทั้งที�
 
 ## 🌱 seed ตอน deploy — ถามก่อนเสมอ (v2.5.0+)
 
-หลัง migrate (เฉพาะ project ที่มี `DEPLOY_MIGRATE=1`) `deploy.sh` เทียบ hash ของไฟล์ใน
-`database/seeders/` ของ image ใหม่กับครั้งที่ seed/ตอบไปล่าสุด (`projects/<ชื่อ>/.deploy-seeders.sha256`)
+หลัง migrate (เฉพาะ project ที่มี `DEPLOY_MIGRATE=1`) `deploy.sh` เทียบ hash ของ
+ไฟล์ seeder (`DEPLOY_SEED_PATHS` — Laravel: `database/seeders/`) ของ image ใหม่กับครั้งที่ seed/ตอบไปล่าสุด
+(`projects/<ชื่อ>/.deploy-seeders.sha256`)
 
 | สถานการณ์ | ผล |
 |-----------|----|
 | deploy ครั้งแรก / seeder ใหม่ หรือแก้ไข + รันใน terminal | โชว์ไฟล์ที่เปลี่ยน แล้วถาม `รัน db:seed ด้วยไหม? [y/N]` |
 | ตอบ N | ข้าม และจำไว้ — ไม่ถามซ้ำจนกว่า seeder จะเปลี่ยนอีก |
 | auto-deploy (cron, ไม่มีคนตอบ) | **ไม่ seed** — เขียนเตือนใน log ให้รัน `deploy.sh <ชื่อ> --seed` เอง |
+| auto-deploy + `DEPLOY_AUTO_SEED=1` | seed เองเมื่อ seeder เปลี่ยน — ตั้งเฉพาะ project ที่ seeder รันซ้ำได้แน่ ๆ |
 | `deploy.sh <ชื่อ> --seed` / `--no-seed` | รันเลยไม่ถาม / ไม่รันและไม่ถาม |
 
 รันด้วย image ใหม่ก่อนสลับ traffic เหมือน migrate — seed ล้ม = deploy หยุด เว็บเดิมยังอยู่

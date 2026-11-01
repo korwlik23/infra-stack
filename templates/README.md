@@ -6,13 +6,14 @@
 | Template | ใช้กับ |
 |----------|--------|
 | `laravel/` | Laravel app + queue worker + scheduler |
-| `nextjs/` | Next.js standalone |
+| `nextjs/` | Next.js standalone (+ Prisma migrate ตอน deploy) |
+| `go/` | Go HTTP service (alpine, `/healthz`, `server migrate` / `seed`) — ตัวอย่าง app: `examples/go-app/` |
 | `n8n/` | n8n (PostgreSQL backend) |
 | `ai-worker/` | Worker AI หลังบ้าน (queue consumer + resource limits) — v2.0 |
 
 ทุก template รองรับ 2 โหมด deploy:
 - **Pre-built image** จาก registry (default — `APP_IMAGE` ใน .env)
-- **Build on server** — clone app ไว้ที่ `src/` แล้ว uncomment `build: ./src` (ดู docs/19-cicd.md)
+- **Build on server** — `./scripts/setup-git.sh <project> <owner/repo>` clone เข้า `src/` + เปิด build (docs/19-cicd.md)
 
 ## Placeholder ใน template
 

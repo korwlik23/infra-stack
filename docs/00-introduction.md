@@ -24,7 +24,7 @@ InfraStack คือ **"ระบบปฏิบัติการของ Serv
 | Monitoring | [08-netdata.md](08-netdata.md) → [09-grafana.md](09-grafana.md) → [10-uptime-kuma.md](10-uptime-kuma.md) |
 | Network/Storage | [11-cloudflare.md](11-cloudflare.md) → [12-r2.md](12-r2.md) |
 | Ops | [13-backup.md](13-backup.md) → [14-monitoring.md](14-monitoring.md) |
-| Deploy | [15-deploy-laravel.md](15-deploy-laravel.md) → [16-deploy-nextjs.md](16-deploy-nextjs.md) → [17-deploy-n8n.md](17-deploy-n8n.md) |
+| Deploy | [15-deploy-laravel.md](15-deploy-laravel.md) → [16-deploy-nextjs.md](16-deploy-nextjs.md) → [29-deploy-go.md](29-deploy-go.md) → [17-deploy-n8n.md](17-deploy-n8n.md) |
 | CI/CD | [19-cicd.md](19-cicd.md) — auto deploy ฟรี ไม่ใช้ GitHub Actions · [25-zero-downtime.md](25-zero-downtime.md) — deploy ไม่ให้เว็บดับ |
 | **Deploy project ใหม่** | [26-new-project.md](26-new-project.md) — ขั้นตอนครบ ทำซ้ำได้ทุกครั้ง |
 | ทดสอบบน VPS | [28-testing-on-vps.md](28-testing-on-vps.md) — smoke test + สิ่งที่ AI agent ทำได้ / ต้องถาม / ห้าม |

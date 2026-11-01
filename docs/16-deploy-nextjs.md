@@ -11,17 +11,36 @@ module.exports = { output: "standalone" };
 ```
 
 Dockerfile ตาม official example (multi-stage, สุดท้าย `node server.js`, expose 3000)
-CI build → push image ขึ้น ghcr
+
+### ใช้ Prisma → เพิ่ม stage `migrate` (ไว้**ก่อน** stage สุดท้าย)
+
+standalone image ไม่มี prisma CLI — `deploy.sh` build stage นี้แยกแล้วรัน `prisma migrate deploy`
+ก่อนสลับ traffic (`DEPLOY_TOOLS_TARGET=migrate` ใน .env — template ตั้งให้แล้ว)
+
+```dockerfile
+FROM node:24-alpine AS migrate
+RUN apk add --no-cache libc6-compat openssl
+WORKDIR /app
+COPY package.json package-lock.json* ./
+RUN npm ci
+COPY prisma ./prisma
+RUN npx prisma generate
+
+FROM node:24-alpine AS runner     # ← stage สุดท้าย = ตัวที่ docker build ใช้ปกติ
+```
+
+- ต้องมี migration ใน `prisma/migrations/` (ใช้ `prisma migrate dev` ตอน dev) — `db push` อย่างเดียว
+  production migrate ไม่ได้ · DB ที่สร้างด้วย `db push` มาก่อน: `prisma migrate resolve --applied <ชื่อ>` ทีละตัว
+- seed (`prisma db seed`) ต้องเป็นข้อมูลพื้นฐานเท่านั้น — มีรหัส/ข้อมูลตัวอย่าง → `DEPLOY_SEED_CMD=none`
 
 ## ⚙️ Deploy (ฝั่งเซิร์ฟเวอร์)
 
 ```bash
-./scripts/create-project.sh myweb nextjs
-nano projects/myweb/.env          # APP_IMAGE (+ DATABASE_URL ถ้าใช้ — ค่า user/pass เติมให้แล้ว)
-# ใช้ DATABASE_URL: สร้าง database เอง (template nextjs ไม่มี DB_DATABASE ให้ create-project สร้าง)
-docker exec -i postgres sh -c 'psql -U "$POSTGRES_USER" -d postgres -c "CREATE DATABASE \"myweb_db\";"'
+./scripts/create-project.sh myweb nextjs        # สร้าง database myweb_db ให้ (+ --mysql ถ้าใช้ MySQL)
+./scripts/setup-git.sh myweb <owner>/<repo>     # clone + เปิด build + APP_IMAGE
+nano projects/myweb/.env                        # API keys / NEXT_PUBLIC_* — DATABASE_URL เติมให้แล้ว
 # เพิ่ม DNS record ใน Cloudflare (ก่อน deploy)
-./scripts/deploy.sh myweb
+./scripts/deploy.sh myweb                        # build → prisma migrate deploy → ถาม seed → rolling
 ```
 
 ## ⚠️ ระวัง

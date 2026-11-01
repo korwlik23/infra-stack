@@ -37,22 +37,27 @@ app repo ต้องมี **Dockerfile** ไม่งั้น build บนเ
 ```bash
 cd /opt/infra-stack
 
-# 1) สร้าง project จาก template (laravel / nextjs / n8n / ai-worker)
+# 1) สร้าง project จาก template (laravel / nextjs / go / n8n / ai-worker)
 #    database stack ต้องรันอยู่ — script สร้าง database <ชื่อ>_db ให้ด้วย
 ./scripts/create-project.sh <ชื่อ> laravel
 #    app เขียนมากับ MySQL (เช่น XAMPP) → เติม --mysql ท้ายคำสั่ง (docs/27-mysql.md)
 
-# 2) clone โค้ด app เข้าไปใน src/ (ใช้ deploy key + host alias — docs/19-cicd.md)
-cd projects/<ชื่อ>
-git clone git@github.com-<ชื่อ>:<github-user>/<repo>.git src
-cd /opt/infra-stack
+# 2) เชื่อม GitHub: clone เข้า src/ + เปิด build + ตั้ง APP_IMAGE (docs/19-cicd.md)
+#    repo private → script โชว์ deploy key + ลิงก์ ให้ไปกด Add ใน GitHub แล้วรันคำสั่งเดิมซ้ำ
+./scripts/setup-git.sh <ชื่อ> <github-user>/<repo>
 
-# 3) เปิดโหมด build-on-server (เอา # ออกหน้า "build: ./src")
-nano projects/<ชื่อ>/docker-compose.yml
-
-# 4) ตั้งค่า .env
+# 3) ตั้งค่า .env (ที่เหลือ — ดูด้านล่าง)
 nano projects/<ชื่อ>/.env
 ```
+
+| template | migrate + seed ตอน deploy | ข้อตกลงฝั่ง app |
+|----------|--------------------------|-----------------|
+| laravel | `artisan migrate` + `db:seed` | `/up`, port 8080 |
+| nextjs | `prisma migrate deploy` + `prisma db seed` | Dockerfile มี stage `migrate` (docs/16), `/api/health` |
+| go | `/app/server migrate` + `seed` | alpine image, `/healthz`, port 8080 (docs/29) |
+
+**seed = ข้อมูลพื้นฐานเท่านั้น** (role, permission, แพ็กเกจ, ค่าตั้งต้น) — ห้ามมี user/รหัส/API key ตัวอย่าง
+เพราะ deploy ลง production จริง และต้องรันซ้ำได้ (deploy ถามก่อนทุกครั้งที่ seeder เปลี่ยน — docs/25)
 
 **ข่าวดี (v2.3.0+):** `create-project.sh` **ดึงค่าจาก `.env` กลางให้อัตโนมัติแล้ว** —
 `DB_PASSWORD`, `DB_USERNAME`, `REDIS_PASSWORD`, `APP_DOMAIN`, `TZ`, R2 ถูกเติมให้เลย
@@ -61,7 +66,7 @@ nano projects/<ชื่อ>/.env
 เหลือแค่ตั้ง **ค่าเฉพาะ project** ที่ปล่อยว่างไว้:
 
 ```env
-# ⚠️ ต้องตั้ง — ชื่อ image ที่ build บนเครื่อง (placeholder ghcr.io/<github-user>/… มี < > → build ล้ม)
+# ตั้งให้แล้วโดย setup-git.sh (build บนเครื่อง) — ถ้าไม่ใช้ setup-git ต้องตั้งเอง (placeholder ghcr.io/<github-user>/… → build ล้ม)
 APP_IMAGE=<ชื่อ>:latest
 # ⚠️ ต้องตั้ง — สร้างบน host ได้เลย (ยังไม่มี container ให้รัน artisan จนกว่าจะ deploy ครั้งแรก):
 #    echo "base64:$(openssl rand -base64 32)"
@@ -99,11 +104,11 @@ APP_KEY=
 ## เฟส 2 — ทุกครั้งหลังจากนั้น
 
 ```text
-แก้โค้ด → git push → รอ 2-4 นาที → เว็บอัปเดตเอง (ไม่ดับ)
+แก้โค้ด → git push main → รอ 2-4 นาที → เว็บอัปเดตเอง (ไม่ดับ)
 ```
 
-auto-deploy (cron ทุก 2 นาที) เห็น commit ใหม่ → build → migrate → rolling deploy
-ไม่ต้อง ssh เข้าเซิร์ฟเวอร์เลย
+auto-deploy (cron ทุก 2 นาที — เปิดครั้งเดียวต่อเครื่อง ดู docs/19) เห็น commit ใหม่ → build → migrate
+→ rolling deploy ไม่ต้อง ssh เข้าเซิร์ฟเวอร์เลย · ดูผล: `tail /opt/infra-stack/logs/auto-deploy.log`
 
 อยาก deploy เดี๋ยวนั้นไม่รอ cron: `./scripts/deploy.sh <ชื่อ>`
 พลาดต้องถอย: `./scripts/rollback.sh <ชื่อ> previous`

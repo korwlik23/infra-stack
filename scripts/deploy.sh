@@ -13,6 +13,7 @@
 #   - service อื่น (queue/scheduler) ที่ยังรัน image เก่า → recreate ให้เสมอ
 set -euo pipefail
 cd "$(dirname "$0")/.."
+ROOT="$PWD"
 
 NAME="${1:?usage: deploy.sh <project> [--seed|--no-seed]}"
 # seed: ask (default) = ถามเมื่อ seeder ใหม่/เปลี่ยน · --seed = รันเลยไม่ถาม · --no-seed = ไม่รัน
@@ -36,7 +37,6 @@ fi
 cd "$DIR"
 
 ROLLOUT_SERVICE="$(grep -E '^ROLLOUT_SERVICE=' .env 2>/dev/null | head -1 | cut -d= -f2- || true)"
-DEPLOY_MIGRATE="$(grep -E '^DEPLOY_MIGRATE=' .env 2>/dev/null | head -1 | cut -d= -f2- || true)"
 APP_IMAGE="$(grep -E '^APP_IMAGE=' .env 2>/dev/null | head -1 | cut -d= -f2- || true)"
 
 # ── 0. เก็บ image ปัจจุบันเป็น :previous ก่อน build ใหม่ (ไว้ rollback) ──
@@ -65,51 +65,11 @@ else
   docker compose pull
 fi
 
-# ── 1.5 Migrate ก่อนสลับ traffic (opt-in ต่อ project ด้วย DEPLOY_MIGRATE=1) ─
-# รันด้วย image ใหม่ที่เพิ่ง build บน container ชั่วคราว — ทำ "ก่อน" rollout เสมอ
-# เพื่อให้ schema พร้อมก่อนโค้ดใหม่รับ traffic (กัน 500 แบบที่เจอ 2026-07-12)
-# ⚠️ migration ต้องเป็น expand/contract — ระหว่าง rolling โค้ดเก่ายังรันกับ schema ใหม่ได้
-# ถ้า migrate ล้ม: set -e หยุดทันที ไม่ rollout → เว็บเก่ายังอยู่
-if [ "$DEPLOY_MIGRATE" = "1" ]; then
-  MIGRATE_SVC="${ROLLOUT_SERVICE:-$NAME-app}"
-  echo "[deploy:$NAME] running migrations on '$MIGRATE_SVC'…"
-  docker compose run --rm --no-deps --entrypoint php "$MIGRATE_SVC" artisan migrate --force
-
-  # ── 1.6 Seed — ถามเมื่อ seeder ใหม่หรือเปลี่ยนจาก deploy ครั้งก่อน ──
-  # db:seed เติมข้อมูลลง DB เดิม ไม่ล้างตาราง (ไม่ใช่ migrate:fresh) — seeder จึงต้องรันซ้ำได้
-  # (firstOrCreate / updateOrCreate / upsert) ไม่งั้นข้อมูลซ้ำทุกครั้งที่ seed
-  # จำ hash ของไฟล์ seeder ที่ seed/ตอบไปแล้วใน .deploy-seeders.sha256 — ไม่เปลี่ยน = ไม่ถามซ้ำ
-  SEED_STATE=.deploy-seeders.sha256
-  CURRENT_SEEDERS="$(docker compose run --rm --no-deps -T --entrypoint sh "$MIGRATE_SVC" -c \
-    '[ -d database/seeders ] && find database/seeders -type f -name "*.php" | sort | xargs sha256sum' 2>/dev/null || true)"
-  if [ -n "$CURRENT_SEEDERS" ]; then
-    CHANGED="$(printf '%s\n' "$CURRENT_SEEDERS" | grep -vxF -f "$SEED_STATE" 2>/dev/null | awk '{print $2}' || true)"
-    [ -f "$SEED_STATE" ] || CHANGED="$(printf '%s\n' "$CURRENT_SEEDERS" | awk '{print $2}')"
-    run_seed=no
-    if [ "$SEED_MODE" = yes ]; then
-      run_seed=yes
-    elif [ "$SEED_MODE" = ask ] && [ -n "$CHANGED" ]; then
-      echo "[deploy:$NAME] seeder $([ -f "$SEED_STATE" ] && echo 'ใหม่/เปลี่ยน' || echo 'ยังไม่เคย seed บนเครื่องนี้'):"
-      printf '%s\n' "$CHANGED" | sed 's/^/    /'
-      if [ -t 0 ]; then
-        read -r -p "[deploy:$NAME] รัน db:seed ด้วยไหม? (เติมข้อมูล ไม่ล้าง DB เดิม) [y/N] " answer || answer=""
-        case "$answer" in
-          [Yy]*) run_seed=yes ;;
-          *) printf '%s\n' "$CURRENT_SEEDERS" > "$SEED_STATE"
-             echo "[deploy:$NAME] ข้าม seed — จะถามอีกเมื่อ seeder เปลี่ยน (รันเอง: ./scripts/deploy.sh $NAME --seed)" ;;
-        esac
-      else
-        # auto-deploy (cron) ไม่มีคนตอบ — ไม่ seed เอง และไม่จำ hash เพื่อให้ deploy มือครั้งหน้าถามอีก
-        echo "[deploy:$NAME] ⚠️ ไม่มีคนตอบ (auto-deploy) — ยังไม่ seed: รัน ./scripts/deploy.sh $NAME --seed เมื่อพร้อม"
-      fi
-    fi
-    if [ "$run_seed" = yes ]; then
-      echo "[deploy:$NAME] running db:seed on '$MIGRATE_SVC' (ไม่ล้างข้อมูลเดิม)…"
-      docker compose run --rm --no-deps --entrypoint php "$MIGRATE_SVC" artisan db:seed --force
-      printf '%s\n' "$CURRENT_SEEDERS" > "$SEED_STATE"
-    fi
-  fi
-fi
+# ── 1.5 Migrate + seed ด้วยโค้ดใหม่ ก่อนสลับ traffic (opt-in: DEPLOY_MIGRATE=1) ─
+# ทุก stack — คำสั่งตั้งใน .env ของ project (default = Laravel) ดู scripts/lib/deploy-db.sh
+# shellcheck source=scripts/lib/deploy-db.sh
+. "$ROOT/scripts/lib/deploy-db.sh"
+deploy_db "$NAME" "${ROLLOUT_SERVICE:-$NAME-app}" "$SEED_MODE"
 
 # ── 2. สลับเวอร์ชัน ──────────────────────────────────
 # เช็คไฟล์ plugin ตรง ๆ — `docker rollout --help` exit 0 แม้ไม่มี plugin (Docker 29)
@@ -149,4 +109,9 @@ if [ -n "$STALE" ]; then
 fi
 
 docker image prune -f >/dev/null
+# จำ commit ที่ขึ้นเว็บจริงแล้ว — auto-deploy เทียบกับค่านี้ (ไม่ใช่ HEAD ของ src/ ที่ pull แล้วแต่ build อาจล้ม)
+if [ -d src/.git ]; then
+  git -C src rev-parse HEAD > .deploy-commit
+  rm -f .deploy-failed
+fi
 echo "✅ [deploy:$NAME] done — $(date '+%F %T')"

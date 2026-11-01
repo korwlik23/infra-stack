@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # สร้าง project ใหม่จาก template
-# ใช้: ./scripts/create-project.sh <name> <laravel|nextjs|n8n|ai-worker> [--mysql]
-#   --mysql  ใช้ MySQL แทน PostgreSQL (laravel/nextjs) — เปิด MySQL stack ให้ถ้ายังไม่เปิด
+# ใช้: ./scripts/create-project.sh <name> <laravel|nextjs|go|n8n|ai-worker> [--mysql]
+#   --mysql  ใช้ MySQL แทน PostgreSQL (laravel/nextjs/go) — เปิด MySQL stack ให้ถ้ายังไม่เปิด
 #            แล้วสร้าง database + user ของ project (สิทธิ์เฉพาะ database ตัวเอง)
 # ผลลัพธ์: projects/<name>/ พร้อม docker-compose.yml + .env (แก้ค่าแล้ว up ได้เลย)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-USAGE="usage: create-project.sh <name> <laravel|nextjs|n8n|ai-worker> [--mysql]"
+USAGE="usage: create-project.sh <name> <laravel|nextjs|go|n8n|ai-worker> [--mysql]"
 NAME="${1:?$USAGE}"
 TEMPLATE="${2:?$USAGE}"
 USE_MYSQL=0
@@ -19,8 +19,8 @@ esac
 
 [[ "$NAME" =~ ^[a-z0-9-]+$ ]] || { echo "ERROR: name must be lowercase [a-z0-9-]" >&2; exit 1; }
 [ -d "templates/$TEMPLATE" ] || { echo "ERROR: unknown template '$TEMPLATE' (have: $(ls templates))" >&2; exit 1; }
-if [ "$USE_MYSQL" = 1 ] && [ "$TEMPLATE" != laravel ] && [ "$TEMPLATE" != nextjs ]; then
-  echo "ERROR: --mysql ใช้ได้กับ template laravel / nextjs เท่านั้น" >&2; exit 1
+if [ "$USE_MYSQL" = 1 ] && ! [[ "$TEMPLATE" =~ ^(laravel|nextjs|go)$ ]]; then
+  echo "ERROR: --mysql ใช้ได้กับ template laravel / nextjs / go เท่านั้น" >&2; exit 1
 fi
 # ยอมรับโฟลเดอร์ที่มีอยู่แล้ว (เช่น clone src/ ไว้ก่อน) — แต่ห้ามมี docker-compose.yml ซ้ำ
 if [ -f "projects/$NAME/docker-compose.yml" ]; then
@@ -154,8 +154,9 @@ fi
 echo "✅ created projects/$NAME from template '$TEMPLATE'"
 echo "   (ค่า DB/Redis/domain ดึงจาก .env กลางให้แล้ว — เหลือเฉพาะ per-project keys)"
 echo "next:"
-echo "  1. nano projects/$NAME/.env          # ตั้งเฉพาะที่เหลือ (APP_IMAGE, APP_KEY, API keys, ฯลฯ — docs/26)"
-echo "  2. เปิด build: ./src ใน docker-compose.yml (ถ้า build บนเครื่อง)"
+echo "  1. nano projects/$NAME/.env          # ตั้งเฉพาะที่เหลือ (APP_KEY, API keys, ฯลฯ — docs/26)"
+echo "  2. ./scripts/setup-git.sh $NAME <owner/repo>   # clone + เปิด build (private repo → ได้ deploy key ไปวางใน GitHub)"
 echo "  3. เพิ่ม DNS record: $NAME.<BASE_DOMAIN> → server IP (Cloudflare)"
 echo "  4. ./scripts/deploy.sh $NAME         # build + migrate + ถาม seed (ครั้งแรก) + start"
+echo "     ต่อจากนั้น push เข้า main → auto-deploy ขึ้นเอง (cron — docs/19-cicd.md)"
 echo "     (migrate/seed ทำตอน deploy ไม่ใช่ตอนนี้ — ตอนนี้ยังไม่มีโค้ดและ image ให้รัน)"

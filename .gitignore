@@ -48,3 +48,7 @@ Thumbs.db
 
 # Local operator notes — never publish
 /*.private.md
+
+# auto-deploy (cron) — log + lock อยู่ในเครื่อง
+logs/
+.auto-deploy.lock
