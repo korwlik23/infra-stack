@@ -108,18 +108,18 @@ rolling deploy เลยคิดว่าสำเร็จ ทั้งที�
 
 **project เก่าที่สร้างก่อน v2.2.0:** เพิ่ม `DEPLOY_MIGRATE=1` ใน `.env` เอง
 
-## 🌱 seed ตอน deploy — ถามก่อนเสมอ (v2.5.0+)
+## 🌱 seed ตอน deploy — project ใหม่ถามก่อน · push ใหม่ seed เอง (v2.11.0)
 
 หลัง migrate (เฉพาะ project ที่มี `DEPLOY_MIGRATE=1`) `deploy.sh` เทียบ hash ของ
 ไฟล์ seeder (`DEPLOY_SEED_PATHS` — Laravel: `database/seeders/`) ของ image ใหม่กับครั้งที่ seed/ตอบไปล่าสุด
-(`projects/<ชื่อ>/.deploy-seeders.sha256`)
+(`projects/<ชื่อ>/.deploy-seeders.sha256` — ไม่มีไฟล์นี้ = project ใหม่บนเครื่องนี้)
 
 | สถานการณ์ | ผล |
 |-----------|----|
-| deploy ครั้งแรก / seeder ใหม่ หรือแก้ไข + รันใน terminal | โชว์ไฟล์ที่เปลี่ยน แล้วถาม `รัน db:seed ด้วยไหม? [y/N]` |
-| ตอบ N | ข้าม และจำไว้ — ไม่ถามซ้ำจนกว่า seeder จะเปลี่ยนอีก |
-| auto-deploy (cron) เจอ commit ที่แก้ seeder | **ยังไม่ deploy** — พักรอคำตอบ แจ้งใน log + Telegram แล้วคนรัน `deploy.sh <ชื่อ>` ซึ่งถาม y/N (v2.10.0) |
-| auto-deploy + `DEPLOY_AUTO_SEED=1` | seed เองเมื่อ seeder เปลี่ยน — ตั้งเฉพาะ project ที่ seeder รันซ้ำได้แน่ ๆ |
+| **project ใหม่** (deploy ครั้งแรก) รันใน terminal | โชว์ไฟล์ seeder แล้วถาม `รัน seed ด้วยไหม? [y/N]` · ตอบ N = จำไว้ ไม่ถามอีก |
+| **project ใหม่** แต่ auto-deploy (cron) เจอ commit ก่อนมีคนตอบ | **ยังไม่ deploy** — พักรอคำตอบ แจ้งใน log + Telegram ครั้งเดียว → คนรัน `deploy.sh <ชื่อ>` |
+| **project เดิม** push commit ที่แก้ seeder | **seed ให้เองเลย** (ทั้ง auto-deploy และ deploy มือ) — seeder ต้องรันซ้ำได้ |
+| project เดิม + `DEPLOY_AUTO_SEED=0` | ถามก่อนเมื่อ seeder เปลี่ยน — auto-deploy พักรอคำตอบเหมือน project ใหม่ |
 | `deploy.sh <ชื่อ> --seed` / `--no-seed` | รันเลยไม่ถาม / ไม่รันและไม่ถาม |
 
 รันด้วย image ใหม่ก่อนสลับ traffic เหมือน migrate — seed ล้ม = deploy หยุด เว็บเดิมยังอยู่

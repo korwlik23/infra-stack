@@ -5,6 +5,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
 
 ## [Unreleased]
 
+## [2.11.0] - 2026-11-01
+
+### Changed — seed: project ใหม่ถามก่อน · push ใหม่ seed เอง
+- `lib/deploy-db.sh`: project เดิม (มี `.deploy-seeders.sha256`) ที่ seeder เปลี่ยน → **seed เองเลย** ทั้ง auto-deploy
+  และ deploy มือ (เดิม v2.10.0: auto-deploy พักทุกครั้งที่ seeder เปลี่ยน) · project ใหม่บนเครื่อง (ยังไม่มีไฟล์นั้น)
+  → ถาม `[y/N]` เหมือนเดิม · `DEPLOY_AUTO_SEED=0` = กลับไปถามทุกครั้งที่ seeder เปลี่ยน (default เปิด)
+- `auto-deploy.sh` พักรอคำตอบเฉพาะ project ใหม่ที่ยังไม่เคยตอบเรื่อง seed (หรือ `DEPLOY_AUTO_SEED=0` + แก้ seeder)
+  · project ที่ไม่มีไฟล์ seeder ใน repo ไม่พัก
+- ตรวจแล้ว: seeder ที่รันบน production ของ project ที่ deploy อยู่ใช้ `firstOrCreate` / `updateOrCreate`
+  (seeder ที่ `create()` ตรง ๆ รันเฉพาะ local/testing) — seed ซ้ำไม่สร้างข้อมูลซ้ำ
+
 ## [2.10.0] - 2026-11-01
 
 ### Changed — auto-deploy ถามก่อนเมื่อ commit แก้ seeder

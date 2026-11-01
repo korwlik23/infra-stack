@@ -13,7 +13,14 @@
 #   DEPLOY_SEED_PATHS         ไฟล์/โฟลเดอร์ seeder ไว้จับว่าเปลี่ยน (default: database/seeders)
 #   DEPLOY_TOOLS_TARGET       stage ใน Dockerfile ที่มีเครื่องมือ migrate (เช่น prisma CLI)
 #                             ว่าง = รันใน image ของ app เอง (Laravel / Go)
-#   DEPLOY_AUTO_SEED=1        auto-deploy (ไม่มีคนตอบ) seed เองเมื่อ seeder เปลี่ยน — seeder ต้องรันซ้ำได้
+#   DEPLOY_AUTO_SEED=0        ปิด seed อัตโนมัติ (default เปิด) — ดูกติกา seed ด้านล่าง
+#
+# กติกา seed (เทียบ hash ไฟล์ seeder กับที่จำไว้ใน .deploy-seeders.sha256):
+#   project ใหม่บนเครื่องนี้ (ยังไม่มี .deploy-seeders.sha256) → ถามก่อนเสมอ ([y/N])
+#     ไม่มีคนตอบ (cron) → ไม่ seed — auto-deploy.sh พัก deploy ไว้รอคนรัน deploy.sh
+#   project ที่เคย seed/ตอบแล้ว + seeder เปลี่ยน (push ใหม่) → seed เองเลย (seeder ต้องรันซ้ำได้)
+#     DEPLOY_AUTO_SEED=0 → กลับไปถาม (มีคนตอบ) / ข้ามและเตือน (cron)
+#   --seed = seed เลยไม่ถาม · --no-seed = ไม่ seed ไม่ถาม
 
 _db_env() { grep -E "^$1=" .env 2>/dev/null | head -1 | cut -d= -f2- | sed -E 's/^"(.*)"$/\1/; s/^'"'"'(.*)'"'"'$/\1/' || true; }
 
@@ -53,11 +60,11 @@ deploy_db() {
   echo "[deploy:$name] migrate: $migrate_cmd"
   _db_run "$migrate_cmd" || return 1
 
-  # ── seed — ถามเมื่อ seeder ใหม่หรือเปลี่ยนจาก deploy ครั้งก่อน ──
+  # ── seed — project ใหม่ถามก่อน · project เดิมที่ seeder เปลี่ยน (push ใหม่) seed เอง ──
   # seed = "เติม" ข้อมูลพื้นฐาน (role / แพ็กเกจ / ค่าตั้งต้น) ลง DB เดิม ไม่ล้างตาราง → seeder ต้องรันซ้ำได้
   # (firstOrCreate / updateOrCreate / upsert) · จำ hash ไฟล์ seeder ที่ seed/ตอบแล้วใน .deploy-seeders.sha256
   if [ "$seed_cmd" != "none" ]; then
-    local state=.deploy-seeders.sha256 current changed run_seed=no answer
+    local state=.deploy-seeders.sha256 current changed run_seed=no ask=no answer
     # shellcheck disable=SC2016 # $p ขยายใน container ไม่ใช่ที่นี่
     current="$(_db_run "for p in $seed_paths; do [ -e \"\$p\" ] && find \"\$p\" -type f; done | sort | xargs -r sha256sum" 2>/dev/null || true)"
     if [ -n "$current" ]; then
@@ -66,21 +73,27 @@ deploy_db() {
       if [ "$seed_mode" = yes ]; then
         run_seed=yes
       elif [ "$seed_mode" = ask ] && [ -n "$changed" ]; then
-        echo "[deploy:$name] seeder $([ -f "$state" ] && echo 'ใหม่/เปลี่ยน' || echo 'ยังไม่เคย seed บนเครื่องนี้'):"
+        if [ ! -f "$state" ]; then
+          echo "[deploy:$name] project ใหม่บนเครื่องนี้ — ยังไม่เคย seed:"
+          ask=yes
+        elif [ "$auto_seed" = "0" ]; then
+          echo "[deploy:$name] seeder ใหม่/เปลี่ยน (DEPLOY_AUTO_SEED=0):"
+          ask=yes
+        else
+          echo "[deploy:$name] seeder ใหม่/เปลี่ยน → seed ให้เลย (project เดิม — DEPLOY_AUTO_SEED=0 = ถามก่อน):"
+          run_seed=yes
+        fi
         printf '%s\n' "$changed" | sed 's/^/    /'
-        if [ -t 0 ]; then
+        if [ "$ask" = yes ] && [ -t 0 ]; then
           read -r -p "[deploy:$name] รัน seed ด้วยไหม? (เติมข้อมูล ไม่ล้าง DB เดิม) [y/N] " answer || answer=""
           case "$answer" in
             [Yy]*) run_seed=yes ;;
             *) printf '%s\n' "$current" > "$state"
-               echo "[deploy:$name] ข้าม seed — จะถามอีกเมื่อ seeder เปลี่ยน (รันเอง: ./scripts/deploy.sh $name --seed)" ;;
+               echo "[deploy:$name] ข้าม seed — ครั้งหน้า seeder เปลี่ยนจะ seed เอง (รันเอง: ./scripts/deploy.sh $name --seed)" ;;
           esac
-        elif [ "$auto_seed" = "1" ]; then
-          run_seed=yes   # auto-deploy + project ยืนยันแล้วว่า seeder รันซ้ำได้
-        else
+        elif [ "$ask" = yes ]; then
           # ไม่มีคนตอบ — ไม่ seed เอง และไม่จำ hash เพื่อให้ deploy มือครั้งหน้าถามอีก
-          echo "[deploy:$name] ⚠️ ไม่มีคนตอบ (auto-deploy) — ยังไม่ seed: รัน ./scripts/deploy.sh $name --seed เมื่อพร้อม"
-          echo "               (seeder รันซ้ำได้แน่ ๆ → ตั้ง DEPLOY_AUTO_SEED=1 ใน .env ให้ seed เอง)"
+          echo "[deploy:$name] ⚠️ ไม่มีคนตอบ — ยังไม่ seed: รัน ./scripts/deploy.sh $name (ถาม) หรือ --seed"
         fi
       fi
     fi
