@@ -90,6 +90,8 @@ if [ -s "$STAGE/crontab.txt" ]; then
     cp "$STAGE/crontab.txt" "$ROOT/backup/archives/crontab.restored-$STAMP.txt"
     echo "[secrets-restore] crontab ปัจจุบันไม่ว่าง — ไม่ทับ; ของเดิมอยู่ที่ backup/archives/crontab.restored-$STAMP.txt"
   fi
+  # crontab ปัจจุบันเขียน log ลง logs/ ของ repo (gitignored — เครื่องใหม่ยังไม่มีโฟลเดอร์)
+  mkdir -p "$ROOT/logs"
   if grep -q '/var/log/infra-' "$STAGE/crontab.txt"; then
     echo "   cron เขียน log ลง /var/log — สร้างไฟล์ให้ user นี้ (docs/13):"
     echo "   sudo touch /var/log/infra-backup.log /var/log/infra-deploy.log && sudo chown $(id -un): /var/log/infra-*.log"

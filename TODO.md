@@ -101,7 +101,7 @@ docker compose --env-file .env -f docker/docker-compose.database.yml ps
 ls -lh backup/archives/postgres/ backup/archives/volumes/ backup/archives/secrets/
 ```
 
-- [ ] สร้าง log files ที่ cron เขียนได้ แล้วตั้ง cron รายวันตาม [docs/13-backup.md](docs/13-backup.md)
+- [ ] `mkdir -p /opt/infra-stack/logs` แล้วตั้ง cron backup รายวันตาม [docs/13-backup.md](docs/13-backup.md)
 - [ ] ตั้ง Object lifecycle rule ของ bucket backup ใน R2 (เช่นลบไฟล์อายุเกิน 30 วัน)
 - [ ] ซ้อมกู้ทั้งเครื่องลง VPS ทดลอง: `./scripts/restore-server.sh r2:<bucket>/<host>` และจดเวลา recovery
 
@@ -125,16 +125,18 @@ docker compose --env-file .env -f docker/docker-compose.storage.yml up -d
 
 ## 9. Deploy — เพิ่ม application แรก
 
-- [ ] เตรียม application image หรือ Dockerfile พร้อม health endpoint
+- [ ] เตรียม Dockerfile + health endpoint ใน repo ของ application (docs/26 เฟส 0)
 - [ ] สร้าง project จาก template ที่ตรงกับ application
 
 ```bash
-./scripts/create-project.sh app <laravel|nextjs|n8n|ai-worker>
+./scripts/create-project.sh app <laravel|nextjs|go|n8n|ai-worker>
+./scripts/setup-git.sh app <github-user>/<repo>     # clone + deploy key (docs/19)
 nano projects/app/.env
 ./scripts/deploy.sh app
 ```
 
 - [ ] เพิ่ม DNS ก่อน deploy เพื่อหลีกเลี่ยง certificate issuance failure
+- [ ] เปิด cron auto-deploy ครั้งเดียวต่อเครื่อง ([docs/19-cicd.md](docs/19-cicd.md)) — push main แล้วดู `logs/auto-deploy.log`
 - [ ] เปิด migration เฉพาะ application ที่ใช้ expand/contract migration ได้
 - [ ] ตรวจ health endpoint, งานหลัก, queue/scheduler และ logs
 - [ ] เพิ่ม application เข้า Uptime Kuma และทดสอบ rollback บน environment ทดลอง

@@ -46,24 +46,20 @@ Cloudflare Dashboard → R2 → bucket → Settings (เช่น ลบไฟ�
 
 ## ⚙️ ตั้ง cron
 
-⚠️ **ต้องสร้างไฟล์ log ก่อน** — user `deploy` เขียนไฟล์ใหม่ใน `/var/log` เองไม่ได้
-(เจอจริง: cron ล้มเงียบ ๆ ทุกคืนโดยไม่มีใครรู้):
+log เก็บใน `/opt/infra-stack/logs/` (gitignored) — user `deploy` เขียนได้เลยไม่ต้อง sudo
+(เดิมใช้ `/var/log/…` ซึ่ง deploy สร้างไฟล์ใหม่เองไม่ได้ → cron ล้มเงียบ ๆ ทุกคืน — เจอจริง)
 
 ```bash
-sudo touch /var/log/infra-backup.log /var/log/infra-deploy.log
-sudo chown deploy:deploy /var/log/infra-backup.log /var/log/infra-deploy.log
-```
-
-```bash
+mkdir -p /opt/infra-stack/logs
 crontab -e
 ```
 
 ```cron
-0 3 * * *  /opt/infra-stack/scripts/backup.sh >> /var/log/infra-backup.log 2>&1
+0 3 * * *  /opt/infra-stack/scripts/backup.sh >> /opt/infra-stack/logs/backup.log 2>&1
 ```
 
-`backup.sh` รันทั้ง 3 ส่วนต่อกันแม้ส่วนแรกล้ม แล้วจบด้วย `❌ backup ไม่สำเร็จ: …` ถ้ามีส่วนไหนพัง
-เช็คทุกเช้าวันจันทร์: `tail -20 /var/log/infra-backup.log`
+`backup.sh` รันทุกส่วน (postgres / mysql / volumes / secrets) ต่อกันแม้ส่วนแรกล้ม แล้วจบด้วย
+`❌ backup ไม่สำเร็จ: …` ถ้ามีส่วนไหนพัง · เช็คทุกเช้าวันจันทร์: `tail -20 /opt/infra-stack/logs/backup.log`
 
 ## 🔄 กู้ทั้งเครื่องลง VPS ใหม่ (เครื่องพัง / ย้ายเครื่อง)
 

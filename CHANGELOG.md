@@ -5,6 +5,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
 
 ## [Unreleased]
 
+## [2.11.1] - 2026-11-01
+
+### Docs
+- เอกสารทุกจุดตาม flow ปัจจุบัน: `setup-git.sh` → deploy ครั้งแรก (project ใหม่ถาม seed) → push main = auto-deploy
+  + seed เอง — GUIDE, README, TODO, projects/README, templates laravel/nextjs/go, docs/15, 16, 26, 28, 29
+- log ทั้งหมดอยู่ `/opt/infra-stack/logs/` (gitignored, ไม่ต้อง sudo) — docs/13 + backup/README เลิกใช้ `/var/log/infra-*.log`
+  (deploy สร้างไฟล์ใน /var/log เองไม่ได้ → cron ล้มเงียบ) · GUIDE 5.3 เพิ่มวิธีดูผล auto-deploy
+
+### Fixed
+- `secrets-restore.sh` สร้าง `logs/` ให้หลัง restore crontab — เครื่องใหม่ไม่มีโฟลเดอร์นี้ cron จะเขียน log ไม่ได้
+
 ## [2.11.0] - 2026-11-01
 
 ### Changed — seed: project ใหม่ถามก่อน · push ใหม่ seed เอง

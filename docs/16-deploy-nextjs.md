@@ -40,7 +40,7 @@ FROM node:24-alpine AS runner     # ← stage สุดท้าย = ตัว�
 ./scripts/setup-git.sh myweb <owner>/<repo>     # clone + เปิด build + APP_IMAGE
 nano projects/myweb/.env                        # API keys / NEXT_PUBLIC_* — DATABASE_URL เติมให้แล้ว
 # เพิ่ม DNS record ใน Cloudflare (ก่อน deploy)
-./scripts/deploy.sh myweb                        # build → prisma migrate deploy → ถาม seed → rolling
+./scripts/deploy.sh myweb                        # build → prisma migrate deploy → project ใหม่ถาม seed → rolling
 ```
 
 ## ⚠️ ระวัง

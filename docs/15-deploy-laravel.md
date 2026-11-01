@@ -9,25 +9,29 @@
 #    ค่า DB / Redis / domain / R2 เติมจาก .env กลางให้อัตโนมัติ
 ./scripts/create-project.sh app laravel
 
-# 2. ตั้งค่าที่เหลือ
-nano projects/app/.env    # APP_IMAGE + APP_KEY: echo "base64:$(openssl rand -base64 32)"
+# 2. เชื่อม GitHub: clone เข้า src/ + เปิด build + APP_IMAGE (private repo → วาง deploy key ใน GitHub แล้วรันซ้ำ)
+./scripts/setup-git.sh app <github-user>/<repo>
 
-# 3. DNS: เพิ่ม A record app.<domain> ใน Cloudflare (ก่อน deploy)
+# 3. ตั้งค่าที่เหลือ
+nano projects/app/.env    # APP_KEY: echo "base64:$(openssl rand -base64 32)"
 
-# 4. Deploy — pull/build + migrate (DEPLOY_MIGRATE=1) + ถาม seed + start
-#    ครั้งแรก/seeder เปลี่ยน → ถาม "รัน db:seed ด้วยไหม?" (ไม่ล้าง DB) — docs/25
+# 4. DNS: เพิ่ม A record app.<domain> ใน Cloudflare (ก่อน deploy)
+
+# 5. Deploy ครั้งแรก — build + migrate (DEPLOY_MIGRATE=1) + start
+#    project ใหม่ → ถาม "รัน seed ด้วยไหม? [y/N]" (เติมข้อมูล ไม่ล้าง DB) — docs/25
 ./scripts/deploy.sh app
 ```
 
 ได้ 3 containers: `-app` (HTTP, ไม่มี container_name — เพื่อ rolling deploy),
 `-queue` (worker), `-scheduler` (cron)
 
-Deploy ครั้งถัดไป: `./scripts/deploy.sh app` — zero-downtime อัตโนมัติ
-(ดู [25-zero-downtime.md](25-zero-downtime.md))
+ต่อจากนี้ push เข้า `main` → auto-deploy ขึ้นเองใน 2–4 นาที ([19-cicd.md](19-cicd.md)) — zero-downtime
+และ seeder ที่เปลี่ยนจะ seed เอง (seeder ต้องรันซ้ำได้ — [25-zero-downtime.md](25-zero-downtime.md))
 
 ## Image มาจากไหน
 
-Template ใช้ pre-built image (`ghcr.io/...`) — build จาก CI ของ repo แอปเอง
+ปกติ build บนเครื่องจาก `src/` (setup-git.sh) — ไม่ต้องมี registry
+ใช้ image จาก registry แทนก็ได้: ไม่ต้อง setup-git แล้วตั้ง `APP_IMAGE=ghcr.io/...` (build จาก CI ของ repo แอปเอง)
 (GitHub Actions: build → push ghcr → ssh มา `docker compose pull && up -d`)
 
 ## ⚠️ ระวัง

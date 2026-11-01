@@ -1,6 +1,6 @@
 # InfraStack
 
-Production Infrastructure Stack — v2.11.0
+Production Infrastructure Stack — v2.11.1
 
 ## Goal
 
@@ -54,9 +54,9 @@ Three layers:
 - Beszel (multi-server monitoring) + Watchtower (auto image updates)
 - RabbitMQ (message queue) + MinIO (self-hosted S3) — v2.0
 - Backup & restore scripts (PostgreSQL + Docker volumes → R2)
-- CI/CD ฟรีไม่ใช้ GitHub Actions — build-on-server + auto-deploy (cron git poll)
+- CI/CD ฟรีไม่ใช้ GitHub Actions — build-on-server + auto-deploy (cron git poll) + migrate/seed ตอน deploy ทุก stack
 - **Zero-downtime deployment** — rolling deploy + healthcheck gate + `rollback.sh`
-- Project templates (Laravel, Next.js, n8n, AI Worker) + `create-project.sh`
+- Project templates (Laravel, Next.js, Go, n8n, AI Worker) + `create-project.sh` + `setup-git.sh` (deploy key + clone)
 - Full documentation under `docs/` (00–26)
 
 ## Repository Structure
@@ -71,7 +71,7 @@ infra-stack/
 ├── monitoring/      # Prometheus config, alerts, Grafana dashboards
 ├── backup/          # Backup & restore scripts
 ├── scripts/         # Automation (harden, update, create-project, deploy, rollback, …)
-├── templates/       # Project templates (laravel / nextjs / n8n / ai-worker)
+├── templates/       # Project templates (laravel / nextjs / go / n8n / ai-worker)
 ├── environments/    # production / staging / development env examples
 └── projects/        # Deployed projects (each independent, never committed secrets)
 ```
@@ -107,7 +107,8 @@ infra secrets                       # รหัสทั้งหมดอีก
 # เว็บของคุณ (docs/26)
 cd /opt/infra-stack
 ./scripts/create-project.sh myapp laravel
-nano projects/myapp/.env            # APP_IMAGE, APP_KEY และ per-project keys
+./scripts/setup-git.sh myapp <github-user>/<repo>   # clone + deploy key → auto-deploy
+nano projects/myapp/.env            # APP_KEY และ per-project keys
 ./scripts/deploy.sh myapp
 
 # Optional stacks — เช็ค DNS ก่อนเปิดแต่ละตัว: ./scripts/check-dns.sh tools (messaging / storage)

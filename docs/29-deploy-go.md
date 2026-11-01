@@ -25,7 +25,7 @@ cd /opt/infra-stack
 ./scripts/create-project.sh myapi go             # + --mysql ถ้า app ใช้ MySQL
 ./scripts/setup-git.sh myapi <owner>/<repo>      # clone + เปิด build (private → วาง deploy key ใน GitHub)
 # เพิ่ม DNS record myapi.<domain> ใน Cloudflare (ก่อน deploy)
-./scripts/deploy.sh myapi                        # build → migrate → ถาม seed → rolling
+./scripts/deploy.sh myapi                        # build → migrate → project ใหม่ถาม seed → rolling
 ./scripts/smoke.sh myapi
 ```
 

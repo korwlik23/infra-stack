@@ -18,7 +18,7 @@
 ## Cron แนะนำ (บนเซิร์ฟเวอร์)
 
 ```cron
-0 3 * * * /opt/infra-stack/scripts/backup.sh >> /var/log/infra-backup.log 2>&1
+0 3 * * * /opt/infra-stack/scripts/backup.sh >> /opt/infra-stack/logs/backup.log 2>&1   # mkdir -p logs ก่อน (docs/13)
 ```
 
 ## กฎเหล็ก

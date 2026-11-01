@@ -19,7 +19,7 @@ Go HTTP service ต่อ Traefik (HTTPS อัตโนมัติ) — image 
 ```bash
 cd /opt/infra-stack
 ./scripts/setup-git.sh __PROJECT__ <owner>/<repo>    # clone + เปิด build (private repo จะได้ deploy key ไปวางใน GitHub)
-./scripts/deploy.sh __PROJECT__                      # build + migrate + ถาม seed + rolling
+./scripts/deploy.sh __PROJECT__                      # build + migrate + project ใหม่ถาม seed + rolling
 ./scripts/smoke.sh __PROJECT__
 ```
 

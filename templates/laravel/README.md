@@ -7,13 +7,16 @@
 Database `__PROJECT___db` ถูกสร้างให้แล้วตอน `create-project.sh` (ถ้า postgres รันอยู่)
 
 ```bash
-# 1. ตั้งค่า .env — APP_IMAGE (build บนเครื่อง: ตั้งชื่ออะไรก็ได้ เช่น __PROJECT__:latest)
-#    และ APP_KEY: echo "base64:$(openssl rand -base64 32)"
-nano .env
+# รันจาก repo root (/opt/infra-stack)
+# 1. เชื่อม GitHub — clone เข้า src/ + เปิด build + ตั้ง APP_IMAGE (private repo → วาง deploy key แล้วรันซ้ำ)
+./scripts/setup-git.sh __PROJECT__ <github-user>/<repo>
 
-# 2. Deploy (build/pull + migrate + ถาม seed + start) — รันจาก repo root
-#    ครั้งแรกตอบ y ที่ "รัน db:seed ด้วยไหม?" ถ้าต้องใช้ข้อมูลเริ่มต้น (role, admin, setting)
-cd ../.. && ./scripts/deploy.sh __PROJECT__
+# 2. ตั้ง APP_KEY: echo "base64:$(openssl rand -base64 32)"
+nano projects/__PROJECT__/.env
+
+# 3. Deploy ครั้งแรก (build + migrate + start) — project ใหม่ถาม "รัน seed ด้วยไหม? [y/N]"
+#    ตอบ y ถ้าต้องใช้ข้อมูลเริ่มต้น (role, admin, setting) · ต่อจากนี้ push main → deploy + seed เอง
+./scripts/deploy.sh __PROJECT__
 ```
 
 DNS: เพิ่ม record `__PROJECT__.<domain>` ชี้ server IP ใน Cloudflare (Proxied)

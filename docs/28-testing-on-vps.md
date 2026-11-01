@@ -51,7 +51,19 @@ cd /opt/infra-stack
 | tinker ที่ create / update / delete | — |
 | แก้ `projects/<p>/.env` | ตามด้วย `./scripts/deploy.sh <p>` |
 
-### Deploy โค้ดใหม่ (project ที่ `src/` ไม่ใช่ git clone)
+### Deploy โค้ดใหม่
+
+project ที่ `src/` เป็น git clone (`setup-git.sh` — ปกติ): **push เข้า `main` = deploy** (auto-deploy ทุก 2 นาที)
+— ห้าม push แทนเจ้าของ · ตรวจผล (อ่านอย่างเดียว ทำได้เลย):
+
+```bash
+tail -30 /opt/infra-stack/logs/auto-deploy.log     # ✅ ขึ้นแล้ว · ❌ ล้ม (เว็บเดิมยังอยู่) · ⏸ รอเจ้าของตอบเรื่อง seed
+cat projects/<p>/.deploy-commit                     # commit ที่ขึ้นเว็บอยู่
+```
+
+deploy เดี๋ยวนี้ไม่รอ cron: `./scripts/deploy.sh <p>` (ต้องได้ OK) — project ใหม่จะถาม seed ให้เจ้าของตอบเอง
+
+project ที่ `src/` ยังเป็นไฟล์ copy (ไม่ได้ setup-git):
 
 ```bash
 # เครื่อง dev — เฉพาะไฟล์ที่ commit แล้ว (branch ที่เจ้าของอนุมัติ ปกติคือ main)

@@ -80,7 +80,7 @@ infra-stack/
 ├── services/         ← "พิมพ์เขียว" ของแต่ละโปรแกรมข้างบน (1 ตัว = 1 โฟลเดอร์)
 ├── docker/           ← ตัวรวมพิมพ์เขียวเป็นชุดๆ (core / database / monitoring / ...)
 ├── scripts/          ← คำสั่งสำเร็จรูป: ติดตั้ง, backup, deploy, ย้อนเวอร์ชัน
-├── templates/        ← แม่แบบสำหรับสร้างเว็บใหม่ (laravel / nextjs / n8n / ai-worker)
+├── templates/        ← แม่แบบสำหรับสร้างเว็บใหม่ (laravel / nextjs / go / n8n / ai-worker)
 ├── projects/         ← เว็บจริงของคุณจะมาอยู่ตรงนี้ (สร้างจาก templates)
 ├── backup/           ← สคริปต์สำรองข้อมูล + ที่เก็บไฟล์ backup
 ├── monitoring/       ← ค่าตั้งของระบบเฝ้าระวัง + เกณฑ์แจ้งเตือน
@@ -111,16 +111,20 @@ infra-stack/
 ### 5.2 เอาเว็บขึ้น (deploy)
 
 ```bash
-# สร้างจากแม่แบบ — laravel / nextjs / n8n / ai-worker
+# สร้างจากแม่แบบ — laravel / nextjs / go / n8n / ai-worker (+ --mysql ถ้า app ใช้ MySQL)
 ./scripts/create-project.sh myapp laravel
 
-# ใส่ค่าที่เหลือ (APP_IMAGE, APP_KEY ฯลฯ — ค่า DB/Redis/โดเมนเติมให้แล้วจาก .env กลาง)
+# เชื่อม GitHub — repo private จะได้ deploy key ไปวางใน GitHub แล้วรันซ้ำ (docs/19)
+./scripts/setup-git.sh myapp <github-user>/<repo>
+
+# ใส่ค่าที่เหลือ (APP_KEY, API keys — ค่า DB/Redis/โดเมนเติมให้แล้วจาก .env กลาง)
 nano projects/myapp/.env
 
 # เพิ่ม DNS record myapp.<โดเมน> → IP เครื่อง "ก่อน" ขึ้นเว็บ (Traefik ขอ HTTPS ทันที)
 
-# ขึ้นเว็บ (build/pull + migrate + start)
+# ขึ้นเว็บครั้งแรก (build + migrate + ถามว่าจะ seed ไหม + start)
 ./scripts/deploy.sh myapp
+# ต่อจากนี้ push เข้า main → ขึ้นเว็บเองใน 2–4 นาที (seeder เปลี่ยน → seed เอง)
 ```
 
 ขั้นตอนเต็มทีละข้อ: [docs/26-new-project.md](docs/26-new-project.md)
@@ -143,7 +147,8 @@ nano projects/myapp/.env
 | แอปตัวไหน error | เปิด `logs.<โดเมน>` (Dozzle) คลิกดูตัวนั้น |
 | ทำไมเครื่องช้า | เปิด `netdata.<โดเมน>` ดู CPU/RAM ตอนนี้ |
 | อยาก restart แอป | เปิด `portainer.<โดเมน>` → Containers → เลือก → Restart |
-| backup ยังทำงานไหม | `tail -20 /var/log/infra-backup.log` — ต้องจบด้วย `✅ full backup complete` และไม่มี `backup อยู่แค่ในเครื่องนี้` |
+| backup ยังทำงานไหม | `tail -20 /opt/infra-stack/logs/backup.log` — ต้องจบด้วย `✅ full backup complete` และไม่มี `backup อยู่แค่ในเครื่องนี้` |
+| push แล้วขึ้นเว็บไหม | `tail -30 /opt/infra-stack/logs/auto-deploy.log` — `✅` ขึ้นแล้ว · `❌` ล้ม (เว็บยังเป็นเวอร์ชันเดิม) · `⏸` รอคุณตอบเรื่อง seed |
 
 Checklist สุขภาพประจำสัปดาห์ (5 นาที): [docs/14-monitoring.md](docs/14-monitoring.md)
 

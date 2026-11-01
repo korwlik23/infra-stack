@@ -86,12 +86,13 @@ APP_KEY=
 # 6) เพิ่ม DNS record ใน Cloudflare: <ชื่อ>.example.com → 203.0.113.10
 #    ⚠️ ทำก่อน deploy ไม่งั้น Traefik ขอ cert ไม่ผ่าน → โดน rate limit
 
-# 7) deploy ครั้งแรก (build + migrate + ถาม seed + start)
-#    ครั้งแรกจะโชว์รายชื่อ seeder แล้วถาม "รัน db:seed ด้วยไหม? [y/N]" → ตอบ y ถ้าต้องใช้ข้อมูลเริ่มต้น
-#    (role, permission, admin, ค่า setting ที่ทำไว้ตอน dev) — ไม่ล้าง DB เดิม
+# 7) deploy ครั้งแรก (build + migrate + start)
+#    project ใหม่ → โชว์รายชื่อ seeder แล้วถาม "รัน seed ด้วยไหม? [y/N]" → ตอบ y ถ้าต้องใช้ข้อมูลเริ่มต้น
+#    (role, permission, admin, ค่า setting ที่ทำไว้ตอน dev) — ไม่ล้าง DB เดิม · ตอบครั้งเดียวต่อเครื่อง
 ./scripts/deploy.sh <ชื่อ>
 
-# 8) seed รอบหลัง: deploy จะถามเองเมื่อมี seeder ใหม่/แก้ไข · บังคับรันไม่ถาม: --seed · ไม่รัน: --no-seed
+# 8) seed รอบหลัง: push ที่แก้ seeder → deploy + seed เอง (ไม่ถาม — seeder ต้องรันซ้ำได้)
+#    อยากให้ถามทุกครั้ง: DEPLOY_AUTO_SEED=0 ใน .env · บังคับรัน: --seed · ไม่รัน: --no-seed
 #    ./scripts/deploy.sh <ชื่อ> --seed
 
 # 9) สร้าง admin/owner ครั้งแรก (แล้วแต่ app — ผ่านหน้าเว็บหรือ artisan)
