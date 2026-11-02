@@ -1,6 +1,6 @@
 # InfraStack
 
-Production Infrastructure Stack — v2.13.0
+Production Infrastructure Stack — v2.14.0
 
 ## Goal
 
@@ -40,14 +40,14 @@ Three layers:
 | Layer | Contents |
 |-------|----------|
 | **Infrastructure** | Ubuntu, Docker, Traefik, PostgreSQL, Redis, Cloudflare, R2, MinIO |
-| **Platform** | Portainer, Netdata, Grafana, Prometheus, Alertmanager, Loki, Uptime Kuma, Dozzle, Watchtower, Beszel, pgAdmin, Redis Insight, RabbitMQ, Backup, CI/CD |
+| **Platform** | Portainer, Netdata, Grafana, Prometheus, Alertmanager, Loki, Uptime Kuma, Dozzle, Watchtower, Beszel, pgAdmin, phpMyAdmin, Redis Insight, RabbitMQ, Backup, CI/CD |
 | **Application** | Laravel, Next.js, n8n, AI Workers and every project under `projects/` |
 
 ## Features
 
 - Docker + Docker Compose (modular — one compose file per service)
 - Traefik (HTTPS, reverse proxy, automatic Let's Encrypt)
-- Portainer (Docker management UI) + pgAdmin + Redis Insight
+- Portainer (Docker management UI) + pgAdmin + phpMyAdmin + Redis Insight
 - PostgreSQL 16 + Redis 7 (+ postgres/redis exporters)
 - Netdata, Grafana, Prometheus, Alertmanager→Telegram, Uptime Kuma (monitoring)
 - Loki + Promtail (ค้น log ย้อนหลัง) + Dozzle (log สด)
@@ -114,7 +114,7 @@ infra env myapp            # APP_KEY และ per-project keys
 infra deploy myapp
 
 # Optional stacks — เช็ค DNS ก่อนเปิดแต่ละตัว: infra dns tools (messaging / storage)
-infra up tools      # pgAdmin, Redis Insight
+infra up tools      # pgAdmin, phpMyAdmin, Redis Insight (หรือทีละตัว: infra up tools pgadmin)
 infra up messaging  # RabbitMQ
 infra up storage    # MinIO
 ```

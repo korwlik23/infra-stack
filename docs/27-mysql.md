@@ -37,6 +37,17 @@ user/pw:  ดูใน projects/<name>/.env
 docker exec -it mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot'
 ```
 
+## ดูข้อมูลผ่าน browser (phpMyAdmin)
+
+```bash
+infra up tools phpmyadmin     # ต้องมี DNS record mysql.<BASE_DOMAIN> → IP เครื่อง
+```
+
+เปิด `https://mysql.<BASE_DOMAIN>` → ชั้นแรก `DASHBOARD_USER` / `DASHBOARD_PASSWORD` → login phpMyAdmin ด้วย
+user ของ project (`DB_USERNAME` / `DB_PASSWORD` ใน `projects/<name>/.env` — เห็นเฉพาะ database ตัวเอง)
+หรือ `root` / `MYSQL_ROOT_PASSWORD` (เห็นทุกตัว) · ใน terminal: `infra mysql <database>`
+— [services/phpmyadmin](../services/phpmyadmin/README.md)
+
 ## Backup / restore
 
 - `infra backup` dump ทุก database ด้วย `mysqldump --single-transaction` (ไม่ lock ตาราง)

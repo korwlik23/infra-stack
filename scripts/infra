@@ -136,8 +136,9 @@ cmd_secrets() {
   echo "login หน้าแอดมิน:"
   echo "  Portainer   admin / $(env_val PORTAINER_ADMIN_PASSWORD)   (ถ้าสร้างเองตอนติดตั้ง = รหัสที่คุณตั้ง)"
   echo "  Grafana     $(env_val GRAFANA_ADMIN_USER) / $(env_val GRAFANA_ADMIN_PASSWORD)"
-  echo "  Netdata · Logs · Traefik · Redis Insight   $(env_val DASHBOARD_USER) / $(env_val DASHBOARD_PASSWORD)"
+  echo "  Netdata · Logs · Traefik · Redis Insight · phpMyAdmin   $(env_val DASHBOARD_USER) / $(env_val DASHBOARD_PASSWORD)"
   echo "  pgAdmin     $(env_val PGADMIN_EMAIL) / $(env_val PGADMIN_PASSWORD)"
+  echo "  phpMyAdmin  (หน้าต่างแรก = DASHBOARD) แล้ว root / $(env_val MYSQL_ROOT_PASSWORD)"
   echo "  n8n         บัญชีที่ตั้งเองในหน้าเว็บ — ลืม: infra reset-password n8n"
   echo ""
   echo "รหัสทั้งหมดอยู่ใน $ROOT/.env"
@@ -149,9 +150,21 @@ cmd_up() {
   shift
   file="$(stack_file "$stack")"
   # stack ที่มีหน้าเว็บ → เช็ค DNS ก่อน ไม่งั้น Traefik ขอ cert ล้มซ้ำจน Let's Encrypt แบน (docs/04)
-  if [ -n "$(./scripts/check-dns.sh --list "$stack" 2>/dev/null)" ]; then
-    ./scripts/check-dns.sh "$stack"
+  # ระบุ service → เช็คเฉพาะชื่อของ service นั้น (record ของตัวอื่นใน stack ยังไม่มีก็เปิดได้)
+  local hosts=() svc sub base
+  if [ $# -gt 0 ]; then
+    base="$(env_val BASE_DOMAIN)"
+    for svc in "$@"; do
+      [ -f "services/$svc/docker-compose.yml" ] || continue
+      for sub in $(grep -v '^ *#' "services/$svc/docker-compose.yml" | grep -o 'Host(`[a-z0-9-]*\.\${BASE_DOMAIN}`)' \
+                     | sed 's/^Host(`\([a-z0-9-]*\)\..*/\1/'); do
+        hosts+=("$sub.$base")
+      done
+    done
+  else
+    mapfile -t hosts < <(./scripts/check-dns.sh --list "$stack" 2>/dev/null | grep . || true)
   fi
+  [ ${#hosts[@]} = 0 ] || ./scripts/check-dns.sh "${hosts[@]}"
   docker compose --env-file .env -f "$file" up -d "$@"
 }
 

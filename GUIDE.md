@@ -47,7 +47,8 @@ curl -fsSL https://raw.githubusercontent.com/korwlik23/infra-stack/main/prepare.
 | ตัว | เปิดที่ | ใช้ทำอะไร |
 |-----|---------|-----------|
 | **Portainer** | `portainer.<โดเมน>` | เห็น/สั่ง restart/ดู log ทุกแอปในเครื่อง — ศูนย์บัญชาการหลัก |
-| **pgAdmin** | `pgadmin.<โดเมน>` | เปิดดู/แก้ฐานข้อมูล PostgreSQL แบบมี GUI (เหมือน phpMyAdmin) |
+| **pgAdmin** | `pgadmin.<โดเมน>` | เปิดดู/แก้ฐานข้อมูล PostgreSQL แบบมี GUI |
+| **phpMyAdmin** | `mysql.<โดเมน>` | เปิดดู/แก้ฐานข้อมูล MySQL (project ที่สร้างด้วย `--mysql`) |
 | **Redis Insight** | `redis.<โดเมน>` | ส่องข้างใน Redis ว่ามี cache/คิวอะไรอยู่ |
 
 ### 📊 ระบบเฝ้าระวัง — รู้ก่อนลูกค้าว่ามีปัญหา

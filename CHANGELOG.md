@@ -5,6 +5,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
 
 ## [Unreleased]
 
+## [2.14.0] - 2026-11-02
+
+### Added
+- phpMyAdmin ใน tools stack — `https://mysql.<BASE_DOMAIN>` (`infra up tools phpmyadmin`) สำหรับ project ที่ใช้ MySQL
+  · กั้นด้วย basicauth กลาง (`dashboard-auth`) อีกชั้น แล้ว login ด้วย user ของ project หรือ root · `infra secrets` แสดงรหัส
+
+### Fixed
+- `infra up <stack> <service…>` เช็ค DNS ทั้ง stack → เปิด pgAdmin ไม่ได้เพราะ record ของ Redis Insight ยังไม่มี
+  · ตอนนี้ระบุ service = เช็คเฉพาะชื่อของ service นั้น
+
 ## [2.13.0] - 2026-11-02
 
 ### Added — คำสั่ง `infra` ตัวเดียวสำหรับงานประจำ

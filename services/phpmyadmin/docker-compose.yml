@@ -1,0 +1,32 @@
+services:
+  phpmyadmin:
+    image: phpmyadmin:5
+    container_name: phpmyadmin
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ:-Asia/Bangkok}
+      # ต่อ MySQL กลางผ่าน network backend — login ด้วย root / MYSQL_ROOT_PASSWORD
+      # หรือ user ของ project (DB_USERNAME / DB_PASSWORD ใน projects/<name>/.env — เห็นเฉพาะ database ตัวเอง)
+      - PMA_HOST=mysql
+      - PMA_PORT=3306
+      # อยู่หลัง Traefik HTTPS — ให้ลิงก์/redirect เป็น https
+      - PMA_ABSOLUTE_URI=https://mysql.${BASE_DOMAIN:?set in .env}/
+      - UPLOAD_LIMIT=256M
+    networks:
+      - proxy
+      - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.phpmyadmin.rule=Host(`mysql.${BASE_DOMAIN}`)"
+      - "traefik.http.routers.phpmyadmin.entrypoints=websecure"
+      - "traefik.http.routers.phpmyadmin.tls.certresolver=letsencrypt"
+      # หน้า login ของ phpMyAdmin ถูกยิงเดารหัสบ่อย — กั้นด้วย basicauth กลางอีกชั้น (DASHBOARD_USER / DASHBOARD_PASSWORD)
+      - "traefik.http.routers.phpmyadmin.middlewares=dashboard-auth@file"
+      - "traefik.http.services.phpmyadmin.loadbalancer.server.port=80"
+
+networks:
+  proxy:
+    external: true
+  backend:
+    external: true
+    name: backend
