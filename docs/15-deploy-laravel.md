@@ -7,19 +7,19 @@
 ```bash
 # 1. สร้าง project จาก template — สร้าง database app_db ให้ด้วย (ต้อง start database stack ก่อน)
 #    ค่า DB / Redis / domain / R2 เติมจาก .env กลางให้อัตโนมัติ
-./scripts/create-project.sh app laravel
+infra new app laravel
 
 # 2. เชื่อม GitHub: clone เข้า src/ + เปิด build + APP_IMAGE (private repo → วาง deploy key ใน GitHub แล้วรันซ้ำ)
-./scripts/setup-git.sh app <github-user>/<repo>
+infra git app <github-user>/<repo>
 
 # 3. ตั้งค่าที่เหลือ
-nano projects/app/.env    # APP_KEY: echo "base64:$(openssl rand -base64 32)"
+infra env app    # APP_KEY: echo "base64:$(openssl rand -base64 32)"
 
 # 4. DNS: เพิ่ม A record app.<domain> ใน Cloudflare (ก่อน deploy)
 
 # 5. Deploy ครั้งแรก — build + migrate (DEPLOY_MIGRATE=1) + start
 #    project ใหม่ → ถาม "รัน seed ด้วยไหม? [y/N]" (เติมข้อมูล ไม่ล้าง DB) — docs/25
-./scripts/deploy.sh app
+infra deploy app
 ```
 
 ได้ 3 containers: `-app` (HTTP, ไม่มี container_name — เพื่อ rolling deploy),
@@ -45,11 +45,11 @@ nano projects/app/.env    # APP_KEY: echo "base64:$(openssl rand -base64 32)"
 
 ```bash
 curl -I https://app.<domain>                                          # 200
-./scripts/artisan.sh app queue:monitor redis                          # queue ทำงาน
+infra artisan app queue:monitor redis                          # queue ทำงาน
 ```
 
 💡 คำสั่ง artisan ทุกตัวใช้ทางลัดนี้ได้ (รันจากที่ไหนก็ได้ ไม่ต้องจำ compose):
-`./scripts/artisan.sh <project> <คำสั่ง>` เช่น `migrate --force`, `db:seed --force`
+`infra artisan <project> <คำสั่ง>` เช่น `migrate --force`, `db:seed --force`
 
 ## 🩹 ปัญหาที่เจอจริงตอน deploy Laravel ครั้งแรก (2026-07)
 

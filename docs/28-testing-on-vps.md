@@ -20,8 +20,8 @@ cd /opt/infra-stack
 ## 🧪 Smoke test — ทำได้เลย ไม่ต้องถาม
 
 ```bash
-./scripts/smoke.sh <project>                 # ตรวจครบชุด (อ่านอย่างเดียว)
-./scripts/smoke.sh <project> /login /api/x   # + path เพิ่ม (ต้องได้ < 500)
+infra check <project>                 # ตรวจครบชุด (อ่านอย่างเดียว)
+infra check <project> /login /api/x   # + path เพิ่ม (ต้องได้ < 500)
 ```
 
 ตรวจ: container รันและ healthy · ไม่มี service ค้าง image เก่า · health endpoint ได้ 200 ผ่าน Traefik ·
@@ -35,9 +35,9 @@ cd /opt/infra-stack
 | log ของ service | `docker compose --project-directory projects/<p> logs --since 30m <p>-app` |
 | สถานะ container | `docker compose --project-directory projects/<p> ps` |
 | ยิง URL ผ่าน Traefik | `curl -sSI --resolve <domain>:443:127.0.0.1 https://<domain>/path` |
-| migration | `./scripts/artisan.sh <p> migrate:status` |
-| route / config | `./scripts/artisan.sh <p> route:list` · `./scripts/artisan.sh <p> about` |
-| อ่านข้อมูล (นับ/ค้น) | `./scripts/artisan.sh <p> tinker --execute 'echo App\Models\User::count();'` |
+| migration | `infra artisan <p> migrate:status` |
+| route / config | `infra artisan <p> route:list` · `infra artisan <p> about` |
+| อ่านข้อมูล (นับ/ค้น) | `infra artisan <p> tinker --execute 'echo App\Models\User::count();'` |
 
 ## ⚠️ ต้องได้ OK จากเจ้าของก่อน
 
@@ -46,10 +46,10 @@ cd /opt/infra-stack
 | งาน | คำสั่ง |
 |-----|--------|
 | deploy โค้ดใหม่ | ดูหัวข้อถัดไป |
-| seed | `./scripts/deploy.sh <p> --seed` (เติมข้อมูล ไม่ล้าง) |
-| rollback | `./scripts/rollback.sh <p> previous` |
+| seed | `infra deploy <p> --seed` (เติมข้อมูล ไม่ล้าง) |
+| rollback | `infra rollback <p>` |
 | tinker ที่ create / update / delete | — |
-| แก้ `projects/<p>/.env` | ตามด้วย `./scripts/deploy.sh <p>` |
+| แก้ `projects/<p>/.env` | `infra env <p>` (แก้แล้วใช้ค่าใหม่ให้เลย — เว็บไม่ดับ) |
 
 ### Deploy โค้ดใหม่
 
@@ -57,11 +57,11 @@ project ที่ `src/` เป็น git clone (`setup-git.sh` — ปกติ
 — ห้าม push แทนเจ้าของ · ตรวจผล (อ่านอย่างเดียว ทำได้เลย):
 
 ```bash
-tail -30 /opt/infra-stack/logs/auto-deploy.log     # ✅ ขึ้นแล้ว · ❌ ล้ม (เว็บเดิมยังอยู่) · ⏸ รอเจ้าของตอบเรื่อง seed
+infra logs auto-deploy                             # ✅ ขึ้นแล้ว · ❌ ล้ม (เว็บเดิมยังอยู่) · ⏸ รอเจ้าของตอบเรื่อง seed
 cat projects/<p>/.deploy-commit                     # commit ที่ขึ้นเว็บอยู่
 ```
 
-deploy เดี๋ยวนี้ไม่รอ cron: `./scripts/deploy.sh <p>` (ต้องได้ OK) — project ใหม่จะถาม seed ให้เจ้าของตอบเอง
+deploy เดี๋ยวนี้ไม่รอ cron: `infra deploy <p>` (ต้องได้ OK) — project ใหม่จะถาม seed ให้เจ้าของตอบเอง
 
 project ที่ `src/` ยังเป็นไฟล์ copy (ไม่ได้ setup-git):
 
@@ -71,9 +71,9 @@ git archive --format=tar.gz -o app.tar.gz HEAD
 scp app.tar.gz deploy@<vps>:/tmp/<p>.tar.gz
 
 # VPS
-./scripts/load-src.sh <p> /tmp/<p>.tar.gz    # src/ เดิมเก็บไว้ที่ src.prev/
-./scripts/deploy.sh <p> --no-seed            # migrate (ถ้า DEPLOY_MIGRATE=1) + rolling deploy
-./scripts/smoke.sh <p>
+infra load <p> /tmp/<p>.tar.gz    # src/ เดิมเก็บไว้ที่ src.prev/
+infra deploy <p> --no-seed            # migrate (ถ้า DEPLOY_MIGRATE=1) + rolling deploy
+infra check <p>
 rm /tmp/<p>.tar.gz
 ```
 
@@ -93,6 +93,6 @@ rm /tmp/<p>.tar.gz
 
 | พัง | ทำ |
 |-----|----|
-| โค้ดใหม่พัง | `./scripts/rollback.sh <p> previous` (image ก่อน deploy ล่าสุด) |
+| โค้ดใหม่พัง | `infra rollback <p>` (image ก่อน deploy ล่าสุด) |
 | อยากได้ src เดิมกลับมา build | `mv projects/<p>/src projects/<p>/src.bad && mv projects/<p>/src.prev projects/<p>/src` |
-| ข้อมูลเสีย | `./scripts/restore.sh` / `mysql-restore.sh` ([13-backup.md](13-backup.md)) — ถามเจ้าของก่อนเสมอ |
+| ข้อมูลเสีย | `infra restore postgres` / `infra restore mysql` ([13-backup.md](13-backup.md)) — ถามเจ้าของก่อนเสมอ |

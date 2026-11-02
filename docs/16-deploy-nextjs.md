@@ -36,11 +36,11 @@ FROM node:24-alpine AS runner     # ← stage สุดท้าย = ตัว�
 ## ⚙️ Deploy (ฝั่งเซิร์ฟเวอร์)
 
 ```bash
-./scripts/create-project.sh myweb nextjs        # สร้าง database myweb_db ให้ (+ --mysql ถ้าใช้ MySQL)
-./scripts/setup-git.sh myweb <owner>/<repo>     # clone + เปิด build + APP_IMAGE
-nano projects/myweb/.env                        # API keys / NEXT_PUBLIC_* — DATABASE_URL เติมให้แล้ว
+infra new myweb nextjs        # สร้าง database myweb_db ให้ (+ --mysql ถ้าใช้ MySQL)
+infra git myweb <owner>/<repo>     # clone + เปิด build + APP_IMAGE
+infra env myweb                        # API keys / NEXT_PUBLIC_* — DATABASE_URL เติมให้แล้ว
 # เพิ่ม DNS record ใน Cloudflare (ก่อน deploy)
-./scripts/deploy.sh myweb                        # build → prisma migrate deploy → project ใหม่ถาม seed → rolling
+infra deploy myweb                        # build → prisma migrate deploy → project ใหม่ถาม seed → rolling
 ```
 
 ## ⚠️ ระวัง
@@ -56,5 +56,5 @@ curl -I https://myweb.<domain>                        # 200
 cd projects/myweb && docker compose logs --tail 20    # "Ready in …"
 ```
 
-Deploy ครั้งถัดไป: `./scripts/deploy.sh myweb` — zero-downtime อัตโนมัติ
+Deploy ครั้งถัดไป: `infra deploy myweb` — zero-downtime อัตโนมัติ
 (ดู [25-zero-downtime.md](25-zero-downtime.md))

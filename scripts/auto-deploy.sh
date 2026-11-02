@@ -65,9 +65,9 @@ for SRC in projects/*/src; do
       echo "$REMOTE" > "$DIR/.deploy-waiting"
       echo "[auto-deploy] $(date '+%F %T') $NAME: ⏸ ${DEPLOYED:0:7} → ${REMOTE:0:7} ยังไม่ deploy รอคำตอบเรื่อง seed:"
       echo "               $REASON"
-      echo "               ตอบ: ./scripts/deploy.sh $NAME   (ถาม seed y/N · หรือ --seed / --no-seed)"
+      echo "               ตอบ: infra deploy $NAME   (ถาม seed y/N · หรือ --seed / --no-seed)"
       notify "⏸ $NAME รอคำตอบก่อน deploy ${REMOTE:0:7} — $REASON
-ssh แล้วรัน: cd /opt/infra-stack && ./scripts/deploy.sh $NAME"
+ssh แล้วรัน: infra deploy $NAME"
     fi
     continue
   fi
@@ -78,7 +78,7 @@ ssh แล้วรัน: cd /opt/infra-stack && ./scripts/deploy.sh $NAME"
   else
     echo "$REMOTE" > "$DIR/.deploy-failed"
     echo "[auto-deploy] $(date '+%F %T') $NAME: ❌ deploy ${REMOTE:0:7} ล้ม — เว็บยังเป็นเวอร์ชันเดิม · ดู log ด้านบน"
-    echo "               แก้แล้ว push ใหม่ หรือ: ./scripts/deploy.sh $NAME"
+    echo "               แก้แล้ว push ใหม่ หรือ: infra deploy $NAME"
     notify "❌ $NAME deploy ${REMOTE:0:7} ล้ม — เว็บยังเป็นเวอร์ชันเดิม · ดู /opt/infra-stack/logs/auto-deploy.log"
   fi
 done

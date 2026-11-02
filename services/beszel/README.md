@@ -15,7 +15,7 @@ Hub start มาพร้อม monitoring stack แล้ว (ต้องม�
 # 2. Add System: host = <server-ip>, port = 45876 → copy public key
 # 3. ใส่ key ใน /opt/infra-stack/.env: BESZEL_AGENT_KEY="ssh-ed25519 AAAA..."
 # 4. เอา # ออกจาก service beszel-agent ใน docker-compose.yml นี้
-docker compose --env-file .env -f docker/docker-compose.monitoring.yml up -d beszel-agent
+infra up monitoring beszel-agent
 ```
 
 ⚠️ อย่ารันจากในโฟลเดอร์ `services/beszel/` — จะได้ project ชื่อ `beszel` ที่ชื่อ container ชนกับ

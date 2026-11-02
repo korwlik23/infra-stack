@@ -7,7 +7,7 @@ Database กลางของทุก project — app ต่อผ่าน Do
 
 ```bash
 # จาก repo root (/opt/infra-stack) — อยู่ใน database stack
-docker compose --env-file .env -f docker/docker-compose.database.yml up -d postgres
+infra up database postgres
 ```
 
 Database ตัวอย่าง (`app_db`, `n8n_db`) ถูกสร้างจาก `init/01-create-databases.sql`
@@ -26,7 +26,7 @@ docker exec -it postgres sh -c 'psql -U "$POSTGRES_USER" -d postgres -c "CREATE 
 ```bash
 docker exec postgres pg_isready               # ต้องได้ accepting connections
 ./backup/scripts/postgres-backup.sh          # backup ทุก database
-docker compose --env-file .env -f docker/docker-compose.database.yml stop postgres   # หยุด (ข้อมูลอยู่ใน volume)
+infra stop database postgres   # หยุด (ข้อมูลอยู่ใน volume)
 ```
 
 ⚠️ `docker volume rm postgres_data` = **ลบข้อมูลทั้งหมดถาวร** — ต้องมี backup ก่อนเสมอ

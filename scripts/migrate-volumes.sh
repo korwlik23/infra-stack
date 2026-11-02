@@ -47,7 +47,7 @@ if [ -n "$CONTAINERS" ]; then
   echo "และจะ stop + rm container ของ project '$OLD_PROJECT':"
   docker ps -a --filter "label=com.docker.compose.project=$OLD_PROJECT" --format '  {{.Names}}'
 fi
-echo "แนะนำ backup ก่อน: ./scripts/backup.sh"
+echo "แนะนำ backup ก่อน: infra backup"
 read -rp "Type 'migrate' to continue: " CONFIRM
 [ "$CONFIRM" = "migrate" ] || { echo "aborted"; exit 1; }
 

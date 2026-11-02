@@ -19,5 +19,5 @@ Password: $REDIS_PASSWORD
 
 ```bash
 # จาก repo root (/opt/infra-stack) — อยู่ใน tools stack
-docker compose --env-file .env -f docker/docker-compose.tools.yml up -d redisinsight
+infra up tools redisinsight
 ```

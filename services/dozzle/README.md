@@ -5,5 +5,5 @@
 
 ```bash
 # จาก repo root (/opt/infra-stack) — อยู่ใน monitoring stack
-docker compose --env-file .env -f docker/docker-compose.monitoring.yml up -d dozzle
+infra up monitoring dozzle
 ```

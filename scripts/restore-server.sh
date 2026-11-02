@@ -131,9 +131,9 @@ for P in projects/*/docker-compose.yml; do
   NAME="$(basename "$(dirname "$P")")"
   if grep -qE '^ *build:' "$P" && [ ! -d "projects/$NAME/src/.git" ]; then
     echo "  $NAME: build บนเครื่อง → clone source ก่อน (deploy key ถูก restore แล้ว — docs/19)"
-    echo "         git clone <repo> projects/$NAME/src && ./scripts/deploy.sh $NAME"
+    echo "         git clone <repo> projects/$NAME/src && infra deploy $NAME"
   else
-    echo "  ./scripts/deploy.sh $NAME"
+    echo "  infra deploy $NAME"
   fi
 done
 echo ""

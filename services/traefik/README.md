@@ -8,7 +8,7 @@ Reverse proxy + automatic HTTPS (Let's Encrypt) สำหรับทุก serv
 
 ```bash
 touch services/traefik/acme.json && chmod 600 services/traefik/acme.json
-docker compose --env-file .env -f docker/docker-compose.core.yml up -d traefik
+infra up core traefik
 ```
 
 ## เพิ่ม service ใหม่ให้มี HTTPS
@@ -40,5 +40,5 @@ networks:
 
 ```bash
 docker logs traefik --tail 50                                    # ดู ACME ออก cert สำเร็จไหม
-docker compose --env-file .env -f docker/docker-compose.core.yml stop traefik   # หยุด (cert ยังอยู่ใน acme.json)
+infra stop core traefik   # หยุด (cert ยังอยู่ใน acme.json)
 ```

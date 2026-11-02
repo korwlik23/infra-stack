@@ -39,17 +39,17 @@ cd /opt/infra-stack
 
 # 1) สร้าง project จาก template (laravel / nextjs / go / n8n / ai-worker)
 #    database stack ต้องรันอยู่ — script สร้าง database <ชื่อ>_db ให้ด้วย
-./scripts/create-project.sh <ชื่อ> laravel
+infra new <ชื่อ> laravel
 #    app เขียนมากับ MySQL (เช่น XAMPP) → เติม --mysql ท้ายคำสั่ง (docs/27-mysql.md)
 
 # 2) clone repo เข้า src/ + เปิด build + ตั้ง APP_IMAGE (docs/19-cicd.md)
 #    repo private → script โชว์ deploy key + ลิงก์ ให้ไปกด Add ใน GitHub แล้วรันคำสั่งเดิมซ้ำ
-./scripts/setup-git.sh <ชื่อ> <github-user>/<repo>
+infra git <ชื่อ> <github-user>/<repo>
 #    หรือ clone เอง แล้วรันแค่ชื่อ project (ข้าม clone — ตรวจว่า cron fetch ได้ไม่ต้องถามรหัส):
-#    git clone <url> projects/<ชื่อ>/src && ./scripts/setup-git.sh <ชื่อ>
+#    git clone <url> projects/<ชื่อ>/src && infra git <ชื่อ>
 
 # 3) ตั้งค่า .env (ที่เหลือ — ดูด้านล่าง)
-nano projects/<ชื่อ>/.env
+infra env <ชื่อ>
 ```
 
 | template | migrate + seed ตอน deploy | ข้อตกลงฝั่ง app |
@@ -91,11 +91,11 @@ APP_KEY=
 # 7) deploy ครั้งแรก (build + migrate + start)
 #    project ใหม่ → โชว์รายชื่อ seeder แล้วถาม "รัน seed ด้วยไหม? [y/N]" → ตอบ y ถ้าต้องใช้ข้อมูลเริ่มต้น
 #    (role, permission, admin, ค่า setting ที่ทำไว้ตอน dev) — ไม่ล้าง DB เดิม · ตอบครั้งเดียวต่อเครื่อง
-./scripts/deploy.sh <ชื่อ>
+infra deploy <ชื่อ>
 
 # 8) seed รอบหลัง: push ที่แก้ seeder → deploy + seed เอง (ไม่ถาม — seeder ต้องรันซ้ำได้)
 #    อยากให้ถามทุกครั้ง: DEPLOY_AUTO_SEED=0 ใน .env · บังคับรัน: --seed · ไม่รัน: --no-seed
-#    ./scripts/deploy.sh <ชื่อ> --seed
+#    infra deploy <ชื่อ> --seed
 
 # 9) สร้าง admin/owner ครั้งแรก (แล้วแต่ app — ผ่านหน้าเว็บหรือ artisan)
 
@@ -113,8 +113,8 @@ APP_KEY=
 auto-deploy (cron ทุก 2 นาที — เปิดครั้งเดียวต่อเครื่อง ดู docs/19) เห็น commit ใหม่ → build → migrate
 → rolling deploy ไม่ต้อง ssh เข้าเซิร์ฟเวอร์เลย · ดูผล: `tail /opt/infra-stack/logs/auto-deploy.log`
 
-อยาก deploy เดี๋ยวนั้นไม่รอ cron: `./scripts/deploy.sh <ชื่อ>`
-พลาดต้องถอย: `./scripts/rollback.sh <ชื่อ> previous`
+อยาก deploy เดี๋ยวนั้นไม่รอ cron: `infra deploy <ชื่อ>`
+พลาดต้องถอย: `infra rollback <ชื่อ>`
 
 ---
 

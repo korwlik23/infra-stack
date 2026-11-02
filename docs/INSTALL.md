@@ -415,6 +415,8 @@ ssh deploy@<IP ของ VPS>
 |--------|--------|
 | `infra status` | ทุกอย่างยังปกติไหม — container, DNS, HTTPS |
 | `infra secrets` | ดูรหัสผ่านทั้งหมดอีกครั้ง |
+| `infra cron` | ตั้ง backup ทุกคืน + auto-deploy (ทำครั้งเดียว) |
+| `infra` | รายการคำสั่งทั้งหมด — กด Tab เติมคำได้ |
 
 ทำต่อตามลำดับนี้ (แต่ละอันมีคู่มือของตัวเอง):
 
@@ -429,8 +431,8 @@ ssh deploy@<IP ของ VPS>
 
 ```bash
 cd /opt/infra-stack
-./scripts/check-dns.sh tools
-docker compose --env-file .env -f docker/docker-compose.tools.yml up -d
+infra dns tools
+infra up tools
 ```
 
 ### อยากติดตั้งทีละขั้นเอง?

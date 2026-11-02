@@ -5,7 +5,7 @@
 ## ⚙️ วิธีทำ
 
 ```bash
-docker compose --env-file .env -f docker/docker-compose.database.yml up -d
+infra up database
 ```
 
 ตัวอย่าง `app_db` และ database สำหรับ bundled n8n template ถูกสร้างจาก

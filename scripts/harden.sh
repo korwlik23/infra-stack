@@ -84,8 +84,10 @@ usermod -aG docker "$DEPLOY_USER"
 if [ "$(stat -c %U "$REPO_DIR")" = "root" ]; then
   chown -R "$DEPLOY_USER:$DEPLOY_USER" "$REPO_DIR"
 fi
-# คำสั่งสั้นหลังติดตั้ง: infra status / infra secrets
+# คำสั่งสั้นหลังติดตั้ง: infra deploy / infra status / … (พิมพ์ infra ดูทั้งหมด) + กด Tab เติมคำ
 ln -sf "$REPO_DIR/scripts/infra" /usr/local/bin/infra
+mkdir -p /etc/bash_completion.d
+ln -sf "$REPO_DIR/scripts/infra-completion.bash" /etc/bash_completion.d/infra
 
 # ── งานที่ไม่ต้องถามอะไร ───────────────────────────────
 # ข้อความยาวของ apt / Docker installer ลงไฟล์ log — จอแสดงแค่ทีละขั้น; ล้มเมื่อไหร่โชว์ท้าย log ให้เลย

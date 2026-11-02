@@ -1,12 +1,43 @@
 # scripts/ — Automation
 
+## ใช้ผ่าน `infra` (แนะนำ)
+
+`harden.sh` ลิงก์ `scripts/infra` ไว้ที่ `/usr/local/bin/infra` และ Tab completion (`infra-completion.bash`
+→ `/etc/bash_completion.d/infra`) — พิมพ์ได้จากทุกโฟลเดอร์ ไม่ต้องจำ path · ไม่ใส่ชื่อ project = เลือกจากรายการ
+· เครื่องที่ติดตั้งก่อน v2.13: `git pull` แล้ว `infra completion` ครั้งเดียว (ได้ Tab)
+
+| `infra …` | เรียก | หมายเหตุ |
+|-----------|-------|----------|
+| `list` | — | project ทั้งหมด: โดเมน · container ที่รัน · commit ที่ขึ้นเว็บ / รอตอบ seed / ล้ม |
+| `new <ชื่อ> <template> [--mysql]` | `create-project.sh` | |
+| `git <p> [owner/repo] [branch]` | `setup-git.sh` | |
+| `deploy <p> [--seed\|--no-seed]` | `deploy.sh` | |
+| `env <p>` | — | เปิด `$EDITOR` (nano) แก้ `.env` → ถามแล้ว `restart` ให้ |
+| `restart <p>` | — | recreate ด้วย `.env` ปัจจุบัน ไม่ build: rollout service หลัก (ไม่ดับ) + `--force-recreate` ตัวที่เหลือ (`docker compose restart` ไม่อ่าน `.env` ใหม่) |
+| `rollback <p> [tag]` | `rollback.sh` | tag default `previous` |
+| `check <p> [/path…]` | `smoke.sh` | |
+| `logs <p\|container\|auto-deploy\|backup\|install>` | — | `docker compose logs -f` / `docker logs -f` / `tail -f logs/*.log` |
+| `artisan <p> <args>` | — | แบบ `artisan.sh` แต่ใช้ `ROLLOUT_SERVICE` · มี project เดียวไม่ต้องใส่ชื่อ (`infra artisan migrate:status`) |
+| `shell <p>` | — | bash (หรือ sh) ใน service หลัก |
+| `load <p> <tar.gz>` | `load-src.sh` | path อิงโฟลเดอร์ที่พิมพ์ |
+| `status` / `secrets` | — | container + DNS + HTTPS / รหัสทั้งหมด (`secrets` แสดงรหัสบนจอ) |
+| `up <stack> [service…]` / `stop …` | `docker compose -f docker/docker-compose.<stack>.yml` | `up` เช็ค DNS ก่อนถ้า stack มีหน้าเว็บ · `stop` ทั้ง core / database / mysql ถามก่อน |
+| `update [stack\|all]` | `update.sh` | |
+| `dns [stack\|host…]` | `check-dns.sh` | ไม่ใส่ = ทุก stack ที่เปิด + โดเมนของ project |
+| `cron` | — | ตั้ง cron `auto-deploy.sh` (ทุก 2 นาที) + `backup.sh` (03:00) ตัวที่ยังขาด |
+| `backup` · `restore <postgres\|mysql\|secrets> [ไฟล์]` · `restore volumes [--overwrite] [vol…]` | `backup.sh` · `backup/scripts/*-restore.sh` | ไม่ใส่ไฟล์ = ล่าสุด |
+| `restore-server <src>` | `restore-server.sh` | |
+| `psql [db] [args]` · `mysql [db]` · `redis [args]` | `docker exec` | ใช้รหัสใน container ไม่ต้องพิมพ์ |
+| `reset-password n8n [p]` · `grafana` | — | n8n: `user-management:reset` (ถาม backup + พิมพ์ยืนยัน) · grafana: ตั้งกลับเป็นค่าใน `.env` |
+
+## Script
+
 | Script | ทำอะไร | ระวัง |
 |--------|--------|-------|
 | `../prepare.sh` | ช่วง A ของการติดตั้ง (root, `curl … \| bash`): clone → `harden.sh` → สลับเป็น deploy แล้วรัน `install.sh` | — |
 | `harden.sh` | user deploy (รหัส sudo, SSH key, group docker) + Docker + UFW + Fail2ban + ล็อก SSH (root, รันซ้ำได้) | ปิด root login เฉพาะเมื่อ deploy มีรหัส sudo แล้ว |
-| `infra status \| secrets` | คำสั่งสั้นหลังติดตั้ง (ลิงก์ที่ `/usr/local/bin/infra`): container + DNS + HTTPS / รหัสทั้งหมด | `secrets` แสดงรหัสบนจอ |
 | `check-dns.sh [--wait] <stack\|hostname…>` | เช็คว่า subdomain ของ stack มี DNS record ที่**ชี้มาเครื่องนี้** (อ่านจาก compose จริง) — รันก่อน `up -d`; `--wait` รอจนครบ | ไม่ครบ/ชี้เครื่องอื่น = exit 1; ข้ามได้ด้วย `SKIP_DNS_CHECK=1` |
-| `update.sh [stack]` | pull image ใหม่ + up -d ทีละ stack | database ต้อง backup ก่อน (มี gate) |
+| `update.sh [stack\|all]` | pull image ใหม่ + up -d ทีละ stack (`all` = core + monitoring + stack อื่นที่เปิดอยู่) | database / mysql ต้อง backup ก่อน (มี gate) |
 | `backup.sh` | backup PostgreSQL + ทุก named volume + secrets (เข้ารหัส) → off-site R2 (cron รายวัน) | จด `BACKUP_ENCRYPTION_PASSWORD` ไว้นอกเครื่อง |
 | `restore.sh [file]` | restore PostgreSQL (default = ล่าสุด) | เขียนทับข้อมูล — มี confirmation |
 | `restore-server.sh <r2:bucket/host \| dir>` | กู้ทั้งเครื่องลง VPS ใหม่: secrets → volumes → core → database → stack ที่มีข้อมูล | เครื่องใหม่เท่านั้น — มี confirmation (docs/13) |

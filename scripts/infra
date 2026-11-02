@@ -1,11 +1,83 @@
 #!/usr/bin/env bash
-# คำสั่งสั้นหลังติดตั้ง — harden.sh ลิงก์ไว้ที่ /usr/local/bin/infra
-#   infra status    container ที่ล้ม/ไม่ healthy + DNS + HTTPS ของทุกหน้าเว็บ
-#   infra secrets   รหัสที่ต้องจดเก็บนอกเครื่อง + รหัส login หน้าแอดมิน
+# คำสั่งสั้นหลังติดตั้ง — harden.sh ลิงก์ไว้ที่ /usr/local/bin/infra (พิมพ์ได้จากทุกโฟลเดอร์)
+# รวมทุกงานที่ทำบ่อยไว้ที่เดียว — ตัวจริงยังเป็น scripts/*.sh เดิม (cron / เอกสารเก่าใช้ต่อได้)
+#   infra            รายการคำสั่งทั้งหมด
+#   ไม่ใส่ชื่อ project → มีตัวเดียวเลือกให้ · หลายตัวให้เลือกจากเลข
+#   กด Tab เติมคำสั่ง / ชื่อ project / stack ได้ (scripts/infra-completion.bash)
 set -euo pipefail
+ORIG_PWD="$PWD"
 cd "$(dirname "$(readlink -f "$0")")/.."
+ROOT="$PWD"
 
+die() { echo "❌ $*" >&2; exit 1; }
 env_val() { grep -E "^$1=" .env 2>/dev/null | head -1 | cut -d= -f2- | tr -d '\r' || true; }
+# ค่าใน projects/<name>/.env
+penv() { grep -E "^$2=" "projects/$1/.env" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '\r' | sed -E 's/^"(.*)"$/\1/' || true; }
+# path ที่ผู้ใช้พิมพ์ อิงโฟลเดอร์ที่เขาอยู่ — ไม่เจอแล้วลองใน repo (เช่น backup/archives/… จาก ~)
+abspath() {
+  case "$1" in
+    /*) echo "$1" ;;
+    *) if [ -e "$ORIG_PWD/$1" ] || [ ! -e "$ROOT/$1" ]; then echo "$ORIG_PWD/$1"; else echo "$ROOT/$1"; fi ;;
+  esac
+}
+# docker compose ของ project — compose อ่าน .env ของ project จากโฟลเดอร์ที่รัน
+pcompose() { local p="$1"; shift; (cd "projects/$p" && docker compose "$@"); }
+has_rollout() { [ -x "$HOME/.docker/cli-plugins/docker-rollout" ]; }
+
+projects() {
+  local f
+  for f in projects/*/docker-compose.yml; do
+    if [ -f "$f" ]; then basename "$(dirname "$f")"; fi
+  done
+}
+stacks() {
+  local f
+  for f in docker/docker-compose.*.yml; do f="${f#docker/docker-compose.}"; echo "${f%.yml}"; done
+}
+stack_file() {
+  [ -f "docker/docker-compose.$1.yml" ] || die "ไม่มี stack '$1' — มี: $(stacks | tr '\n' ' ')"
+  echo "docker/docker-compose.$1.yml"
+}
+
+# ชื่อ project — ไม่ใส่: มีตัวเดียวเลือกให้ · หลายตัวให้เลือกจากเลข (ต้องมีจอ)
+pick_project() {
+  local name="${1:-}" list i
+  mapfile -t list < <(projects)
+  [ ${#list[@]} -gt 0 ] || die "ยังไม่มี project — สร้าง: infra new <ชื่อ> <laravel|nextjs|go|n8n|ai-worker>"
+  if [ -n "$name" ]; then
+    [ -f "projects/$name/docker-compose.yml" ] || die "ไม่มี project '$name' — มี: ${list[*]}"
+    echo "$name"; return
+  fi
+  if [ ${#list[@]} = 1 ]; then echo "${list[0]}"; return; fi
+  [ -t 0 ] || die "ระบุชื่อ project — มี: ${list[*]}"
+  for i in "${!list[@]}"; do printf '  %d) %s\n' $((i + 1)) "${list[$i]}" >&2; done
+  read -r -p "เลือก project [1-${#list[@]}]: " i
+  [[ "$i" =~ ^[0-9]+$ ]] && [ "$i" -ge 1 ] && [ "$i" -le ${#list[@]} ] || die "ไม่มีตัวเลือก '$i'"
+  echo "${list[$((i - 1))]}"
+}
+
+# แยกชื่อ project ออกจาก argument → PROJECT + ARGS (ที่เหลือ)
+#   loose=1 (artisan): คำแรกนับเป็น project เฉพาะเมื่อมี project ชื่อนั้นจริง — infra artisan migrate:status ได้
+with_project() {
+  local loose="$1" first="${2:-}"
+  shift
+  if [[ "$first" =~ ^[a-z0-9-]+$ ]] && { [ "$loose" = 0 ] || [ -f "projects/$first/docker-compose.yml" ]; }; then
+    shift
+  else
+    first=""
+  fi
+  PROJECT="$(pick_project "$first")"
+  ARGS=("$@")
+}
+
+# service หลักของ project: ROLLOUT_SERVICE หรือ service แรกใน compose
+main_service() {
+  local svc
+  svc="$(penv "$1" ROLLOUT_SERVICE)"
+  [ -n "$svc" ] || svc="$(pcompose "$1" config --services 2>/dev/null | head -1)"
+  [ -n "$svc" ] || die "หา service ของ $1 ไม่เจอ — ดู projects/$1/docker-compose.yml"
+  echo "$svc"
+}
 
 # stack ที่เปิดอยู่จริง (project name infra-<stack>) + เว็บของ project ที่ deploy แล้ว
 installed_targets() {
@@ -20,13 +92,14 @@ installed_targets() {
   done
 }
 
+# ── ระบบ ───────────────────────────────────────────────
 cmd_status() {
   local bad targets h code
   echo "── Containers"
   docker ps -a --format '{{.Names}}\t{{.Status}}' | sort | awk -F'\t' '{printf "  %-20s %s\n", $1, $2}'
   bad="$(docker ps -a --format '{{.Names}} {{.Status}}' | grep -E 'Exited|Restarting|unhealthy' || true)"
   if [ -n "$bad" ]; then
-    echo "  ⚠️  มีปัญหา — ดู log: docker logs <ชื่อ> --tail 50"
+    echo "  ⚠️  มีปัญหา — ดู log: infra logs <ชื่อ>"
   else
     echo "  ✅ ทุกตัวทำงานปกติ"
   fi
@@ -65,16 +138,372 @@ cmd_secrets() {
   echo "  Grafana     $(env_val GRAFANA_ADMIN_USER) / $(env_val GRAFANA_ADMIN_PASSWORD)"
   echo "  Netdata · Logs · Traefik · Redis Insight   $(env_val DASHBOARD_USER) / $(env_val DASHBOARD_PASSWORD)"
   echo "  pgAdmin     $(env_val PGADMIN_EMAIL) / $(env_val PGADMIN_PASSWORD)"
+  echo "  n8n         บัญชีที่ตั้งเองในหน้าเว็บ — ลืม: infra reset-password n8n"
   echo ""
-  echo "รหัสทั้งหมดอยู่ใน $(pwd)/.env"
+  echo "รหัสทั้งหมดอยู่ใน $ROOT/.env"
 }
 
-case "${1:-}" in
-  status)  cmd_status ;;
-  secrets) cmd_secrets ;;
-  *)
-    echo "ใช้: infra <status|secrets>"
-    echo "  status    container + DNS + HTTPS ของทุกหน้าเว็บ"
-    echo "  secrets   รหัสที่ต้องจด + รหัส login หน้าแอดมิน"
-    exit 1 ;;
+cmd_up() {
+  local stack="${1:-}" file
+  [ -n "$stack" ] || die "ระบุ stack: infra up <$(stacks | paste -sd '|')> [service…]"
+  shift
+  file="$(stack_file "$stack")"
+  # stack ที่มีหน้าเว็บ → เช็ค DNS ก่อน ไม่งั้น Traefik ขอ cert ล้มซ้ำจน Let's Encrypt แบน (docs/04)
+  if [ -n "$(./scripts/check-dns.sh --list "$stack" 2>/dev/null)" ]; then
+    ./scripts/check-dns.sh "$stack"
+  fi
+  docker compose --env-file .env -f "$file" up -d "$@"
+}
+
+cmd_stop() {
+  local stack="${1:-}" file ans
+  [ -n "$stack" ] || die "ระบุ stack: infra stop <$(stacks | paste -sd '|')> [service…]"
+  shift
+  file="$(stack_file "$stack")"
+  if [ $# = 0 ] && [[ "$stack" =~ ^(core|database|mysql)$ ]]; then
+    echo "⚠️  หยุดทั้ง stack '$stack' = ทุกเว็บใช้งานไม่ได้จนกว่าจะ: infra up $stack"
+    read -r -p "หยุดเลยไหม? [y/N] " ans || ans=""
+    [[ "$ans" =~ ^[Yy] ]] || { echo "ยกเลิก"; return 1; }
+  fi
+  docker compose --env-file .env -f "$file" stop "$@"
+}
+
+cmd_dns() {
+  local targets
+  if [ $# -gt 0 ]; then exec ./scripts/check-dns.sh "$@"; fi
+  mapfile -t targets < <(installed_targets)
+  [ ${#targets[@]} -gt 0 ] || die "ยังไม่มี stack ที่เปิดอยู่ — ระบุเอง: infra dns <stack|โดเมน>"
+  exec ./scripts/check-dns.sh "${targets[@]}"
+}
+
+cmd_cron() {
+  local cur job ans missing=()
+  local -A line=(
+    [auto-deploy]="*/2 * * * * $ROOT/scripts/auto-deploy.sh >> $ROOT/logs/auto-deploy.log 2>&1"
+    [backup]="0 3 * * * $ROOT/scripts/backup.sh >> $ROOT/logs/backup.log 2>&1"
+  )
+  cur="$(crontab -l 2>/dev/null || true)"
+  echo "── cron ของ $(id -un)"
+  for job in auto-deploy backup; do
+    if grep -q "scripts/$job.sh" <<<"$cur"; then
+      echo "  ✅ $job"
+    else
+      echo "  ⚠️  $job — ยังไม่ได้ตั้ง"
+      missing+=("${line[$job]}")
+    fi
+  done
+  [ ${#missing[@]} -gt 0 ] || { echo "ครบแล้ว — ดูผล: infra logs auto-deploy · infra logs backup"; return 0; }
+  echo ""
+  echo "  auto-deploy = เช็ค git ทุก 2 นาที → push แล้วขึ้นเว็บเอง (docs/19)"
+  echo "  backup      = ทุกคืน 03:00 (docs/13)"
+  read -r -p "ตั้งที่ยังขาดเลยไหม? [Y/n] " ans || ans=n
+  [[ ! "$ans" =~ ^[Nn] ]] || { echo "ยกเลิก"; return 1; }
+  mkdir -p logs
+  { [ -z "$cur" ] || printf '%s\n' "$cur"; printf '%s\n' "${missing[@]}"; } | crontab -
+  echo "✅ ตั้งแล้ว — ดู: crontab -l"
+}
+
+cmd_completion() {
+  local target=/etc/bash_completion.d/infra
+  sudo mkdir -p /etc/bash_completion.d
+  sudo ln -sf "$ROOT/scripts/infra-completion.bash" "$target"
+  echo "✅ ติดตั้ง Tab completion แล้ว — มีผลเมื่อ ssh เข้าใหม่ (หรือพิมพ์: source $target)"
+}
+
+# ── project ────────────────────────────────────────────
+cmd_list() {
+  local list p dom total up state src
+  mapfile -t list < <(projects)
+  [ ${#list[@]} -gt 0 ] || { echo "ยังไม่มี project — สร้าง: infra new <ชื่อ> <laravel|nextjs|go|n8n|ai-worker>"; return 0; }
+  printf '  %-16s %-32s %-9s %s\n' PROJECT DOMAIN RUNNING DEPLOYED
+  for p in "${list[@]}"; do
+    dom="$(penv "$p" APP_DOMAIN)"
+    total="$(pcompose "$p" config --services 2>/dev/null | wc -l)"
+    up="$(pcompose "$p" ps --status running --services 2>/dev/null | sort -u | wc -l)"
+    src="projects/$p"
+    if [ ! -d "$src/src/.git" ]; then
+      state="ไม่ได้ต่อ git (infra git $p <owner/repo>)"
+    elif [ -f "$src/.deploy-waiting" ]; then
+      state="⏸ รอตอบเรื่อง seed — infra deploy $p"
+    elif [ -f "$src/.deploy-failed" ]; then
+      state="❌ $(cut -c1-7 "$src/.deploy-failed") ล้ม — infra logs auto-deploy"
+    elif [ -f "$src/.deploy-commit" ]; then
+      state="$(cut -c1-7 "$src/.deploy-commit")"
+    else
+      state="ยังไม่เคย deploy จาก git"
+    fi
+    printf '  %-16s %-32s %-9s %s\n' "$p" "${dom:--}" "$up/$total" "$state"
+  done
+}
+
+cmd_env() {
+  with_project 0 "$@"
+  local f="projects/$PROJECT/.env" before ans
+  [ -f "$f" ] || die "$f ไม่มี"
+  before="$(sha256sum "$f")"
+  "${EDITOR:-nano}" "$f"
+  [ "$(sha256sum "$f")" != "$before" ] || { echo "ไม่มีอะไรเปลี่ยน"; return 0; }
+  read -r -p "ใช้ค่าใหม่เลยไหม? (สร้าง container ใหม่ ไม่ build) [Y/n] " ans || ans=n
+  if [[ "$ans" =~ ^[Nn] ]]; then
+    echo "ยังไม่ใช้ — ใช้ทีหลัง: infra restart $PROJECT"
+  else
+    restart_project "$PROJECT"
+  fi
+}
+
+cmd_restart() {
+  with_project 0 "$@"
+  restart_project "$PROJECT"
+}
+
+# สร้าง container ใหม่ด้วย .env ปัจจุบัน — ไม่ pull/build
+# (docker compose restart ไม่อ่าน .env ใหม่ — ต้อง recreate)
+restart_project() {
+  local p="$1" svc others
+  if [ -z "$(pcompose "$p" ps -q 2>/dev/null)" ]; then
+    echo "ℹ️  $p ยังไม่มี container — ค่าใหม่จะใช้ตอน deploy: infra deploy $p"
+    return 0
+  fi
+  svc="$(penv "$p" ROLLOUT_SERVICE)"
+  if [ -n "$svc" ] && has_rollout; then
+    echo "[restart:$p] rolling '$svc' (เว็บไม่ดับ)…"
+    (cd "projects/$p" && docker rollout "$svc")
+    mapfile -t others < <(pcompose "$p" config --services | grep -vxF "$svc" || true)
+    if [ ${#others[@]} -gt 0 ]; then
+      echo "[restart:$p] recreate: ${others[*]}"
+      pcompose "$p" up -d --force-recreate --no-deps "${others[@]}"
+    fi
+  else
+    echo "[restart:$p] recreate ทุก service (เว็บดับไม่กี่วินาที)…"
+    pcompose "$p" up -d --force-recreate
+  fi
+  echo "✅ [restart:$p] ใช้ค่า .env ใหม่แล้ว"
+  echo "ℹ️  แอปที่ cache config ไว้ใน image ตอน build (เช่น config:cache ใน Dockerfile) ต้อง: infra deploy $p"
+}
+
+cmd_rollback() {
+  with_project 0 "$@"
+  exec ./scripts/rollback.sh "$PROJECT" "${ARGS[0]:-previous}"
+}
+
+cmd_logs() {
+  local name="${1:-}"
+  case "$name" in
+    auto-deploy|backup)
+      [ -f "logs/$name.log" ] || die "ยังไม่มี logs/$name.log — ตั้ง cron ก่อน: infra cron"
+      exec tail -n 50 -f "logs/$name.log" ;;
+    install)
+      [ -f install.log ] || die "ไม่มี install.log"
+      exec tail -n 50 -f install.log ;;
+  esac
+  if [ -z "$name" ] || [ -f "projects/$name/docker-compose.yml" ]; then
+    with_project 0 "$@"
+    cd "projects/$PROJECT" && exec docker compose logs -f --tail 100
+  elif docker inspect "$name" >/dev/null 2>&1; then
+    exec docker logs -f --tail 100 "$name"
+  else
+    die "ไม่รู้จัก '$name' — ใส่ชื่อ project, container (เช่น traefik) หรือ auto-deploy / backup / install"
+  fi
+}
+
+cmd_artisan() {
+  with_project 1 "$@"
+  local svc
+  svc="$(main_service "$PROJECT")"
+  cd "projects/$PROJECT" && exec docker compose exec "$svc" php artisan "${ARGS[@]}"
+}
+
+cmd_shell() {
+  with_project 0 "$@"
+  local svc
+  svc="$(main_service "$PROJECT")"
+  cd "projects/$PROJECT" && exec docker compose exec "$svc" sh -c 'command -v bash >/dev/null && exec bash || exec sh'
+}
+
+cmd_load() {
+  with_project 0 "$@"
+  [ -n "${ARGS[0]:-}" ] || die "ใช้: infra load $PROJECT <file.tar.gz>"
+  exec ./scripts/load-src.sh "$PROJECT" "$(abspath "${ARGS[0]}")"
+}
+
+# ── backup ─────────────────────────────────────────────
+cmd_restore() {
+  local kind="${1:-}" f pat flags=() vols=() a
+  [ $# = 0 ] || shift
+  case "$kind" in
+    postgres|mysql|secrets)
+      f="${1:-}"
+      if [ -n "$f" ]; then
+        f="$(abspath "$f")"
+      else
+        pat="backup/archives/$kind/all_*.sql.gz"
+        [ "$kind" != secrets ] || pat="backup/archives/secrets/secrets_*.tar.gz.gpg"
+        # shellcheck disable=SC2086 # pat เป็น glob ตั้งใจ
+        f="$(ls -1t $pat 2>/dev/null | head -1 || true)"
+        [ -n "$f" ] || die "ไม่มี backup ใน backup/archives/$kind/"
+        echo "ใช้ backup ล่าสุด: $f"
+      fi
+      exec "./backup/scripts/$kind-restore.sh" "$f" ;;
+    volumes)
+      [ -d backup/archives/volumes ] || die "ไม่มี backup ใน backup/archives/volumes/"
+      for a in "$@"; do
+        case "$a" in --*) flags+=("$a") ;; *) vols+=("$a") ;; esac
+      done
+      exec ./backup/scripts/volumes-restore.sh "${flags[@]}" backup/archives/volumes "${vols[@]}" ;;
+    *)
+      die "ใช้: infra restore <postgres|mysql|secrets> [ไฟล์]   (ไม่ใส่ไฟล์ = ล่าสุด)
+         infra restore volumes [--overwrite] [volume…]
+   กู้ทั้งเครื่องลง VPS ใหม่: infra restore-server <r2:bucket/host | โฟลเดอร์>" ;;
+  esac
+}
+
+cmd_restore_server() {
+  [ $# -gt 0 ] || die "ใช้: infra restore-server <r2:bucket/host | โฟลเดอร์>   (docs/13)"
+  case "$1" in *:*) ;; *) set -- "$(abspath "$1")" ;; esac
+  exec ./scripts/restore-server.sh "$1"
+}
+
+# ── database ───────────────────────────────────────────
+# -it เฉพาะเมื่อมีจอ — ใช้ใน pipe / script ได้ด้วย (infra psql n8n_db -c '…')
+tty_flags() { if [ -t 0 ] && [ -t 1 ]; then echo -it; else echo -i; fi; }
+
+cmd_psql() {
+  local db="${1:-postgres}"
+  [ $# = 0 ] || shift
+  # shellcheck disable=SC2016 # $POSTGRES_USER ขยายใน container
+  exec docker exec "$(tty_flags)" postgres sh -c 'db="$1"; shift; exec psql -U "$POSTGRES_USER" -d "$db" "$@"' sh "$db" "$@"
+}
+
+cmd_mysql() {
+  # shellcheck disable=SC2016
+  exec docker exec "$(tty_flags)" mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysql -uroot "$@"' sh "$@"
+}
+
+cmd_redis() {
+  # shellcheck disable=SC2016
+  exec docker exec "$(tty_flags)" redis sh -c 'exec redis-cli --no-auth-warning -a "$REDIS_PASSWORD" "$@"' sh "$@"
+}
+
+cmd_reset_password() {
+  case "${1:-}" in
+    n8n) shift; reset_n8n "$@" ;;
+    grafana) reset_grafana ;;
+    *) die "ใช้: infra reset-password <n8n|grafana> — ตัวอื่นดู docs/TROUBLESHOOTING.md หัวข้อ ลืมรหัสผ่าน" ;;
+  esac
+}
+
+# ลบบัญชี user ทั้งหมดแล้วให้ตั้ง owner ใหม่ในหน้าเว็บ — workflow / credentials อยู่ครบ (ย้ายไปเป็นของ owner ใหม่)
+reset_n8n() {
+  local list p cid ans
+  mapfile -t list < <(grep -l 'n8nio/n8n' projects/*/docker-compose.yml 2>/dev/null | xargs -r -n1 dirname | xargs -r -n1 basename)
+  [ ${#list[@]} -gt 0 ] || die "ไม่มี project n8n บนเครื่องนี้"
+  if [ -n "${1:-}" ]; then
+    printf '%s\n' "${list[@]}" | grep -qxF "$1" || die "'$1' ไม่ใช่ project n8n — มี: ${list[*]}"
+    p="$1"
+  elif [ ${#list[@]} = 1 ]; then
+    p="${list[0]}"
+  else
+    die "มี n8n หลายตัว ระบุชื่อ: infra reset-password n8n <${list[*]}>"
+  fi
+  cid="$(pcompose "$p" ps -q | head -1)"
+  [ -n "$cid" ] || die "$p ไม่ได้รันอยู่ — เปิดก่อน: infra deploy $p"
+
+  echo "⚠️  reset บัญชี n8n ของ '$p' ($(penv "$p" APP_DOMAIN)):"
+  echo "    ✅ workflow + credentials อยู่ครบ (ย้ายไปเป็นของ owner ใหม่)"
+  echo "    ❌ บัญชี user ทุกคนถูกลบ — คนอื่นต้องเชิญใหม่"
+  echo "    ห้ามแก้ N8N_ENCRYPTION_KEY — ไม่งั้น credentials ถอดรหัสไม่ได้"
+  read -r -p "backup database ก่อนไหม? [Y/n] " ans || ans=n
+  [[ "$ans" =~ ^[Nn] ]] || ./backup/scripts/postgres-backup.sh
+  read -r -p "พิมพ์ 'reset' เพื่อยืนยัน: " ans || ans=""
+  [ "$ans" = reset ] || { echo "ยกเลิก"; return 1; }
+  docker exec "$cid" n8n user-management:reset
+  docker restart "$cid" >/dev/null
+  echo "✅ เปิด https://$(penv "$p" APP_DOMAIN) แล้วสร้างบัญชี owner ใหม่ (ใครเปิดก่อนได้เป็นเจ้าของ — ทำเลย)"
+}
+
+# ตั้งรหัส admin กลับเป็นค่าใน .env — infra secrets จะตรงกับของจริง
+reset_grafana() {
+  local pw
+  pw="$(env_val GRAFANA_ADMIN_PASSWORD)"
+  [ -n "$pw" ] || die "GRAFANA_ADMIN_PASSWORD ใน .env ว่าง"
+  docker exec grafana grafana cli admin reset-admin-password "$pw" >/dev/null
+  echo "✅ Grafana: $(env_val GRAFANA_ADMIN_USER) / $pw   (ค่าใน .env)"
+}
+
+usage() {
+  cat <<'EOF'
+ใช้: infra <คำสั่ง> [ชื่อ project] …   (ไม่ใส่ชื่อ project = เลือกจากรายการ · กด Tab เติมได้)
+
+เว็บของคุณ (project)
+  list                          ทุก project: โดเมน · container ที่รัน · commit ที่ขึ้นเว็บ
+  new <ชื่อ> <template> [--mysql] สร้าง project (laravel / nextjs / go / n8n / ai-worker)
+  git <p> [owner/repo] [branch] ต่อ GitHub → push แล้วขึ้นเว็บเอง (ไม่ใส่ repo = clone เข้า src/ เองแล้ว)
+  deploy <p> [--seed|--no-seed] build + migrate + ขึ้นเว็บ (เว็บไม่ดับ)
+  env <p>                       แก้ .env แล้วใช้ค่าใหม่ให้เลย
+  restart <p>                   สร้าง container ใหม่ด้วย .env ปัจจุบัน (ไม่ build)
+  rollback <p> [tag]            กลับเวอร์ชันก่อน deploy ล่าสุด (tag ไม่ใส่ = previous)
+  check <p> [/path…]            ตรวจเว็บหลัง deploy (อ่านอย่างเดียว)
+  logs <p>                      log สดของ project
+  artisan <p> <คำสั่ง…>          php artisan ใน container (Laravel)
+  shell <p>                     เข้า shell ใน container
+  load <p> <file.tar.gz>        แทน src/ ด้วยโค้ดจาก tarball (project ที่ไม่ได้ต่อ git)
+
+ระบบ
+  status                        container + DNS + HTTPS
+  secrets                       รหัสที่ต้องจด + รหัส login หน้าแอดมิน
+  up <stack> [service…]         เปิด stack (เช็ค DNS ให้ก่อน) — tools / messaging / storage / mysql …
+  stop <stack> [service…]       หยุด stack หรือบาง service
+  update [stack|all]            pull image ใหม่ของ stack
+  dns [stack|โดเมน…]            เช็ค DNS record ชี้มาเครื่องนี้ (ไม่ใส่ = ทุกอย่างที่เปิดอยู่)
+  logs <container|auto-deploy|backup|install>   log ของ container หรือของ cron / ติดตั้ง
+  cron                          ตั้ง auto-deploy + backup รายคืน (ครั้งเดียวต่อเครื่อง)
+  completion                    ติดตั้ง Tab completion (เครื่องที่ติดตั้งก่อน v2.13)
+
+backup
+  backup                        backup ทั้งเครื่องตอนนี้
+  restore <postgres|mysql|secrets> [ไฟล์]       ไม่ใส่ไฟล์ = ล่าสุด
+  restore volumes [--overwrite] [volume…]
+  restore-server <r2:bucket/host|โฟลเดอร์>        กู้ทั้งเครื่องลง VPS ใหม่
+
+database / ลืมรหัส
+  psql [db] [args…]             PostgreSQL (default db postgres)
+  mysql [db] [args…]            MySQL (root)
+  redis [args…]                 redis-cli
+  reset-password n8n [p]        ลืมรหัส n8n → ตั้งบัญชี owner ใหม่ (workflow อยู่ครบ)
+  reset-password grafana        ตั้งรหัส admin กลับเป็นค่าใน .env
+EOF
+}
+
+CMD="${1:-}"
+[ $# = 0 ] || shift
+case "$CMD" in
+  list|ls)          cmd_list ;;
+  new)              exec ./scripts/create-project.sh "$@" ;;
+  git)              with_project 0 "$@"; exec ./scripts/setup-git.sh "$PROJECT" "${ARGS[@]}" ;;
+  deploy)           with_project 0 "$@"; exec ./scripts/deploy.sh "$PROJECT" "${ARGS[@]}" ;;
+  env)              cmd_env "$@" ;;
+  restart)          cmd_restart "$@" ;;
+  rollback)         cmd_rollback "$@" ;;
+  check)            with_project 0 "$@"; exec ./scripts/smoke.sh "$PROJECT" "${ARGS[@]}" ;;
+  logs|log)         cmd_logs "$@" ;;
+  artisan)          cmd_artisan "$@" ;;
+  shell|sh)         cmd_shell "$@" ;;
+  load)             cmd_load "$@" ;;
+  status)           cmd_status ;;
+  secrets)          cmd_secrets ;;
+  up)               cmd_up "$@" ;;
+  stop)             cmd_stop "$@" ;;
+  update)           exec ./scripts/update.sh "$@" ;;
+  dns)              cmd_dns "$@" ;;
+  cron)             cmd_cron ;;
+  completion)       cmd_completion ;;
+  backup)           exec ./scripts/backup.sh ;;
+  restore)          cmd_restore "$@" ;;
+  restore-server)   cmd_restore_server "$@" ;;
+  psql)             cmd_psql "$@" ;;
+  mysql)            cmd_mysql "$@" ;;
+  redis)            cmd_redis "$@" ;;
+  reset-password)   cmd_reset_password "$@" ;;
+  ""|help|-h|--help) usage ;;
+  *)                usage >&2; echo "" >&2; die "ไม่รู้จักคำสั่ง '$CMD'" ;;
 esac

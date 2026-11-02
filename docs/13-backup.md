@@ -2,7 +2,7 @@
 
 🎯 เครื่องพังทั้งเครื่อง → เช่าเครื่องใหม่ + `restore-server.sh` = กลับมาได้ครบทั้งข้อมูลและรหัสผ่าน
 
-## สิ่งที่ backup (`./scripts/backup.sh` ทำครบทุกข้อ)
+## สิ่งที่ backup (`infra backup` ทำครบทุกข้อ)
 
 | อะไร | Script | ไฟล์ |
 |------|--------|------|
@@ -50,16 +50,17 @@ log เก็บใน `/opt/infra-stack/logs/` (gitignored) — user `deploy` �
 (เดิมใช้ `/var/log/…` ซึ่ง deploy สร้างไฟล์ใหม่เองไม่ได้ → cron ล้มเงียบ ๆ ทุกคืน — เจอจริง)
 
 ```bash
-mkdir -p /opt/infra-stack/logs
-crontab -e
+infra cron      # ตั้ง backup ทุกคืน 03:00 + auto-deploy (docs/19) ที่ยังขาด — รันซ้ำได้
 ```
 
+ได้บรรทัดนี้ใน `crontab -l`:
+
 ```cron
-0 3 * * *  /opt/infra-stack/scripts/backup.sh >> /opt/infra-stack/logs/backup.log 2>&1
+0 3 * * * /opt/infra-stack/scripts/backup.sh >> /opt/infra-stack/logs/backup.log 2>&1
 ```
 
 `backup.sh` รันทุกส่วน (postgres / mysql / volumes / secrets) ต่อกันแม้ส่วนแรกล้ม แล้วจบด้วย
-`❌ backup ไม่สำเร็จ: …` ถ้ามีส่วนไหนพัง · เช็คทุกเช้าวันจันทร์: `tail -20 /opt/infra-stack/logs/backup.log`
+`❌ backup ไม่สำเร็จ: …` ถ้ามีส่วนไหนพัง · เช็คทุกเช้าวันจันทร์: `infra logs backup`
 
 ## 🔄 กู้ทั้งเครื่องลง VPS ใหม่ (เครื่องพัง / ย้ายเครื่อง)
 
@@ -71,15 +72,15 @@ su - deploy
 cd /opt/infra-stack
 
 # ตั้ง rclone remote "r2" ด้วย R2 key ที่จดไว้ (docs/12) แล้ว:
-./scripts/restore-server.sh r2:<bucket>/<host-เครื่องเดิม>
-#   หรือ copy โฟลเดอร์ backup/archives จากเครื่องเดิมมาเอง แล้ว: ./scripts/restore-server.sh <โฟลเดอร์>
+infra restore-server r2:<bucket>/<host-เครื่องเดิม>
+#   หรือ copy โฟลเดอร์ backup/archives จากเครื่องเดิมมาเอง แล้ว: infra restore-server <โฟลเดอร์>
 ```
 
 script จะถาม `BACKUP_ENCRYPTION_PASSWORD` แล้วทำให้เอง: secrets → volumes → core → database +
 PostgreSQL → stack อื่นที่เครื่องเดิมเปิดไว้ (monitoring / tools / messaging / storage) จากนั้นบอก
 ขั้นที่เหลือ:
 
-1. deploy แต่ละ project (`./scripts/deploy.sh <name>` — project แบบ build บนเครื่องต้อง clone `src/` ใหม่)
+1. deploy แต่ละ project (`infra deploy <name>` — project แบบ build บนเครื่องต้อง clone `src/` ใหม่)
 2. ทดสอบเครื่องใหม่**โดยยังไม่ย้าย DNS** (cert เดิมใช้ได้เลย):
    `curl -I --resolve portainer.<BASE_DOMAIN>:443:<IP-ใหม่> https://portainer.<BASE_DOMAIN>`
 3. ผ่านแล้วค่อยแก้ A record ใน Cloudflare เป็น IP ใหม่ — เครื่องเดิมเปิดไว้จนแน่ใจ
@@ -90,10 +91,10 @@ script ไม่เขียนทับ volume ที่มีข้อมู�
 ## 🔄 Restore บางส่วน (เครื่องเดิม)
 
 ```bash
-./scripts/restore.sh                      # PostgreSQL จาก backup ล่าสุด (มี confirmation)
-./backup/scripts/volumes-restore.sh backup/archives/volumes grafana_data      # volume เดียว
+infra restore postgres                      # PostgreSQL จาก backup ล่าสุด (มี confirmation)
+infra restore volumes grafana_data      # volume เดียว
 #   volume มีข้อมูลอยู่แล้ว → ข้าม; ทับจริง: stop container ที่ใช้ก่อน แล้วเติม --overwrite
-./backup/scripts/secrets-restore.sh backup/archives/secrets/secrets_<stamp>.tar.gz.gpg
+infra restore secrets backup/archives/secrets/secrets_<stamp>.tar.gz.gpg
 ```
 
 ## กฎเหล็ก

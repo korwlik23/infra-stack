@@ -14,7 +14,7 @@ n8n / Laravel ──push job──▶ Redis/RabbitMQ ──▶ __PROJECT__ ─�
 
 ```bash
 nano .env          # APP_IMAGE, queue URL, API keys, resource limits
-cd ../.. && ./scripts/deploy.sh __PROJECT__
+infra deploy __PROJECT__
 docker logs -f __PROJECT__
 ```
 

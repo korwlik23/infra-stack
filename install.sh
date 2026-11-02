@@ -295,7 +295,7 @@ if [ -n "$N8N_DOMAIN" ]; then
   fi
   run ./scripts/deploy.sh n8n
 else
-  echo "[6/7] n8n: ไม่ได้เลือกติดตั้ง (ทีหลัง: ./scripts/create-project.sh n8n n8n — docs/17)"
+  echo "[6/7] n8n: ไม่ได้เลือกติดตั้ง (ทีหลัง: infra new n8n n8n — docs/17)"
 fi
 
 # ── 5. DNS → Traefik + HTTPS ─────────────────────────
@@ -394,5 +394,7 @@ if [ "$HTTPS_STATE" != ok ]; then
 fi
 echo ""
 echo "ครั้งหน้าเข้าเครื่อง:  ssh $(id -un)@$IP"
+echo "ตั้ง cron ครั้งเดียว:   infra cron   (auto-deploy เมื่อ push + backup ทุกคืน)"
 echo "ทำต่อ (ไม่บังคับ):    ตั้ง backup ขึ้น Cloudflare R2 — docs/13-backup.md"
-echo "เพิ่มเว็บของคุณ:      ./scripts/create-project.sh <ชื่อ> <laravel|nextjs|n8n|ai-worker> — docs/26"
+echo "คำสั่งทั้งหมด:        infra   (กด Tab เติมคำได้)"
+echo "เพิ่มเว็บของคุณ:      infra new <ชื่อ> <laravel|nextjs|go|n8n|ai-worker> — docs/26"

@@ -7,7 +7,7 @@
 
 ```bash
 # จาก repo root (/opt/infra-stack) — อยู่ใน monitoring stack
-docker compose --env-file .env -f docker/docker-compose.monitoring.yml up -d redis-exporter
+infra up monitoring redis-exporter
 ```
 
 ทดสอบ: Prometheus → Status → Targets → job `redis` ต้อง UP

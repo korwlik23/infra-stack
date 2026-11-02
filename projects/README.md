@@ -3,8 +3,8 @@
 ที่วาง project ที่ deploy จริงบนเครื่องนี้ — สร้างด้วย:
 
 ```bash
-./scripts/create-project.sh <name> <laravel|nextjs|go|n8n|ai-worker> [--mysql]
-./scripts/setup-git.sh <name> <github-user>/<repo>   # เชื่อม GitHub → auto-deploy
+infra new <name> <laravel|nextjs|go|n8n|ai-worker> [--mysql]
+infra git <name> <github-user>/<repo>   # เชื่อม GitHub → auto-deploy
 ```
 
 แต่ละ project เป็นอิสระ: มี `docker-compose.yml` + `.env` ของตัวเอง

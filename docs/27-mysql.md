@@ -9,7 +9,7 @@ MySQL **ไม่เปิดตอนติดตั้ง** เปิดเอ
 สร้าง project ด้วย `--mysql` (ใช้ได้กับ template `laravel` และ `nextjs`):
 
 ```bash
-./scripts/create-project.sh shop laravel --mysql
+infra new shop laravel --mysql
 ```
 
 script ทำให้ครบ:
@@ -21,7 +21,7 @@ script ทำให้ครบ:
    - Laravel: `DB_CONNECTION=mysql`, `DB_HOST=mysql`, `DB_PORT=3306`, `DB_USERNAME`, `DB_PASSWORD`
    - Next.js: `DATABASE_URL=mysql://shop:<รหัส>@mysql:3306/shop_db`
 
-จากนั้น deploy ตามปกติ (`./scripts/deploy.sh shop`) — migrate รันกับ MySQL เอง
+จากนั้น deploy ตามปกติ (`infra deploy shop`) — migrate รันกับ MySQL เอง
 
 ## การต่อจาก app
 
@@ -39,20 +39,20 @@ docker exec -it mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot'
 
 ## Backup / restore
 
-- `./scripts/backup.sh` dump ทุก database ด้วย `mysqldump --single-transaction` (ไม่ lock ตาราง)
+- `infra backup` dump ทุก database ด้วย `mysqldump --single-transaction` (ไม่ lock ตาราง)
   → `backup/archives/mysql/` + ส่งขึ้น R2 ถ้าตั้งไว้ · ไม่มี MySQL = ข้ามเฉย ๆ
 - `restore-server.sh` เปิด MySQL + restore ให้เองเมื่อ backup มี dump ของ MySQL
-- restore เอง: `./backup/scripts/mysql-restore.sh backup/archives/mysql/all_<stamp>.sql.gz`
+- restore เอง: `infra restore mysql backup/archives/mysql/all_<stamp>.sql.gz`
 
 ## หน่วยความจำ
 
 จำกัด InnoDB buffer pool ที่ 256M (เครื่อง 8 GB รันหลาย project) — ข้อมูลเยอะขึ้นแล้วช้า
-เพิ่มใน `.env` กลาง เช่น `MYSQL_BUFFER_POOL=1G` แล้ว `./scripts/update.sh mysql`
+เพิ่มใน `.env` กลาง เช่น `MYSQL_BUFFER_POOL=1G` แล้ว `infra update mysql`
 
 ## อัปเดต
 
 ```bash
-./scripts/update.sh mysql      # ถามยืนยัน — backup ก่อนเสมอ
+infra update mysql      # ถามยืนยัน — backup ก่อนเสมอ
 ```
 
 image `mysql:8.4` = LTS สาย 8.4 → pull ใหม่ได้แพตช์ล่าสุดของสายนี้โดยไม่ข้าม major

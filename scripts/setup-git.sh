@@ -18,7 +18,7 @@ NAME="${1:?$USAGE}"
 REPO="${2:-}"
 BRANCH="${3:-main}"
 DIR="projects/$NAME"
-[ -f "$DIR/docker-compose.yml" ] || { echo "ERROR: $DIR ยังไม่มี — สร้างก่อน: ./scripts/create-project.sh $NAME <template>" >&2; exit 1; }
+[ -f "$DIR/docker-compose.yml" ] || { echo "ERROR: $DIR ยังไม่มี — สร้างก่อน: infra new $NAME <template>" >&2; exit 1; }
 
 # ── 1–2. clone (ข้ามถ้า src/ เป็น git clone อยู่แล้ว) ──
 clone_repo() {
@@ -54,7 +54,7 @@ clone_repo() {
       echo
       echo "   4. ❌ ไม่ติ๊ก \"Allow write access\" (เซิร์ฟเวอร์อ่านอย่างเดียวพอ) → Add key"
       echo "      GitHub ถามรหัส/2FA → ยืนยันให้จบจนเห็น key ในรายการ (ไม่งั้น key ไม่ถูกบันทึก)"
-      echo "   5. รันคำสั่งเดิมอีกครั้ง: ./scripts/setup-git.sh $NAME $REPO $BRANCH"
+      echo "   5. รันคำสั่งเดิมอีกครั้ง: infra git $NAME $REPO $BRANCH"
       echo
       echo "   (ถ้าเพิ่ม key แล้วยังขึ้นข้อความนี้: ชื่อ repo/branch '$BRANCH' ถูกไหม)"
       exit 2
@@ -83,7 +83,7 @@ if [ -d "$DIR/src/.git" ]; then
   # cron ไม่มีคนพิมพ์รหัส — clone ที่ต้องถาม username/token ทุกครั้ง auto-deploy จะ fetch ไม่ได้
   if ! GIT_TERMINAL_PROMPT=0 GIT_SSH_COMMAND="ssh -o BatchMode=yes" timeout 60 git -C "$DIR/src" fetch --quiet; then
     echo "ERROR: git fetch ต้องถามรหัส/ไม่มีสิทธิ์ — auto-deploy (cron) จะดึงโค้ดไม่ได้" >&2
-    echo "       แก้: ลบ $DIR/src แล้วรัน ./scripts/setup-git.sh $NAME <owner/repo> (ใช้ deploy key)" >&2
+    echo "       แก้: ลบ $DIR/src แล้วรัน infra git $NAME <owner/repo> (ใช้ deploy key)" >&2
     echo "       หรือ clone ด้วย fine-grained token อ่านอย่างเดียว: git clone https://<token>@github.com/<owner>/<repo>.git" >&2
     exit 1
   fi
@@ -111,6 +111,6 @@ UPSTREAM="$(git -C "$DIR/src" rev-parse --abbrev-ref '@{u}' 2>/dev/null || echo 
 echo
 echo "✅ $NAME ← ${UPSTREAM} ($(git -C "$DIR/src" log -1 --format='%h %s' | cut -c1-70))"
 echo "ต่อไป:"
-echo "  ./scripts/deploy.sh $NAME          # deploy ครั้งแรกจาก git (ให้เว็บตรงกับ ${UPSTREAM#origin/})"
-echo "  ./scripts/smoke.sh $NAME"
+echo "  infra deploy $NAME          # deploy ครั้งแรกจาก git (ให้เว็บตรงกับ ${UPSTREAM#origin/})"
+echo "  infra check $NAME"
 echo "  auto-deploy: push เข้า ${UPSTREAM#origin/} → ขึ้นเองใน 2 นาที (ต้องมี cron — docs/19-cicd.md)"

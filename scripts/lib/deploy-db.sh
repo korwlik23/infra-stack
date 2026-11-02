@@ -89,11 +89,11 @@ deploy_db() {
           case "$answer" in
             [Yy]*) run_seed=yes ;;
             *) printf '%s\n' "$current" > "$state"
-               echo "[deploy:$name] ข้าม seed — ครั้งหน้า seeder เปลี่ยนจะ seed เอง (รันเอง: ./scripts/deploy.sh $name --seed)" ;;
+               echo "[deploy:$name] ข้าม seed — ครั้งหน้า seeder เปลี่ยนจะ seed เอง (รันเอง: infra deploy $name --seed)" ;;
           esac
         elif [ "$ask" = yes ]; then
           # ไม่มีคนตอบ — ไม่ seed เอง และไม่จำ hash เพื่อให้ deploy มือครั้งหน้าถามอีก
-          echo "[deploy:$name] ⚠️ ไม่มีคนตอบ — ยังไม่ seed: รัน ./scripts/deploy.sh $name (ถาม) หรือ --seed"
+          echo "[deploy:$name] ⚠️ ไม่มีคนตอบ — ยังไม่ seed: รัน infra deploy $name (ถาม) หรือ --seed"
         fi
       fi
     fi

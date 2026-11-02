@@ -97,13 +97,13 @@ docker compose --env-file .env -f docker/docker-compose.database.yml ps
 - [ ] รัน backup ทั้งชุด และตรวจว่าไฟล์ทั้ง 3 ประเภทมีขนาดมากกว่า 0 bytes และขึ้น R2 (`✅ ตรวจแล้ว`)
 
 ```bash
-./scripts/backup.sh
+infra backup
 ls -lh backup/archives/postgres/ backup/archives/volumes/ backup/archives/secrets/
 ```
 
-- [ ] `mkdir -p /opt/infra-stack/logs` แล้วตั้ง cron backup รายวันตาม [docs/13-backup.md](docs/13-backup.md)
+- [ ] `infra cron` — ตั้ง backup รายคืน + auto-deploy (`crontab -l` เห็น `backup.sh` และ `auto-deploy.sh`)
 - [ ] ตั้ง Object lifecycle rule ของ bucket backup ใน R2 (เช่นลบไฟล์อายุเกิน 30 วัน)
-- [ ] ซ้อมกู้ทั้งเครื่องลง VPS ทดลอง: `./scripts/restore-server.sh r2:<bucket>/<host>` และจดเวลา recovery
+- [ ] ซ้อมกู้ทั้งเครื่องลง VPS ทดลอง: `infra restore-server r2:<bucket>/<host>` และจดเวลา recovery
 
 รายละเอียด: [docs/12-r2.md](docs/12-r2.md), [docs/13-backup.md](docs/13-backup.md)
 
@@ -115,10 +115,10 @@ ls -lh backup/archives/postgres/ backup/archives/volumes/ backup/archives/secret
 - [ ] ทบทวนสิทธิ์, DNS, authentication, backup และ monitoring ของทุก service ที่เปิดเพิ่ม
 
 ```bash
-./scripts/check-dns.sh tools messaging storage   # เช็คเฉพาะ stack ที่จะเปิด
-docker compose --env-file .env -f docker/docker-compose.tools.yml up -d
-docker compose --env-file .env -f docker/docker-compose.messaging.yml up -d
-docker compose --env-file .env -f docker/docker-compose.storage.yml up -d
+infra dns tools messaging storage   # เช็คเฉพาะ stack ที่จะเปิด
+infra up tools
+infra up messaging
+infra up storage
 ```
 
 ดูรายการ stack ที่ [docker/README.md](docker/README.md)
@@ -129,10 +129,10 @@ docker compose --env-file .env -f docker/docker-compose.storage.yml up -d
 - [ ] สร้าง project จาก template ที่ตรงกับ application
 
 ```bash
-./scripts/create-project.sh app <laravel|nextjs|go|n8n|ai-worker>
-./scripts/setup-git.sh app <github-user>/<repo>     # clone + deploy key (docs/19)
-nano projects/app/.env
-./scripts/deploy.sh app
+infra new app <laravel|nextjs|go|n8n|ai-worker>
+infra git app <github-user>/<repo>     # clone + deploy key (docs/19)
+infra env app
+infra deploy app
 ```
 
 - [ ] เพิ่ม DNS ก่อน deploy เพื่อหลีกเลี่ยง certificate issuance failure

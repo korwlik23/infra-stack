@@ -26,11 +26,11 @@ case "${2:-}" in
 esac
 DIR="projects/$NAME"
 if [ ! -d "$DIR" ]; then
-  echo "ERROR: $DIR ไม่มีอยู่ — สร้างก่อน: ./scripts/create-project.sh $NAME <laravel|nextjs|n8n|ai-worker>" >&2
+  echo "ERROR: $DIR ไม่มีอยู่ — สร้างก่อน: infra new $NAME <laravel|nextjs|go|n8n|ai-worker>" >&2
   exit 1
 elif [ ! -f "$DIR/docker-compose.yml" ]; then
   echo "ERROR: $DIR มีโฟลเดอร์แต่ไม่มี docker-compose.yml (สร้างด้วยมือ? ข้าม create-project.sh?)" >&2
-  echo "       แก้: ./scripts/create-project.sh $NAME <template> — ถ้ามี src/ อยู่แล้วจะถูกเก็บไว้" >&2
+  echo "       แก้: infra new $NAME <template> — ถ้ามี src/ อยู่แล้วจะถูกเก็บไว้" >&2
   exit 1
 fi
 

@@ -56,7 +56,7 @@ echo ""
 
 # ── ดาวน์โหลด InfraStack ─────────────────────────────
 if [ -d "$INFRA_DIR/.git" ]; then
-  echo "[repo] มี $INFRA_DIR อยู่แล้ว — ใช้ของเดิม (อัปเดตทีหลังด้วย ./scripts/update.sh)"
+  echo "[repo] มี $INFRA_DIR อยู่แล้ว — ใช้ของเดิม (อัปเดตทีหลังด้วย git -C $INFRA_DIR pull)"
 else
   command -v git >/dev/null 2>&1 || { apt-get update -y -q && apt-get install -y -q git; }
   echo "[repo] ดาวน์โหลด InfraStack → $INFRA_DIR"

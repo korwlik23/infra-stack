@@ -7,7 +7,7 @@
 อยู่ใน monitoring stack:
 
 ```bash
-docker compose --env-file .env -f docker/docker-compose.monitoring.yml up -d
+infra up monitoring
 ```
 
 เปิด `https://netdata.<BASE_DOMAIN>` (login ด้วย `DASHBOARD_USER` / `DASHBOARD_PASSWORD` ใน `.env`)

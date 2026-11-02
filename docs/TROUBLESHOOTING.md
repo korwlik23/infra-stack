@@ -140,9 +140,10 @@ docker logs traefik --tail 50
 | รหัสของ | ดูหรือเปลี่ยน |
 |---------|---------------|
 | หน้า Traefik / Netdata / Dozzle / Redis Insight | ดู: `grep DASHBOARD .env` · เปลี่ยน: แก้ `DASHBOARD_PASSWORD` ใน `.env` แล้ว `./install.sh` |
-| Grafana | ดู: `grep GRAFANA .env` — ถ้าเคยเปลี่ยนในหน้าเว็บแล้วลืม: `docker exec grafana grafana cli admin reset-admin-password <รหัสใหม่>` |
+| Grafana | ดู: `infra secrets` — ถ้าเคยเปลี่ยนในหน้าเว็บแล้วลืม: `infra reset-password grafana` (ตั้งกลับเป็นค่าใน `.env`) |
 | Portainer | `infra secrets` (ถ้า install.sh สร้างให้) — ถ้าตั้งเองแล้วลืม ดู `services/portainer/README.md` |
-| Uptime Kuma / Beszel / n8n | ตั้งเองตอนสร้างบัญชี ไม่ได้อยู่ใน `.env` — ดูคู่มือของโปรแกรมนั้นใน `services/<ชื่อ>/README.md` / docs/17 |
+| n8n | ตั้งเองในหน้าเว็บ ไม่ได้อยู่ใน `.env` — ดูอีเมล: `infra psql n8n_db -c 'select email from "user";'` · ลืมรหัส: `infra reset-password n8n` (workflow + credentials อยู่ครบ, บัญชี user ถูกลบแล้วตั้ง owner ใหม่) |
+| Uptime Kuma / Beszel | ตั้งเองตอนสร้างบัญชี ไม่ได้อยู่ใน `.env` — ดูคู่มือใน `services/<ชื่อ>/README.md` |
 | ดูทุกตัวที่อยู่ใน `.env` | `infra secrets` |
 | sudo ของ deploy | ตั้งใหม่จาก root หรือ console ของผู้ให้บริการ: `passwd deploy` |
 

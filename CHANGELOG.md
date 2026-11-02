@@ -5,6 +5,30 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
 
 ## [Unreleased]
 
+## [2.13.0] - 2026-11-02
+
+### Added — คำสั่ง `infra` ตัวเดียวสำหรับงานประจำ
+- `scripts/infra` (ลิงก์ที่ `/usr/local/bin/infra`) ครอบทุก script ที่ต้องพิมพ์เอง — พิมพ์จากทุกโฟลเดอร์ ไม่ต้อง
+  `cd /opt/infra-stack && ./scripts/…` · ไม่ใส่ชื่อ project = มีตัวเดียวเลือกให้ / หลายตัวให้เลือกจากเลข · `infra` เปล่า = รายการคำสั่ง
+  - project: `list` · `new` · `git` · `deploy` · `rollback` (tag default `previous`) · `check` · `logs` · `artisan` · `shell` · `load`
+  - ใหม่: `env <p>` (แก้ `.env` แล้วใช้ค่าใหม่ให้เลย) · `restart <p>` (recreate ด้วย `.env` ปัจจุบัน — rollout service หลัก
+    เว็บไม่ดับ · `docker compose restart` ไม่อ่าน `.env` ใหม่)
+  - ระบบ: `up` / `stop <stack> [service…]` แทน `docker compose --env-file .env -f docker/docker-compose.<stack>.yml …`
+    (`up` เช็ค DNS ก่อนเอง) · `update` · `dns` · `logs <container|auto-deploy|backup|install>`
+  - `cron` — ตั้ง cron auto-deploy + backup รายคืนที่ยังขาด (เดิมต้อง `crontab -e` วางบรรทัดยาวเอง และ install.sh ไม่ได้ตั้งให้)
+  - backup: `backup` · `restore <postgres|mysql|secrets> [ไฟล์]` (ไม่ใส่ = ล่าสุด) · `restore volumes` · `restore-server`
+  - database: `psql [db]` · `mysql [db]` · `redis` — ใช้รหัสใน container ไม่ต้องพิมพ์
+  - `reset-password n8n` (ลืมรหัส owner — workflow + credentials อยู่ครบ) · `reset-password grafana` (กลับเป็นค่าใน `.env`)
+- Tab completion (`scripts/infra-completion.bash`) — คำสั่ง / ชื่อ project / stack / service / template · `harden.sh` ติดตั้งให้
+  · เครื่องเดิม: `git pull` แล้ว `infra completion` ครั้งเดียว
+
+### Changed
+- `update.sh` รองรับทุก stack (tools / messaging / storage) · `all` อัปเดต stack เสริมที่เปิดอยู่ด้วย
+- ข้อความแนะนำใน script, แจ้งเตือน Telegram ของ auto-deploy และเอกสารทั้งหมดใช้ `infra …` แทน `./scripts/*.sh`
+  (script เดิมยังอยู่ — cron และคำสั่งเก่าใช้ได้เหมือนเดิม) · docs/13, docs/19 ตั้ง cron ด้วย `infra cron`
+- install.sh สรุปท้ายบอก `infra cron` และ `infra` · ข้อความ template ใน deploy.sh / install.sh มี `go` ครบ
+- TROUBLESHOOTING หัวข้อลืมรหัสผ่าน: n8n (ดูอีเมล + reset) และ Grafana ใช้ `infra reset-password`
+
 ## [2.12.0] - 2026-11-01
 
 ### Changed

@@ -17,7 +17,7 @@
 
 ```bash
 # เพิ่ม RABBITMQ_USER / RABBITMQ_PASSWORD ใน .env ก่อน
-docker compose --env-file .env -f docker/docker-compose.messaging.yml up -d
+infra up messaging
 ```
 
 - UI: `https://mq.<BASE_DOMAIN>` · AMQP จาก app: `amqp://<user>:<password>@rabbitmq:5672`

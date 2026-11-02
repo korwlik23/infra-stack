@@ -10,7 +10,7 @@
 | `scripts/volumes-restore.sh [--yes] [--overwrite] <dir> [volume…]` | restore volume จากไฟล์ล่าสุดของแต่ละตัว (ไม่ทับของที่มีข้อมูล) |
 | `scripts/secrets-restore.sh [--yes] <file.gpg>` | ถอดรหัส + วาง secrets กลับ (`.env` เดิมเก็บเป็น `.env.before-restore-*`) |
 
-รันทั้งชุด: `./scripts/backup.sh` · กู้ทั้งเครื่องลง VPS ใหม่: `./scripts/restore-server.sh <source>`
+รันทั้งชุด: `infra backup` · กู้ทั้งเครื่องลง VPS ใหม่: `infra restore-server <source>`
 — ขั้นตอนเต็มใน [docs/13-backup.md](../docs/13-backup.md)
 
 ไฟล์ backup อยู่ที่ `backup/archives/` — **ไม่ commit เข้า Git** (อยู่ใน .gitignore)

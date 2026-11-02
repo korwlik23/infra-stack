@@ -18,9 +18,9 @@ Go HTTP service ต่อ Traefik (HTTPS อัตโนมัติ) — image 
 
 ```bash
 cd /opt/infra-stack
-./scripts/setup-git.sh __PROJECT__ <owner>/<repo>    # clone + เปิด build (private repo จะได้ deploy key ไปวางใน GitHub)
-./scripts/deploy.sh __PROJECT__                      # build + migrate + project ใหม่ถาม seed + rolling
-./scripts/smoke.sh __PROJECT__
+infra git __PROJECT__ <owner>/<repo>    # clone + เปิด build (private repo จะได้ deploy key ไปวางใน GitHub)
+infra deploy __PROJECT__                      # build + migrate + project ใหม่ถาม seed + rolling
+infra check __PROJECT__
 ```
 
 DNS: เพิ่ม record `__PROJECT__.<domain>` ชี้ server IP ใน Cloudflare (Proxied)

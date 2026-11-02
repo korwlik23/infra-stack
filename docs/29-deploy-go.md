@@ -22,11 +22,11 @@
 
 ```bash
 cd /opt/infra-stack
-./scripts/create-project.sh myapi go             # + --mysql ถ้า app ใช้ MySQL
-./scripts/setup-git.sh myapi <owner>/<repo>      # clone + เปิด build (private → วาง deploy key ใน GitHub)
+infra new myapi go             # + --mysql ถ้า app ใช้ MySQL
+infra git myapi <owner>/<repo>      # clone + เปิด build (private → วาง deploy key ใน GitHub)
 # เพิ่ม DNS record myapi.<domain> ใน Cloudflare (ก่อน deploy)
-./scripts/deploy.sh myapi                        # build → migrate → project ใหม่ถาม seed → rolling
-./scripts/smoke.sh myapi
+infra deploy myapi                        # build → migrate → project ใหม่ถาม seed → rolling
+infra check myapi
 ```
 
 ต่อจากนั้น push เข้า `main` → auto-deploy ขึ้นเองใน 2 นาที ([19-cicd.md](19-cicd.md))
@@ -45,10 +45,10 @@ cd /opt/infra-stack
 cd <infra-stack repo> && git archive --format=tar.gz -o /tmp/go-sample.tar.gz HEAD:examples/go-app
 scp /tmp/go-sample.tar.gz deploy@<vps>:/tmp/
 # VPS
-./scripts/create-project.sh go-sample go
+infra new go-sample go
 sed -i 's|# build: ./src|build: ./src|' projects/go-sample/docker-compose.yml   # setup-git.sh ทำให้เมื่อใช้ repo จริง
-./scripts/load-src.sh go-sample /tmp/go-sample.tar.gz
-./scripts/deploy.sh go-sample --seed && ./scripts/smoke.sh go-sample
+infra load go-sample /tmp/go-sample.tar.gz
+infra deploy go-sample --seed && infra check go-sample
 # ลบทิ้ง: (cd projects/go-sample && docker compose down) && rm -rf projects/go-sample
 #        && docker exec postgres psql -U <POSTGRES_USER> -d postgres -c 'DROP DATABASE "go-sample_db";'
 ```

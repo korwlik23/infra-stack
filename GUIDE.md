@@ -112,18 +112,18 @@ infra-stack/
 
 ```bash
 # สร้างจากแม่แบบ — laravel / nextjs / go / n8n / ai-worker (+ --mysql ถ้า app ใช้ MySQL)
-./scripts/create-project.sh myapp laravel
+infra new myapp laravel
 
 # เชื่อม GitHub — repo private จะได้ deploy key ไปวางใน GitHub แล้วรันซ้ำ (docs/19)
-./scripts/setup-git.sh myapp <github-user>/<repo>
+infra git myapp <github-user>/<repo>
 
 # ใส่ค่าที่เหลือ (APP_KEY, API keys — ค่า DB/Redis/โดเมนเติมให้แล้วจาก .env กลาง)
-nano projects/myapp/.env
+infra env myapp
 
 # เพิ่ม DNS record myapp.<โดเมน> → IP เครื่อง "ก่อน" ขึ้นเว็บ (Traefik ขอ HTTPS ทันที)
 
 # ขึ้นเว็บครั้งแรก (build + migrate + ถามว่าจะ seed ไหม + start)
-./scripts/deploy.sh myapp
+infra deploy myapp
 # ต่อจากนี้ push เข้า main → ขึ้นเว็บเองใน 2–4 นาที (seeder เปลี่ยน → seed เอง)
 ```
 
@@ -134,9 +134,13 @@ nano projects/myapp/.env
 เว็บเดิมยังอยู่):
 
 ```bash
-./scripts/deploy.sh myapp        # deploy แบบเว็บไม่ดับ
-./scripts/rollback.sh myapp previous # เวอร์ชันใหม่มีปัญหา? ถอยกลับใน 1 นาที
+infra deploy myapp        # deploy แบบเว็บไม่ดับ
+infra rollback myapp      # เวอร์ชันใหม่มีปัญหา? ถอยกลับใน 1 นาที
+infra env myapp           # แก้ .env แล้วใช้ค่าใหม่ให้เลย
 ```
+
+ทุกคำสั่งขึ้นต้นด้วย `infra` พิมพ์ได้จากทุกโฟลเดอร์ — พิมพ์ `infra` เปล่า ๆ ดูทั้งหมด
+และกด **Tab** เติมคำสั่ง / ชื่อ project ได้ (ไม่ใส่ชื่อ project = เลือกจากรายการ)
 
 ### 5.3 ดูแลรายวัน/รายสัปดาห์
 
@@ -146,9 +150,10 @@ nano projects/myapp/.env
 | ลืมรหัส | `infra secrets` |
 | แอปตัวไหน error | เปิด `logs.<โดเมน>` (Dozzle) คลิกดูตัวนั้น |
 | ทำไมเครื่องช้า | เปิด `netdata.<โดเมน>` ดู CPU/RAM ตอนนี้ |
-| อยาก restart แอป | เปิด `portainer.<โดเมน>` → Containers → เลือก → Restart |
-| backup ยังทำงานไหม | `tail -20 /opt/infra-stack/logs/backup.log` — ต้องจบด้วย `✅ full backup complete` และไม่มี `backup อยู่แค่ในเครื่องนี้` |
-| push แล้วขึ้นเว็บไหม | `tail -30 /opt/infra-stack/logs/auto-deploy.log` — `✅` ขึ้นแล้ว · `❌` ล้ม (เว็บยังเป็นเวอร์ชันเดิม) · `⏸` รอคุณตอบเรื่อง seed |
+| เว็บของฉันมีอะไรบ้าง ขึ้นเวอร์ชันไหน | `infra list` |
+| อยาก restart แอป | `infra restart myapp` (อ่าน `.env` ใหม่ด้วย) — หรือ `portainer.<โดเมน>` → Containers → Restart |
+| backup ยังทำงานไหม | `infra logs backup` — ต้องจบด้วย `✅ full backup complete` และไม่มี `backup อยู่แค่ในเครื่องนี้` |
+| push แล้วขึ้นเว็บไหม | `infra logs auto-deploy` (หรือ `infra list`) — `✅` ขึ้นแล้ว · `❌` ล้ม (เว็บยังเป็นเวอร์ชันเดิม) · `⏸` รอคุณตอบเรื่อง seed |
 
 Checklist สุขภาพประจำสัปดาห์ (5 นาที): [docs/14-monitoring.md](docs/14-monitoring.md)
 
@@ -160,7 +165,7 @@ Checklist สุขภาพประจำสัปดาห์ (5 นาที
 - ✅ **CI/CD ฟรี** — push โค้ดเข้า GitHub แล้วเว็บอัปเดตเองใน 2-4 นาที (ไม่ใช้ GitHub Actions ไม่มีค่าใช้จ่าย)
 - ✅ Deploy แบบ **zero-downtime** — อัปเดตเว็บโดยผู้ใช้ไม่รู้สึกอะไรเลย
 - ✅ **Backup อัตโนมัติทุกคืน** + ส่งสำเนาขึ้น cloud (Cloudflare R2)
-- ✅ เครื่องพัง? เช่าเครื่องใหม่ → clone → install → `./scripts/restore-server.sh` (ข้อมูล + รหัสผ่าน + cert
+- ✅ เครื่องพัง? เช่าเครื่องใหม่ → clone → install → `infra restore-server` (ข้อมูล + รหัสผ่าน + cert
   กลับมาครบ — ต้องจด `BACKUP_ENCRYPTION_PASSWORD` ไว้) → ย้าย DNS ([docs/13-backup.md](docs/13-backup.md))
 - ✅ โตขึ้น? มีแผน scale เป็นหลายเครื่องโดยไม่ต้องรื้อ ([docs/18-scale.md](docs/18-scale.md))
 

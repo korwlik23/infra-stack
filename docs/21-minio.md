@@ -17,7 +17,7 @@
 
 ```bash
 # เพิ่ม MINIO_ROOT_USER / MINIO_ROOT_PASSWORD ใน .env
-docker compose --env-file .env -f docker/docker-compose.storage.yml up -d
+infra up storage
 ```
 
 - Console: `https://minio.<BASE_DOMAIN>` → สร้าง bucket + access key ต่อ app

@@ -13,7 +13,7 @@
 
 ทุก template รองรับ 2 โหมด deploy:
 - **Pre-built image** จาก registry (default — `APP_IMAGE` ใน .env)
-- **Build on server** — `./scripts/setup-git.sh <project> <owner/repo>` clone เข้า `src/` + เปิด build (docs/19-cicd.md)
+- **Build on server** — `infra git <project> <owner/repo>` clone เข้า `src/` + เปิด build (docs/19-cicd.md)
 
 ## Placeholder ใน template
 

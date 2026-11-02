@@ -7,9 +7,9 @@ Next.js standalone container ต่อ Traefik (HTTPS อัตโนมัต�
 
 ```bash
 # รันจาก repo root (/opt/infra-stack)
-./scripts/setup-git.sh __PROJECT__ <github-user>/<repo>   # clone + เปิด build + APP_IMAGE (private → วาง deploy key แล้วรันซ้ำ)
-nano projects/__PROJECT__/.env              # API keys / NEXT_PUBLIC_* — DATABASE_URL เติมให้แล้ว
-./scripts/deploy.sh __PROJECT__             # build → prisma migrate deploy → project ใหม่ถาม seed → rolling
+infra git __PROJECT__ <github-user>/<repo>   # clone + เปิด build + APP_IMAGE (private → วาง deploy key แล้วรันซ้ำ)
+infra env __PROJECT__              # API keys / NEXT_PUBLIC_* — DATABASE_URL เติมให้แล้ว
+infra deploy __PROJECT__             # build → prisma migrate deploy → project ใหม่ถาม seed → rolling
 docker compose --project-directory projects/__PROJECT__ logs -f __PROJECT__
 ```
 
@@ -20,7 +20,7 @@ DNS: เพิ่ม record `__PROJECT__.<domain>` ชี้ server IP ใน Cl
 
 ## Zero-downtime deploy
 
-Deploy ครั้งถัดไปใช้ `./scripts/deploy.sh __PROJECT__` (จาก repo root) — rolling อัตโนมัติ
+Deploy ครั้งถัดไปใช้ `infra deploy __PROJECT__` — rolling อัตโนมัติ
 
 - healthcheck ใช้ `fetch` ของ Node 18+ (ไม่ต้องมี curl ใน image)
 - default เช็คหน้าแรก `/` — แนะนำสร้าง `/api/health` ที่ตอบเร็วและเบา

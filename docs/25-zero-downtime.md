@@ -131,7 +131,7 @@ rolling deploy เลยคิดว่าสำเร็จ ทั้งที�
 ## 🔄 Rollback
 
 ```bash
-./scripts/rollback.sh app previous   # กลับเวอร์ชันก่อนหน้า
+infra rollback app   # กลับเวอร์ชันก่อนหน้า
 ```
 
 `deploy.sh` เก็บ image ก่อน build ใหม่ไว้เป็น tag `:previous` อัตโนมัติ (v2.2.0+)
@@ -159,7 +159,7 @@ rolling deploy เลยคิดว่าสำเร็จ ทั้งที�
 
 ```bash
 while true; do curl -s -o /dev/null -w "%{http_code} " https://app.<domain>; sleep 1; done
-# ระหว่างรัน ./scripts/deploy.sh <name> ต้องเห็น 200 ล้วน ไม่มี 502/000
+# ระหว่างรัน infra deploy <name> ต้องเห็น 200 ล้วน ไม่มี 502/000
 
 # ทดสอบด่าน healthcheck: deploy image ที่พังโดยตั้งใจ
 # → rollout ต้อง fail, เว็บต้องยังตอบ 200 ตลอด

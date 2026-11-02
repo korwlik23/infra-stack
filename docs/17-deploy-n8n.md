@@ -5,10 +5,10 @@
 ## ⚙️ วิธีทำ
 
 ```bash
-./scripts/create-project.sh n8n n8n     # ใช้ database n8n_db (สร้างให้ถ้ายังไม่มี)
+infra new n8n n8n     # ใช้ database n8n_db (สร้างให้ถ้ายังไม่มี)
 # N8N_ENCRYPTION_KEY สุ่มให้แล้ว, APP_DOMAIN/DB เติมให้แล้ว — จด key เก็บนอกเครื่อง
 # DNS: n8n.<domain> ใน Cloudflare (ก่อน deploy)
-./scripts/deploy.sh n8n
+infra deploy n8n
 ```
 
 เปิด `https://n8n.<domain>` → สร้าง owner account
@@ -25,7 +25,7 @@
 
 - Workflow + credentials อยู่ใน `n8n_db` (โดน postgres-backup ทุกคืนอยู่แล้ว)
 - Volume (config + binary data) ชื่อจริงคือ `<project>_<project>_data` — project ชื่อ `n8n`
-  ได้ `n8n_n8n_data` — `./scripts/backup.sh` เก็บให้อัตโนมัติ (backup ทุก named volume ในเครื่อง)
+  ได้ `n8n_n8n_data` — `infra backup` เก็บให้อัตโนมัติ (backup ทุก named volume ในเครื่อง)
 - `N8N_ENCRYPTION_KEY` อยู่ใน `projects/<name>/.env` — ถูกเก็บใน secrets backup (เข้ารหัส) ด้วย
 
 ## 🧪 ทดสอบ

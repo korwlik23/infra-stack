@@ -22,10 +22,10 @@ UI:    https://mq.<BASE_DOMAIN>   (login เดียวกัน)
 
 ```bash
 # จาก repo root (/opt/infra-stack) — อยู่ใน messaging stack
-docker compose --env-file .env -f docker/docker-compose.messaging.yml up -d rabbitmq
+infra up messaging rabbitmq
 docker exec rabbitmq rabbitmq-diagnostics -q ping    # → Ping succeeded
 ```
 
-volume `rabbitmq_data` เก็บ message ที่ persistent — `./scripts/backup.sh` เก็บให้อัตโนมัติ
+volume `rabbitmq_data` เก็บ message ที่ persistent — `infra backup` เก็บให้อัตโนมัติ
 (copy ขณะรัน: message ที่เข้ามาตอน 03:00 อาจไม่อยู่ใน backup รอบนั้น)
 ถ้ามี queue สำคัญ

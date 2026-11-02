@@ -31,9 +31,9 @@ A    *  (หรือรายตัว) <server-ip>   Proxied 🟠
 (ชื่อที่ชี้ไปเครื่องอื่นขึ้น ❌ พร้อม IP; Proxied เมฆส้มเทียบ IP ไม่ได้ จึงเตือนให้ตรวจใน dashboard):
 
 ```bash
-./scripts/check-dns.sh tools                 # stack เดียว
-./scripts/check-dns.sh --wait tools          # รอจนครบ (เช็คทุก 30 วินาที)
-./scripts/check-dns.sh core app.example.com  # ชื่อเต็มของเว็บ project ก็ได้
+infra dns tools                 # stack เดียว
+infra dns --wait tools          # รอจนครบ (เช็คทุก 30 วินาที)
+infra dns core app.example.com  # ชื่อเต็มของเว็บ project ก็ได้
 ```
 
 ⏳ ถ้าเพิ่งเปลี่ยน nameserver ที่ registrar ไป Cloudflare อาจใช้เวลาหลายชั่วโมง (สูงสุด ~24 ชม.)

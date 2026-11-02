@@ -20,7 +20,7 @@ Tools / Messaging / Storage เปิดเมื่อต้องการเ�
 ต้องการ start / restart แค่บาง service? ระบุชื่อ service ต่อท้าย stack ของมัน:
 
 ```bash
-docker compose --env-file .env -f docker/docker-compose.database.yml up -d redis
+infra up database redis
 ```
 
 ⚠️ อย่ารัน `docker compose up` จากในโฟลเดอร์ `services/<name>/` ตรง ๆ — จะได้ compose
@@ -34,7 +34,7 @@ project ใหม่ (ชื่อโฟลเดอร์) ที่ชื่�
 ```bash
 cd /opt/infra-stack
 git pull
-./scripts/update.sh        # pull image + up -d ตาม stack
+infra update        # pull image + up -d ตาม stack
 ```
 
 ถ้าเคยแก้ไฟล์บนเซิร์ฟเวอร์ด้วย nano แล้ว pull ชน conflict:
@@ -55,7 +55,7 @@ git pull
 
 ```bash
 cd /opt/infra-stack
-./scripts/backup.sh                                    # backup ก่อนเสมอ
+infra backup                                    # backup ก่อนเสมอ
 git checkout -- services/traefik/traefik.yml 2>/dev/null || true   # ไฟล์นี้ถูกลบจาก repo แล้ว (email ย้ายไป .env)
 # basicauth ย้ายไป .env แล้ว — ทิ้ง hash ที่เคยแก้เองใน compose (รหัสใหม่ = DASHBOARD_PASSWORD)
 git checkout -- services/traefik/docker-compose.yml services/netdata/docker-compose.yml \
@@ -63,8 +63,8 @@ git checkout -- services/traefik/docker-compose.yml services/netdata/docker-comp
 git pull
 ./scripts/migrate-volumes.sh                           # stop container เดิม + copy docker_<name> → <name>
 ./install.sh                                           # เติม DASHBOARD_* ใน .env + สร้าง auth.yml + up core
-docker compose --env-file .env -f docker/docker-compose.database.yml up -d
-docker compose --env-file .env -f docker/docker-compose.monitoring.yml up -d
+infra up database
+infra up monitoring
 # + tools / messaging / storage ถ้าเคยเปิดไว้
 ```
 

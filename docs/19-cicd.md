@@ -20,7 +20,7 @@ deploy เฉพาะ branch ที่ clone ไว้ (default `main`) — pus
 
 ```bash
 cd /opt/infra-stack
-./scripts/setup-git.sh <project> <owner>/<repo>          # branch default: main
+infra git <project> <owner>/<repo>          # branch default: main
 ```
 
 | repo | สิ่งที่ script ทำ |
@@ -32,8 +32,8 @@ cd /opt/infra-stack
 เปิด `build: ./src` · แก้ `APP_IMAGE` ที่ยังเป็น placeholder → `<project>:latest`
 
 ```bash
-./scripts/deploy.sh <project>      # deploy ครั้งแรกจาก git — เว็บตรงกับ main
-./scripts/smoke.sh <project>
+infra deploy <project>      # deploy ครั้งแรกจาก git — เว็บตรงกับ main
+infra check <project>
 ```
 
 > host key ของ GitHub อ่านจาก `https://api.github.com/meta` (ผ่าน HTTPS) — ไม่เชื่อ key ที่ ssh เจอครั้งแรกแบบมั่ว ๆ
@@ -43,7 +43,7 @@ cd /opt/infra-stack
 
 ```bash
 git clone <url> projects/<project>/src
-./scripts/setup-git.sh <project>        # ไม่ต้องใส่ repo — ข้ามการ clone, เปิด build, ตั้ง APP_IMAGE
+infra git <project>        # ไม่ต้องใส่ repo — ข้ามการ clone, เปิด build, ตั้ง APP_IMAGE
 ```
 
 script ตรวจว่า `git fetch` ได้**โดยไม่ถามรหัส** — cron ไม่มีคนพิมพ์ username/token
@@ -58,9 +58,11 @@ clone ที่ต้องพิมพ์รหัสทุกครั้ง (
 ## ⚙️ เปิด auto deploy (ครั้งเดียวต่อเครื่อง)
 
 ```bash
-mkdir -p /opt/infra-stack/logs
-crontab -e
+infra cron      # ตั้ง auto-deploy ทุก 2 นาที + backup ทุกคืน (docs/13) ที่ยังขาด — รันซ้ำได้
+infra logs auto-deploy   # ดูผลแต่ละรอบ
 ```
+
+ได้บรรทัดนี้ใน `crontab -l`:
 
 ```cron
 */2 * * * * /opt/infra-stack/scripts/auto-deploy.sh >> /opt/infra-stack/logs/auto-deploy.log 2>&1
@@ -75,7 +77,7 @@ crontab -e
 | เทียบกับ `.deploy-commit` ไม่ใช่ HEAD | deploy.sh `git pull` ก่อน build — build ล้มแล้ว HEAD ก็เป็น commit ใหม่ไปแล้ว |
 | commit ที่ล้มจำใน `.deploy-failed` | ไม่ลอง build ซ้ำทุก 2 นาที — รอ commit ใหม่ หรือ `deploy.sh` มือ (ผ่านแล้วล้างให้) |
 | push ที่แก้ seeder (project เดิม) → **seed เองเลย** | seeder ต้องรันซ้ำได้ (`firstOrCreate` / `updateOrCreate`) · `DEPLOY_AUTO_SEED=0` = ถามก่อน |
-| project ใหม่ยังไม่เคยตอบเรื่อง seed → **พักรอคำตอบ** | cron ถามใครไม่ได้ — ไม่ deploy แจ้งใน log + Telegram (ถ้าตั้ง) ครั้งเดียว → คนรัน `./scripts/deploy.sh <ชื่อ>` (ถาม y/N หรือ `--seed` / `--no-seed`) |
+| project ใหม่ยังไม่เคยตอบเรื่อง seed → **พักรอคำตอบ** | cron ถามใครไม่ได้ — ไม่ deploy แจ้งใน log + Telegram (ถ้าตั้ง) ครั้งเดียว → คนรัน `infra deploy <ชื่อ>` (ถาม y/N หรือ `--seed` / `--no-seed`) |
 | deploy ล้ม → แจ้ง Telegram | ตั้ง `NOTIFY_TELEGRAM_BOT_TOKEN` + `NOTIFY_TELEGRAM_CHAT_ID` ใน `.env` กลาง (ไม่ตั้ง = มีแค่ log) |
 
 `deploy.sh` เป็น **zero-downtime rolling deploy** (เปิดตัวใหม่รอ healthy → drain ตัวเก่า → ถอด)
@@ -92,7 +94,7 @@ crontab -e
 ## 🧪 ทดสอบ
 
 ```bash
-tail -f /opt/infra-stack/logs/auto-deploy.log           # push แล้วดู — ภายใน 2 นาทีต้องเห็น "deploying…" → ✅
+infra logs auto-deploy                                  # push แล้วดู — ภายใน 2 นาทีต้องเห็น "deploying…" → ✅
 cat projects/<ชื่อ>/.deploy-commit                       # commit ที่ขึ้นเว็บอยู่
 git -C projects/<ชื่อ>/src log -1 --oneline @{u}          # commit ล่าสุดบน GitHub (หลัง fetch)
 ```

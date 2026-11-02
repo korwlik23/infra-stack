@@ -112,7 +112,7 @@ setup_mysql_db() {
     root_pw="$(openssl rand -hex 24)"
     sed -i '/^MYSQL_ROOT_PASSWORD=/d' .env
     printf 'MYSQL_ROOT_PASSWORD=%s\n' "$root_pw" >> .env
-    echo "✅ สร้าง MYSQL_ROOT_PASSWORD ใน .env กลาง (backup ด้วย ./scripts/backup.sh)"
+    echo "✅ สร้าง MYSQL_ROOT_PASSWORD ใน .env กลาง (backup ด้วย infra backup)"
   fi
   if [ "$(docker inspect -f '{{.State.Running}}' mysql 2>/dev/null || true)" != "true" ]; then
     echo "[create-project] เปิด MySQL stack…"
@@ -154,9 +154,9 @@ fi
 echo "✅ created projects/$NAME from template '$TEMPLATE'"
 echo "   (ค่า DB/Redis/domain ดึงจาก .env กลางให้แล้ว — เหลือเฉพาะ per-project keys)"
 echo "next:"
-echo "  1. nano projects/$NAME/.env          # ตั้งเฉพาะที่เหลือ (APP_KEY, API keys, ฯลฯ — docs/26)"
-echo "  2. ./scripts/setup-git.sh $NAME <owner/repo>   # clone + เปิด build (private repo → ได้ deploy key ไปวางใน GitHub)"
+echo "  1. infra env $NAME                  # ตั้งเฉพาะที่เหลือ (APP_KEY, API keys, ฯลฯ — docs/26)"
+echo "  2. infra git $NAME <owner/repo>     # clone + เปิด build (private repo → ได้ deploy key ไปวางใน GitHub)"
 echo "  3. เพิ่ม DNS record: $NAME.<BASE_DOMAIN> → server IP (Cloudflare)"
-echo "  4. ./scripts/deploy.sh $NAME         # build + migrate + start — project ใหม่จะถาม \"รัน seed ด้วยไหม? [y/N]\""
+echo "  4. infra deploy $NAME               # build + migrate + start — project ใหม่จะถาม \"รัน seed ด้วยไหม? [y/N]\""
 echo "     ต่อจากนั้น push เข้า main → auto-deploy ขึ้นเอง + seed เองเมื่อ seeder เปลี่ยน (docs/19, docs/25)"
 echo "     (migrate/seed ทำตอน deploy ไม่ใช่ตอนนี้ — ตอนนี้ยังไม่มีโค้ดและ image ให้รัน)"

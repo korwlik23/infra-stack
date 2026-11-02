@@ -15,9 +15,9 @@ webhook/queue
 ## ⚙️ วิธีทำ
 
 ```bash
-./scripts/create-project.sh img-worker ai-worker
-nano projects/img-worker/.env    # APP_IMAGE, OPENAI_API_KEY, mem limit (queue URL/R2 เติมให้แล้ว)
-./scripts/deploy.sh img-worker
+infra new img-worker ai-worker
+infra env img-worker    # APP_IMAGE, OPENAI_API_KEY, mem limit (queue URL/R2 เติมให้แล้ว)
+infra deploy img-worker
 ```
 
 Template มี `mem_limit`/`cpus` กัน worker กินทั้งเครื่อง (default 2g/2cpu)

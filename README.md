@@ -1,6 +1,6 @@
 # InfraStack
 
-Production Infrastructure Stack — v2.12.0
+Production Infrastructure Stack — v2.13.0
 
 ## Goal
 
@@ -57,6 +57,7 @@ Three layers:
 - CI/CD ฟรีไม่ใช้ GitHub Actions — build-on-server + auto-deploy (cron git poll) + migrate/seed ตอน deploy ทุก stack
 - **Zero-downtime deployment** — rolling deploy + healthcheck gate + `rollback.sh`
 - Project templates (Laravel, Next.js, Go, n8n, AI Worker) + `create-project.sh` + `setup-git.sh` (deploy key + clone)
+- คำสั่ง `infra` — `infra deploy myapp`, `infra env myapp`, `infra up tools`, `infra psql`, … จากทุกโฟลเดอร์ + Tab completion
 - Full documentation under `docs/` (00–26)
 
 ## Repository Structure
@@ -101,20 +102,21 @@ curl -fsSL https://raw.githubusercontent.com/korwlik23/infra-stack/main/prepare.
 #                     รอจน DNS ครบ → เปิด Traefik + HTTPS → สรุป URL / รหัส / ของที่ต้องจด
 
 # หลังติดตั้ง (ssh deploy@<server-ip>)
+infra                               # รายการคำสั่งทั้งหมด (กด Tab เติมคำได้)
 infra status                        # container + DNS + HTTPS
 infra secrets                       # รหัสทั้งหมดอีกครั้ง
+infra cron                          # ตั้ง backup ทุกคืน + auto-deploy (ครั้งเดียว)
 
-# เว็บของคุณ (docs/26)
-cd /opt/infra-stack
-./scripts/create-project.sh myapp laravel
-./scripts/setup-git.sh myapp <github-user>/<repo>   # clone + deploy key → auto-deploy
-nano projects/myapp/.env            # APP_KEY และ per-project keys
-./scripts/deploy.sh myapp
+# เว็บของคุณ (docs/26) — พิมพ์จากโฟลเดอร์ไหนก็ได้
+infra new myapp laravel
+infra git myapp <github-user>/<repo>   # clone + deploy key → auto-deploy
+infra env myapp            # APP_KEY และ per-project keys
+infra deploy myapp
 
-# Optional stacks — เช็ค DNS ก่อนเปิดแต่ละตัว: ./scripts/check-dns.sh tools (messaging / storage)
-docker compose --env-file .env -f docker/docker-compose.tools.yml up -d      # pgAdmin, Redis Insight
-docker compose --env-file .env -f docker/docker-compose.messaging.yml up -d  # RabbitMQ
-docker compose --env-file .env -f docker/docker-compose.storage.yml up -d    # MinIO
+# Optional stacks — เช็ค DNS ก่อนเปิดแต่ละตัว: infra dns tools (messaging / storage)
+infra up tools      # pgAdmin, Redis Insight
+infra up messaging  # RabbitMQ
+infra up storage    # MinIO
 ```
 
 ทำทีละขั้นเอง: `git clone` → `sudo ./scripts/harden.sh` → `su - deploy` → `./install.sh`
@@ -147,8 +149,8 @@ Installation checklist in [TODO.md](TODO.md).
 ## Versioning
 
 Infrastructure is versioned like software — see [CHANGELOG.md](CHANGELOG.md).
-Current: **v2.4.0** — one-command install (`prepare.sh` → `install.sh`): no logout/login,
-no hand-edited `.env`, DNS records created while the installer waits.
+Current: **v2.13.0** — คำสั่ง `infra` ตัวเดียวทำงานประจำได้ทั้งหมด (`infra deploy`, `infra env`,
+`infra up`, `infra cron`, …) พิมพ์จากทุกโฟลเดอร์ + กด Tab เติมคำ — พิมพ์ `infra` ดูรายการ
 
 ## License
 

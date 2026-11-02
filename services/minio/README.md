@@ -14,7 +14,7 @@ Console:  https://minio.<BASE_DOMAIN>    (login ด้วย MINIO_ROOT_USER/PAS
 
 ```bash
 # จาก repo root (/opt/infra-stack) — อยู่ใน storage stack
-docker compose --env-file .env -f docker/docker-compose.storage.yml up -d minio
+infra up storage minio
 ```
 
 จากนั้นสร้าง bucket + access key ผ่าน Console (อย่าใช้ root credential ใน app —

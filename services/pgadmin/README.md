@@ -18,8 +18,8 @@ Password: $POSTGRES_PASSWORD
 
 ```bash
 # จาก repo root (/opt/infra-stack) — อยู่ใน tools stack
-docker compose --env-file .env -f docker/docker-compose.tools.yml up -d pgadmin
+infra up tools pgadmin
 ```
 
 ⚠️ pgAdmin เห็น database ทั้งหมด — ใช้รหัสผ่านแข็งแรง และถ้าไม่ได้ใช้ประจำ
-ปิดไว้ (`docker compose --env-file .env -f docker/docker-compose.tools.yml stop pgadmin`) เปิดเฉพาะตอนต้องการก็ได้
+ปิดไว้ (`infra stop tools pgadmin`) เปิดเฉพาะตอนต้องการก็ได้

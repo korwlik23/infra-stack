@@ -16,7 +16,7 @@ DIR="projects/$NAME"
 [ -f "$DIR/docker-compose.yml" ] || { echo "ERROR: $DIR not found" >&2; exit 1; }
 [ -f "$TAR" ] || { echo "ERROR: $TAR not found" >&2; exit 1; }
 if [ -d "$DIR/src/.git" ]; then
-  echo "ERROR: $DIR/src เป็น git clone — ใช้ ./scripts/deploy.sh $NAME (git pull) แทน" >&2
+  echo "ERROR: $DIR/src เป็น git clone — ใช้ infra deploy $NAME (git pull) แทน" >&2
   exit 1
 fi
 
@@ -35,4 +35,4 @@ rm -rf "$DIR/src.prev"
 [ -d "$DIR/src" ] && mv "$DIR/src" "$DIR/src.prev"
 mv "$DIR/src.new" "$DIR/src"
 echo "✅ [load-src:$NAME] src/ ← $(basename "$TAR") (ของเดิมอยู่ที่ src.prev/)"
-echo "   ต่อไป: ./scripts/deploy.sh $NAME && ./scripts/smoke.sh $NAME"
+echo "   ต่อไป: infra deploy $NAME && infra check $NAME"

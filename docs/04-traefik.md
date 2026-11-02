@@ -12,7 +12,7 @@
 # 2. เตรียม cert storage
 touch services/traefik/acme.json && chmod 600 services/traefik/acme.json
 # 3. start (รวมอยู่ใน core stack — install.sh ทำข้อ 2-3 ให้แล้ว)
-docker compose --env-file .env -f docker/docker-compose.core.yml up -d
+infra up core
 ```
 
 รายละเอียด labels ดู [services/traefik/README.md](../services/traefik/README.md)
@@ -21,7 +21,7 @@ docker compose --env-file .env -f docker/docker-compose.core.yml up -d
 
 - DNS ต้องชี้มาเครื่องนี้**ก่อน** start ไม่งั้น Let's Encrypt challenge ล้ม
   (โดน rate limit ได้ถ้าพลาดซ้ำ ๆ — 5 ครั้ง/ชั่วโมง/โดเมน) — `install.sh` เช็คของ core ให้แล้ว
-  stack อื่นเช็คเองก่อน start: `./scripts/check-dns.sh monitoring` (หรือ `tools` / `messaging` / `storage`)
+  stack อื่นเช็คเองก่อน start: `infra dns monitoring` (หรือ `tools` / `messaging` / `storage`)
 - ถ้าใช้ Cloudflare Proxy (ส้ม): ตั้ง SSL mode = **Full (strict)** ดู [11-cloudflare.md](11-cloudflare.md)
 - หน้า Traefik dashboard, Netdata, Dozzle และ Redis Insight ใช้ basicauth กลาง
   `dashboard-auth@file` — `install.sh` สร้างไฟล์ `services/traefik/dynamic/auth.yml` (นอก Git)
@@ -54,7 +54,7 @@ ERR ... client version 1.24 is too old. Minimum supported API version is 1.40
 
 ```bash
 docker compose --env-file .env -f docker/docker-compose.core.yml pull
-docker compose --env-file .env -f docker/docker-compose.core.yml up -d
+infra up core
 ```
 
 **วิธีแยกปัญหาแบบนี้เร็ว ๆ:** ยิงตรงเข้า Traefik ข้าม Cloudflare —
@@ -72,4 +72,4 @@ docker compose --env-file .env -f docker/docker-compose.core.yml up -d
 2. ยังไม่ใช้ service นั้น → ปิด router: แก้ compose เป็น `traefik.enable=false` แล้ว up -d
 
 **กฎ:** เปิด service ที่มี traefik labels เมื่อไหร่ → สร้าง DNS record ทันทีทุกครั้ง
-แล้วเช็คด้วย `./scripts/check-dns.sh <stack>` ก่อน `up -d` (บอกว่าขาด record ตัวไหน)
+แล้วเช็คด้วย `infra dns <stack>` ก่อน `up -d` (บอกว่าขาด record ตัวไหน)

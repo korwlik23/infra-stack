@@ -13,7 +13,7 @@ Cache / Queue / Session กลางของทุก project — ต่อผ�
 
 ```bash
 # จาก repo root — Redis อยู่ใน database stack
-docker compose --env-file .env -f docker/docker-compose.database.yml up -d redis
+infra up database redis
 docker exec -it redis sh -c 'redis-cli -a "$REDIS_PASSWORD" ping'   # → PONG
 ```
 
