@@ -194,10 +194,11 @@ cmd_cron() {
   local -A line=(
     [auto-deploy]="*/2 * * * * $ROOT/scripts/auto-deploy.sh >> $ROOT/logs/auto-deploy.log 2>&1"
     [backup]="0 3 * * * $ROOT/scripts/backup.sh >> $ROOT/logs/backup.log 2>&1"
+    [cleanup]="0 4 * * * $ROOT/scripts/cleanup.sh >> $ROOT/logs/cleanup.log 2>&1"
   )
   cur="$(crontab -l 2>/dev/null || true)"
   echo "── cron ของ $(id -un)"
-  for job in auto-deploy backup; do
+  for job in auto-deploy backup cleanup; do
     if grep -q "scripts/$job.sh" <<<"$cur"; then
       echo "  ✅ $job"
     else
@@ -205,10 +206,11 @@ cmd_cron() {
       missing+=("${line[$job]}")
     fi
   done
-  [ ${#missing[@]} -gt 0 ] || { echo "ครบแล้ว — ดูผล: infra logs auto-deploy · infra logs backup"; return 0; }
+  [ ${#missing[@]} -gt 0 ] || { echo "ครบแล้ว — ดูผล: infra logs auto-deploy · infra logs backup · infra logs cleanup"; return 0; }
   echo ""
   echo "  auto-deploy = เช็ค git ทุก 2 นาที → push แล้วขึ้นเว็บเอง (docs/19)"
   echo "  backup      = ทุกคืน 03:00 (docs/13)"
+  echo "  cleanup     = ทุกคืน 04:00 ล้าง build cache / image <none> / container ค้าง (ไม่แตะ volume)"
   read -r -p "ตั้งที่ยังขาดเลยไหม? [Y/n] " ans || ans=n
   [[ ! "$ans" =~ ^[Nn] ]] || { echo "ยกเลิก"; return 1; }
   mkdir -p logs
@@ -302,7 +304,7 @@ cmd_rollback() {
 cmd_logs() {
   local name="${1:-}"
   case "$name" in
-    auto-deploy|backup)
+    auto-deploy|backup|cleanup)
       [ -f "logs/$name.log" ] || die "ยังไม่มี logs/$name.log — ตั้ง cron ก่อน: infra cron"
       exec tail -n 50 -f "logs/$name.log" ;;
     install)
@@ -468,8 +470,8 @@ usage() {
   stop <stack> [service…]       หยุด stack หรือบาง service
   update [stack|all]            pull image ใหม่ของ stack
   dns [stack|โดเมน…]            เช็ค DNS record ชี้มาเครื่องนี้ (ไม่ใส่ = ทุกอย่างที่เปิดอยู่)
-  logs <container|auto-deploy|backup|install>   log ของ container หรือของ cron / ติดตั้ง
-  cron                          ตั้ง auto-deploy + backup รายคืน (ครั้งเดียวต่อเครื่อง)
+  logs <container|auto-deploy|backup|cleanup|install>   log ของ container หรือของ cron / ติดตั้ง
+  cron                          ตั้ง auto-deploy + backup + cleanup รายคืน (ครั้งเดียวต่อเครื่อง)
   completion                    ติดตั้ง Tab completion (เครื่องที่ติดตั้งก่อน v2.13)
 
 backup
