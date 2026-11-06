@@ -58,7 +58,7 @@ Three layers:
 - **Zero-downtime deployment** — rolling deploy + healthcheck gate + `rollback.sh`
 - Project templates (Laravel, Next.js, Go, n8n, AI Worker) + `create-project.sh` + `setup-git.sh` (deploy key + clone)
 - คำสั่ง `infra` — `infra deploy myapp`, `infra env myapp`, `infra up tools`, `infra psql`, … จากทุกโฟลเดอร์ + Tab completion
-- Full documentation under `docs/` (00–26)
+- Full documentation under `docs/` (00–29)
 
 ## Repository Structure
 
@@ -66,7 +66,7 @@ Three layers:
 infra-stack/
 ├── prepare.sh       # ช่วง A (root): user deploy + Docker + ล็อกเครื่อง → ต่อช่วง B ให้
 ├── install.sh       # ช่วง B (deploy): ถามโดเมน → database / monitoring / n8n → DNS → HTTPS
-├── docs/            # คู่มือทั้งหมด (00-introduction … 26-new-project)
+├── docs/            # คู่มือทั้งหมด (00-introduction … 29-deploy-go)
 ├── docker/          # Stack aggregation (core / database / monitoring / tools / messaging / storage)
 ├── services/        # หนึ่ง service = หนึ่งโฟลเดอร์ = หนึ่ง docker-compose.yml
 ├── monitoring/      # Prometheus config, alerts, Grafana dashboards
@@ -149,8 +149,9 @@ Installation checklist in [TODO.md](TODO.md).
 ## Versioning
 
 Infrastructure is versioned like software — see [CHANGELOG.md](CHANGELOG.md).
-Current: **v2.13.0** — คำสั่ง `infra` ตัวเดียวทำงานประจำได้ทั้งหมด (`infra deploy`, `infra env`,
-`infra up`, `infra cron`, …) พิมพ์จากทุกโฟลเดอร์ + กด Tab เติมคำ — พิมพ์ `infra` ดูรายการ
+Current: **v2.14.0** — phpMyAdmin ที่ `https://mysql.<BASE_DOMAIN>` (`infra up tools phpmyadmin`)
+และ `infra up <stack> <service…>` เช็ค DNS เฉพาะ service ที่ระบุ · คำสั่ง `infra` ตัวเดียวทำงานประจำได้ทั้งหมด
+(`infra deploy`, `infra env`, `infra up`, `infra cron`, …) — พิมพ์ `infra` ดูรายการ
 
 ## License
 

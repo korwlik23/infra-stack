@@ -5,6 +5,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
 
 ## [Unreleased]
 
+### Docs
+- README หัวข้อ Versioning บอกเวอร์ชันปัจจุบันเป็น v2.14.0 ให้ตรง `VERSION` · README + GUIDE บอกช่วงคู่มือเป็น 00–29
+
 ## [2.14.0] - 2026-11-02
 
 ### Added

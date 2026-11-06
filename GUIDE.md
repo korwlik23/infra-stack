@@ -77,7 +77,7 @@ curl -fsSL https://raw.githubusercontent.com/korwlik23/infra-stack/main/prepare.
 infra-stack/
 ├── prepare.sh        ← จุดเริ่มต้น รันตัวนี้บนเครื่องใหม่ (แล้วมันเรียก install.sh ต่อให้)
 ├── TODO.md           ← checklist งานหลังติดตั้ง
-├── docs/             ← คู่มือทุกเรื่อง เรียงเป็นบท 00–26 (เริ่มที่ 00)
+├── docs/             ← คู่มือทุกเรื่อง เรียงเป็นบท 00–29 (เริ่มที่ 00)
 ├── services/         ← "พิมพ์เขียว" ของแต่ละโปรแกรมข้างบน (1 ตัว = 1 โฟลเดอร์)
 ├── docker/           ← ตัวรวมพิมพ์เขียวเป็นชุดๆ (core / database / monitoring / ...)
 ├── scripts/          ← คำสั่งสำเร็จรูป: ติดตั้ง, backup, deploy, ย้อนเวอร์ชัน
