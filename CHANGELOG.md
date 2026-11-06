@@ -5,6 +5,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
 
 ## [Unreleased]
 
+### Added
+- `infra new <ชื่อ> <laravel|nextjs|go> --external-db` — database อยู่เครื่องอื่น (ต่อผ่าน IP / managed DB):
+  ไม่สร้าง database ในเครื่อง · ค่าเชื่อมต่อใน `.env` (`DATABASE_URL` / `DB_HOST`…) เป็น `CHANGE_ME` ให้ตั้งด้วย `infra env`
+  · เตือน firewall / TLS / backup ตอนสร้าง · docs/26 หัวข้อ "Database ภายนอก"
+
 ### Fixed
 - `infra deploy` มือที่รันตอน auto-deploy (cron) กำลัง deploy project เดียวกัน → `git pull` / build / `docker rollout` / migrate
   ซ้อนกัน · `deploy.sh` ถือ lock ต่อ project (`projects/<ชื่อ>/.deploy.lock`): ตัวที่มาทีหลังรอจนตัวแรกจบ

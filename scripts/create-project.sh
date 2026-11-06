@@ -1,26 +1,31 @@
 #!/usr/bin/env bash
 # สร้าง project ใหม่จาก template
-# ใช้: ./scripts/create-project.sh <name> <laravel|nextjs|go|n8n|ai-worker> [--mysql]
-#   --mysql  ใช้ MySQL แทน PostgreSQL (laravel/nextjs/go) — เปิด MySQL stack ให้ถ้ายังไม่เปิด
-#            แล้วสร้าง database + user ของ project (สิทธิ์เฉพาะ database ตัวเอง)
+# ใช้: ./scripts/create-project.sh <name> <laravel|nextjs|go|n8n|ai-worker> [--mysql|--external-db]
+#   --mysql        ใช้ MySQL แทน PostgreSQL (laravel/nextjs/go) — เปิด MySQL stack ให้ถ้ายังไม่เปิด
+#                  แล้วสร้าง database + user ของ project (สิทธิ์เฉพาะ database ตัวเอง)
+#   --external-db  database อยู่เครื่องอื่น (ต่อผ่าน IP / managed DB) — ไม่สร้าง database ในเครื่อง
+#                  ค่าเชื่อมต่อใน .env เป็น CHANGE_ME ให้ตั้งเองด้วย infra env <name>
 # ผลลัพธ์: projects/<name>/ พร้อม docker-compose.yml + .env (แก้ค่าแล้ว up ได้เลย)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-USAGE="usage: create-project.sh <name> <laravel|nextjs|go|n8n|ai-worker> [--mysql]"
+USAGE="usage: create-project.sh <name> <laravel|nextjs|go|n8n|ai-worker> [--mysql|--external-db]"
 NAME="${1:?$USAGE}"
 TEMPLATE="${2:?$USAGE}"
 USE_MYSQL=0
+EXTERNAL_DB=0
 case "${3:-}" in
   --mysql) USE_MYSQL=1 ;;
+  --external-db) EXTERNAL_DB=1 ;;
   "") ;;
   *) echo "$USAGE" >&2; exit 1 ;;
 esac
+[ -z "${4:-}" ] || { echo "$USAGE" >&2; echo "(--mysql กับ --external-db ใช้พร้อมกันไม่ได้)" >&2; exit 1; }
 
 [[ "$NAME" =~ ^[a-z0-9-]+$ ]] || { echo "ERROR: name must be lowercase [a-z0-9-]" >&2; exit 1; }
 [ -d "templates/$TEMPLATE" ] || { echo "ERROR: unknown template '$TEMPLATE' (have: $(ls templates))" >&2; exit 1; }
-if [ "$USE_MYSQL" = 1 ] && ! [[ "$TEMPLATE" =~ ^(laravel|nextjs|go)$ ]]; then
-  echo "ERROR: --mysql ใช้ได้กับ template laravel / nextjs / go เท่านั้น" >&2; exit 1
+if [ "$USE_MYSQL$EXTERNAL_DB" != 00 ] && ! [[ "$TEMPLATE" =~ ^(laravel|nextjs|go)$ ]]; then
+  echo "ERROR: ${3} ใช้ได้กับ template laravel / nextjs / go เท่านั้น" >&2; exit 1
 fi
 # ยอมรับโฟลเดอร์ที่มีอยู่แล้ว (เช่น clone src/ ไว้ก่อน) — แต่ห้ามมี docker-compose.yml ซ้ำ
 if [ -f "projects/$NAME/docker-compose.yml" ]; then
@@ -145,8 +150,32 @@ SQL
   echo "✅ MySQL database '$db' + user '$user' (รหัสอยู่ใน projects/$NAME/.env)"
 }
 
+# ── External DB (--external-db) — database อยู่เครื่องอื่น ──
+# ไม่สร้างอะไรใน postgres/mysql กลาง · ล้างค่าที่ชี้ไป container ในเครื่อง (postgres / mysql) เป็น CHANGE_ME
+# ให้ deploy ล้มชัด ๆ ถ้ายังไม่ตั้ง ดีกว่าต่อ database ในเครื่องเงียบ ๆ
+setup_external_db() {
+  local penv="projects/$NAME/.env" note
+  [ -f "$penv" ] || return 0
+  note="# database ภายนอก (--external-db) — ใส่ IP/host จริง · ข้าม internet ให้เปิด TLS (sslmode=require)"
+  sed -i -e 's|^DB_HOST=.*|DB_HOST=CHANGE_ME|' -e 's|^DB_DATABASE=.*|DB_DATABASE=CHANGE_ME|' \
+    -e 's|^DB_USERNAME=.*|DB_USERNAME=CHANGE_ME|' -e 's|^DB_PASSWORD=.*|DB_PASSWORD=CHANGE_ME|' \
+    -e 's|^DATABASE_URL=.*|DATABASE_URL=CHANGE_ME|' "$penv"
+  if grep -qE '^DB_CONNECTION=' "$penv"; then
+    sed -i "0,/^DB_CONNECTION=/s||$note\n&|" "$penv"          # Laravel: DB_HOST/DB_DATABASE/…
+  else
+    # nextjs/go: DB_DATABASE มีไว้บอกว่าจะสร้าง database ในเครื่องชื่ออะไร — ไม่ใช้แล้ว
+    sed -i -e '/^DB_DATABASE=/d' -e '/create-project.sh สร้าง database/d' "$penv"
+    sed -i "0,/^DATABASE_URL=/s||$note\n&|" "$penv"
+  fi
+  echo "✅ database ภายนอก — ไม่สร้าง database ในเครื่อง"
+  echo "   ตั้งค่าเชื่อมต่อ (ตอนนี้เป็น CHANGE_ME): infra env $NAME"
+  echo "   ⚠️  ฝั่ง database: เปิด firewall ให้เฉพาะ IP ของเครื่องนี้ · ใช้ TLS · backup เอง (infra backup ไม่รวม database ภายนอก)"
+}
+
 if [ "$USE_MYSQL" = 1 ]; then
   setup_mysql_db
+elif [ "$EXTERNAL_DB" = 1 ]; then
+  setup_external_db
 else
   ensure_project_db "projects/$NAME/.env"
 fi

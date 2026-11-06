@@ -53,7 +53,7 @@ _infra() {
       if [ "$n" = 3 ]; then
         for d in "$root"/templates/*/; do d="${d%/}"; words="$words ${d##*/}"; done
       elif [ "$n" = 4 ]; then
-        words="--mysql"
+        words="--mysql --external-db"
       fi ;;
     restore)
       if [ "$n" = 2 ]; then

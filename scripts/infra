@@ -449,7 +449,8 @@ usage() {
 
 เว็บของคุณ (project)
   list                          ทุก project: โดเมน · container ที่รัน · commit ที่ขึ้นเว็บ
-  new <ชื่อ> <template> [--mysql] สร้าง project (laravel / nextjs / go / n8n / ai-worker)
+  new <ชื่อ> <template> [--mysql|--external-db]
+                                สร้าง project (laravel / nextjs / go / n8n / ai-worker)
   git <p> [owner/repo] [branch] ต่อ GitHub → push แล้วขึ้นเว็บเอง (ไม่ใส่ repo = clone เข้า src/ เองแล้ว)
   deploy <p> [--seed|--no-seed] build + migrate + ขึ้นเว็บ (เว็บไม่ดับ)
   env <p>                       แก้ .env แล้วใช้ค่าใหม่ให้เลย

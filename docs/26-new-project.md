@@ -41,6 +41,7 @@ cd /opt/infra-stack
 #    database stack ต้องรันอยู่ — script สร้าง database <ชื่อ>_db ให้ด้วย
 infra new <ชื่อ> laravel
 #    app เขียนมากับ MySQL (เช่น XAMPP) → เติม --mysql ท้ายคำสั่ง (docs/27-mysql.md)
+#    database อยู่เครื่องอื่น (ต่อผ่าน IP / managed DB) → เติม --external-db (หัวข้อ "Database ภายนอก" ด้านล่าง)
 
 # 2) clone repo เข้า src/ + เปิด build + ตั้ง APP_IMAGE (docs/19-cicd.md)
 #    repo private → script โชว์ deploy key + ลิงก์ ให้ไปกด Add ใน GitHub แล้วรันคำสั่งเดิมซ้ำ
@@ -115,6 +116,30 @@ auto-deploy (cron ทุก 2 นาที — เปิดครั้งเด
 
 อยาก deploy เดี๋ยวนั้นไม่รอ cron: `infra deploy <ชื่อ>`
 พลาดต้องถอย: `infra rollback <ชื่อ>`
+
+---
+
+## Database ภายนอก (`--external-db`)
+
+app อยู่บนเครื่องนี้ (auto-deploy + HTTPS ตามปกติ) แต่ database อยู่ที่อื่น — VPS อีกเครื่อง หรือ managed DB
+
+```bash
+infra new api nextjs --external-db    # ไม่สร้าง database ในเครื่อง · ค่าเชื่อมต่อเป็น CHANGE_ME
+infra env api                         # ใส่ค่าจริง (ด้านล่าง)
+```
+
+| template | ตั้งค่าไหน |
+|----------|-----------|
+| `nextjs` / `go` | `DATABASE_URL=postgresql://user:pass@203.0.113.10:5432/mydb?sslmode=require` |
+| `laravel` | `DB_CONNECTION` · `DB_HOST` (IP) · `DB_PORT` · `DB_DATABASE` · `DB_USERNAME` · `DB_PASSWORD` |
+
+- **migrate ตอน deploy ยังใช้ได้** (`DEPLOY_MIGRATE=1`) — container ออก internet ได้ migrate จะรันกับ database ภายนอก · ไม่อยากให้รัน: `DEPLOY_MIGRATE=0`
+- **firewall ฝั่ง database** — เปิด 5432/3306 ให้เฉพาะ IP ของเครื่องนี้ (managed DB: ใส่ใน allowlist) ห้ามเปิดทั้งโลก
+- **TLS** — ข้อมูลวิ่งข้าม internet: `sslmode=require` (Postgres) / `ssl-mode=REQUIRED` (MySQL)
+- **backup** — `infra backup` สำรองเฉพาะ database ในเครื่อง **database ภายนอกต้อง backup ฝั่งนั้นเอง**
+- **healthcheck** — `HEALTHCHECK_PATH` อย่า query database: database สะดุดแป๊บเดียว ทุก replica unhealthy → Traefik ตอบ 503 ทั้งเว็บ
+- **connection** — rolling deploy รัน 2 replica คู่กันชั่วคราว = connection 2 เท่า · ตั้ง pool ให้พอกับ `max_connections`
+- **latency** — ทุก query ข้ามเครื่อง ให้ database อยู่ region/datacenter เดียวกับ VPS
 
 ---
 

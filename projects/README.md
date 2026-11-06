@@ -3,7 +3,7 @@
 ที่วาง project ที่ deploy จริงบนเครื่องนี้ — สร้างด้วย:
 
 ```bash
-infra new <name> <laravel|nextjs|go|n8n|ai-worker> [--mysql]
+infra new <name> <laravel|nextjs|go|n8n|ai-worker> [--mysql|--external-db]
 infra git <name> <github-user>/<repo>   # เชื่อม GitHub → auto-deploy
 ```
 
