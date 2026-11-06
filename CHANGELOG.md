@@ -5,6 +5,23 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
 
 ## [Unreleased]
 
+### Added — ด่านกันพังรอบ deploy (docs/25)
+- ตรวจ `.env` ก่อน build: key ที่เพิ่มใหม่ใน `src/.env.example` ตั้งแต่ deploy ล่าสุดแต่ยังไม่มีใน `.env` ของ project
+  → หยุด (เว็บเดิมอยู่) · key เก่าที่ขาดแค่เตือน · `DATABASE_URL`/`DB_HOST` = `CHANGE_ME` หยุด · `DEPLOY_ENV_IGNORE` / `DEPLOY_ENV_CHECK=0`
+- smoke test (`scripts/smoke.sh`) อัตโนมัติหลังสลับเวอร์ชัน ล้มรอบแรกลองซ้ำหลัง 20s · `DEPLOY_SMOKE=0` / `DEPLOY_SMOKE_PATHS`
+- `DEPLOY_AUTO_ROLLBACK=1` — smoke ล้ม → ถอยกลับ `:previous` ให้เอง (template laravel / nextjs / go เปิดให้)
+  · `rollback.sh … --yes` ไม่ถามยืนยัน
+- Telegram แจ้งทุกผลจาก `deploy.sh` (ทั้ง deploy มือและ auto): ✅ สำเร็จ (`NOTIFY_DEPLOY_SUCCESS=0` ปิด) · ❌ ล้มตอนขั้นไหน
+  + เว็บยังเป็นเวอร์ชันเดิมไหม · ⚠️ ขึ้นเว็บแล้วแต่ smoke ล้ม · ↩️ rollback แล้ว — บอก commit / คน commit / มือหรือ auto
+- auto-deploy แจ้ง `git fetch` ล้มครั้งเดียว + ตอนกลับมาได้ (เดิมลงแค่ log — auto-deploy หยุดเงียบ)
+- `infra list` แสดง ⚠️ smoke ล้ม / 🔌 fetch ล้ม
+
+### Changed
+- `deploy.sh` ไม่ fallback เป็น restart แบบเว็บดับอีกแล้ว: ตั้ง `ROLLOUT_SERVICE` แต่ไม่มี docker-rollout + เว็บรันอยู่ → หยุด
+  · ยอมดับ: `DEPLOY_ALLOW_DOWNTIME=1 infra deploy <ชื่อ>`
+- deploy มือที่ล้มก็จำ `.deploy-failed` (เดิมเฉพาะ auto) — auto-deploy ไม่ลอง commit นั้นซ้ำทุก 2 นาที
+- exit code ของ `deploy.sh`: 3 = ขึ้นเว็บแล้วแต่ smoke ล้ม · 4 = rollback แล้ว
+
 ### Added
 - `infra new <ชื่อ> <laravel|nextjs|go> --external-db` — database อยู่เครื่องอื่น (ต่อผ่าน IP / managed DB):
   ไม่สร้าง database ในเครื่อง · ค่าเชื่อมต่อใน `.env` (`DATABASE_URL` / `DB_HOST`…) เป็น `CHANGE_ME` ให้ตั้งด้วย `infra env`

@@ -236,10 +236,14 @@ cmd_list() {
     src="projects/$p"
     if [ ! -d "$src/src/.git" ]; then
       state="ไม่ได้ต่อ git (infra git $p <owner/repo>)"
+    elif [ -f "$src/.deploy-fetch-failed" ]; then
+      state="🔌 git fetch ล้มตั้งแต่ $(cat "$src/.deploy-fetch-failed") — auto-deploy หยุด"
     elif [ -f "$src/.deploy-waiting" ]; then
       state="⏸ รอตอบเรื่อง seed — infra deploy $p"
     elif [ -f "$src/.deploy-failed" ]; then
       state="❌ $(cut -c1-7 "$src/.deploy-failed") ล้ม — infra logs auto-deploy"
+    elif [ -f "$src/.deploy-smoke-failed" ]; then
+      state="⚠️ $(cut -c1-7 "$src/.deploy-commit") ขึ้นแล้วแต่ smoke ล้ม — infra check $p"
     elif [ -f "$src/.deploy-commit" ]; then
       state="$(cut -c1-7 "$src/.deploy-commit")"
     else

@@ -10,8 +10,10 @@ cd "$(dirname "$0")/.."
 
 # tag ที่ใช้บ่อยสุดคือ "previous" — deploy.sh เก็บเวอร์ชันก่อนหน้าไว้ให้อัตโนมัติ
 # เช่น: ./scripts/rollback.sh app previous
-NAME="${1:?usage: rollback.sh <project> <image-tag>  (เช่น tag=previous)}"
-TAG="${2:?usage: rollback.sh <project> <image-tag>  (เช่น tag=previous)}"
+# --yes = ไม่ถามยืนยัน (deploy.sh ใช้ตอน smoke ล้ม + DEPLOY_AUTO_ROLLBACK=1)
+NAME="${1:?usage: rollback.sh <project> <image-tag> [--yes]  (เช่น tag=previous)}"
+TAG="${2:?usage: rollback.sh <project> <image-tag> [--yes]  (เช่น tag=previous)}"
+YES="${3:-}"
 DIR="projects/$NAME"
 [ -f "$DIR/.env" ] || { echo "ERROR: $DIR/.env not found" >&2; exit 1; }
 
@@ -25,8 +27,10 @@ TARGET="$BASE:$TAG"
 [ "$TARGET" != "$CURRENT" ] || { echo "ERROR: APP_IMAGE ใช้ tag '$TAG' อยู่แล้ว" >&2; exit 1; }
 
 echo "[rollback:$NAME] $CURRENT ← $TARGET"
-read -rp "Type 'rollback' to continue: " CONFIRM
-[ "$CONFIRM" = "rollback" ] || { echo "aborted"; exit 1; }
+if [ "$YES" != "--yes" ]; then
+  read -rp "Type 'rollback' to continue: " CONFIRM
+  [ "$CONFIRM" = "rollback" ] || { echo "aborted"; exit 1; }
+fi
 
 # image เป้าหมายต้องอยู่บนเครื่อง — ไม่มี (เช่น tag เวอร์ชันบน registry) ค่อย pull
 docker image inspect "$TARGET" >/dev/null 2>&1 || docker pull "$TARGET"

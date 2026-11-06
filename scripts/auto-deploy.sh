@@ -10,6 +10,9 @@
 #   แจ้งใน log + Telegram (ถ้าตั้ง — lib/notify.sh) แล้วให้คนรัน ./scripts/deploy.sh <project>
 #   (ถาม seed y/N · หรือ --seed / --no-seed)
 #
+# แจ้ง Telegram: ผล deploy ทุกแบบ deploy.sh แจ้งเอง (สำเร็จ / smoke ล้ม / rollback / ล้ม)
+#   ที่นี่แจ้งเฉพาะ: รอคำตอบเรื่อง seed · git fetch ล้ม (ครั้งเดียวจนกว่าจะกลับมาได้)
+#
 # ตั้ง cron (ทุก 2 นาที — log อยู่ในเครื่อง ไม่ต้องใช้ sudo):
 #   */2 * * * * /opt/infra-stack/scripts/auto-deploy.sh >> /opt/infra-stack/logs/auto-deploy.log 2>&1
 set -uo pipefail
@@ -50,7 +53,22 @@ for SRC in projects/*/src; do
   DIR="$(dirname "$SRC")"
   NAME="$(basename "$DIR")"
 
-  git -C "$SRC" fetch --quiet || { echo "[auto-deploy] $(date '+%F %T') $NAME: fetch ล้ม (deploy key / network?)"; continue; }
+  # fetch ล้ม = auto-deploy ของ project นี้หยุดเงียบ ๆ → แจ้งครั้งแรกที่ล้ม + ตอนกลับมาได้ (ไม่แจ้งทุก 2 นาที)
+  if ! ERR="$(git -C "$SRC" fetch --quiet 2>&1)"; then
+    echo "[auto-deploy] $(date '+%F %T') $NAME: fetch ล้ม (deploy key / network?) — $(printf '%s' "$ERR" | tail -1)"
+    if [ ! -f "$DIR/.deploy-fetch-failed" ]; then
+      date '+%F %T' > "$DIR/.deploy-fetch-failed"
+      notify "🔌 $NAME: git fetch ล้ม — auto-deploy หยุดจนกว่าจะแก้
+$(printf '%s' "$ERR" | tail -2 | cut -c1-200)
+deploy key ถูกลบ / repo ย้าย / network? ตรวจ: git -C $ROOT/$SRC fetch"
+    fi
+    continue
+  fi
+  if [ -f "$DIR/.deploy-fetch-failed" ]; then
+    rm -f "$DIR/.deploy-fetch-failed"
+    echo "[auto-deploy] $(date '+%F %T') $NAME: fetch กลับมาได้แล้ว"
+    notify "🔌 $NAME: git fetch กลับมาได้แล้ว — auto-deploy ทำงานต่อ"
+  fi
   REMOTE="$(git -C "$SRC" rev-parse '@{u}' 2>/dev/null)" || continue
   # เทียบกับ commit ที่ขึ้นเว็บแล้ว (deploy.sh เขียน) — ไม่มีไฟล์ = ยังไม่เคย deploy จาก git → ถือว่า HEAD
   DEPLOYED="$(cat "$DIR/.deploy-commit" 2>/dev/null || git -C "$SRC" rev-parse HEAD)"
@@ -79,12 +97,14 @@ ssh แล้วรัน: infra deploy $NAME"
   fi
 
   echo "[auto-deploy] $(date '+%F %T') $NAME: ${DEPLOYED:0:7} → ${REMOTE:0:7} — deploying…"
-  if ./scripts/deploy.sh "$NAME"; then
-    echo "[auto-deploy] $(date '+%F %T') $NAME: ✅ ${REMOTE:0:7}"
-  else
-    echo "$REMOTE" > "$DIR/.deploy-failed"
-    echo "[auto-deploy] $(date '+%F %T') $NAME: ❌ deploy ${REMOTE:0:7} ล้ม — เว็บยังเป็นเวอร์ชันเดิม · ดู log ด้านบน"
-    echo "               แก้แล้ว push ใหม่ หรือ: infra deploy $NAME"
-    notify "❌ $NAME deploy ${REMOTE:0:7} ล้ม — เว็บยังเป็นเวอร์ชันเดิม · ดู /opt/infra-stack/logs/auto-deploy.log"
-  fi
+  # deploy.sh แจ้ง Telegram + จำ .deploy-failed เอง — ที่นี่แค่สรุปลง log
+  RC=0
+  DEPLOY_TRIGGER=auto ./scripts/deploy.sh "$NAME" || RC=$?
+  case "$RC" in
+    0) echo "[auto-deploy] $(date '+%F %T') $NAME: ✅ ${REMOTE:0:7}" ;;
+    3) echo "[auto-deploy] $(date '+%F %T') $NAME: ⚠️ ${REMOTE:0:7} ขึ้นเว็บแล้วแต่ smoke ล้ม — infra check $NAME / infra rollback $NAME" ;;
+    4) echo "[auto-deploy] $(date '+%F %T') $NAME: ↩️ ${REMOTE:0:7} smoke ล้ม → rollback แล้ว · แก้แล้ว push ใหม่" ;;
+    *) echo "[auto-deploy] $(date '+%F %T') $NAME: ❌ deploy ${REMOTE:0:7} ล้ม · ดู log ด้านบน"
+       echo "               แก้แล้ว push ใหม่ หรือ: infra deploy $NAME" ;;
+  esac
 done

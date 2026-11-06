@@ -80,7 +80,8 @@ infra logs auto-deploy   # ดูผลแต่ละรอบ
 | commit ที่ล้มจำใน `.deploy-failed` | ไม่ลอง build ซ้ำทุก 2 นาที — รอ commit ใหม่ หรือ `deploy.sh` มือ (ผ่านแล้วล้างให้) |
 | push ที่แก้ seeder (project เดิม) → **seed เองเลย** | seeder ต้องรันซ้ำได้ (`firstOrCreate` / `updateOrCreate`) · `DEPLOY_AUTO_SEED=0` = ถามก่อน |
 | project ใหม่ยังไม่เคยตอบเรื่อง seed → **พักรอคำตอบ** | cron ถามใครไม่ได้ — ไม่ deploy แจ้งใน log + Telegram (ถ้าตั้ง) ครั้งเดียว → คนรัน `infra deploy <ชื่อ>` (ถาม y/N หรือ `--seed` / `--no-seed`) |
-| deploy ล้ม → แจ้ง Telegram | ตั้ง `NOTIFY_TELEGRAM_BOT_TOKEN` + `NOTIFY_TELEGRAM_CHAT_ID` ใน `.env` กลาง (ไม่ตั้ง = มีแค่ log) |
+| แจ้ง Telegram ทุกผล (สำเร็จ / ล้ม / smoke ล้ม / rollback / fetch ล้ม) | ตั้ง `NOTIFY_TELEGRAM_BOT_TOKEN` + `NOTIFY_TELEGRAM_CHAT_ID` ใน `.env` กลาง (ไม่ตั้ง = มีแค่ log) — docs/25 หัวข้อ "ด่านกันพังรอบ deploy" |
+| ตรวจ `.env` → smoke test → auto-rollback | key ใหม่ที่ลืมใส่หยุดก่อน build · smoke ล้มหลังขึ้นเว็บ → ถอยให้เอง (`DEPLOY_AUTO_ROLLBACK=1`) |
 
 `deploy.sh` เป็น **zero-downtime rolling deploy** (เปิดตัวใหม่รอ healthy → drain ตัวเก่า → ถอด)
 ของพังไม่ได้รับ traffic — ดู [25-zero-downtime.md](25-zero-downtime.md)

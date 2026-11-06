@@ -30,6 +30,11 @@
 
 Plugin ติดตั้งโดย `install.sh` อยู่แล้ว (ไฟล์เดียวที่ `~/.docker/cli-plugins/docker-rollout`)
 
+ไม่มี plugin แต่ project ตั้ง `ROLLOUT_SERVICE` และเว็บรันอยู่ → `deploy.sh` **หยุด ไม่ deploy**
+(เดิม fallback เป็น `docker compose up -d` = ถอดตัวเก่าก่อนตัวใหม่พร้อม ไม่มี healthcheck gate)
+แก้: รัน `./install.sh` ซ้ำ · ยอมดับครั้งนี้: `DEPLOY_ALLOW_DOWNTIME=1 infra deploy <ชื่อ>`
+deploy ครั้งแรก (ยังไม่มี container) ทำต่อได้ตามปกติ
+
 ## เงื่อนไขที่ template จัดให้แล้ว
 
 | เงื่อนไข | สถานะ |
@@ -144,6 +149,56 @@ infra rollback app   # กลับเวอร์ชันก่อนหน้
 
 ⚠️ **migration ไม่ย้อนอัตโนมัติ** — ถ้าใช้ expand/contract ถูกต้อง โค้ดเก่าจะยัง
 อ่าน schema ใหม่ได้ → rollback โค้ดปลอดภัย (นี่คือเหตุผลที่ห้าม drop column ใน release เดียว)
+
+## 🛡️ ด่านกันพังรอบ deploy
+
+healthcheck กันได้แค่ "ตัวใหม่ boot ไม่ขึ้น" — `deploy.sh` มีด่านเพิ่มอีก 3 ชั้น ไม่ต้องใช้ GitHub Actions:
+
+```text
+git pull → [1] ตรวจ .env → build → migrate → rollout (healthcheck) → [2] smoke test → [3] auto-rollback
+```
+
+| ด่าน | ทำอะไร | ล้มแล้วเว็บเป็นยังไง |
+|------|--------|---------------------|
+| **1. ตรวจ .env** | key ที่ **เพิ่มใหม่** ใน `src/.env.example` ตั้งแต่ deploy ล่าสุด แต่ยังไม่มีใน `projects/<ชื่อ>/.env` → หยุดก่อน build · `DATABASE_URL`/`DB_HOST` = `CHANGE_ME` ก็หยุด | เวอร์ชันเดิม |
+| **2. smoke test** | `scripts/smoke.sh` หลังสลับ: container รัน/healthy, health path = 200, `/` < 500 ผ่าน Traefik, migration ไม่ค้าง (+ `DEPLOY_SMOKE_PATHS`) · ล้มรอบแรกรอ 20s ลองอีกรอบ | **ขึ้นเว็บแล้ว** → แจ้ง ⚠️ |
+| **3. auto-rollback** | smoke ล้ม + `DEPLOY_AUTO_ROLLBACK=1` → `rollback.sh <ชื่อ> previous --yes` แล้ว smoke ซ้ำ | เวอร์ชันก่อน (migration ไม่ย้อน) |
+
+key เก่าที่ขาด (app มี default) แค่เตือนใน log — ไม่งั้น project Laravel เดิมที่ `.env.example` มี key เป็นสิบจะ deploy ไม่ได้
+
+ค่าใน `projects/<ชื่อ>/.env` (template ใหม่ตั้ง `DEPLOY_AUTO_ROLLBACK=1` ให้แล้ว · project เดิมเพิ่มเอง):
+
+| ค่า | default | ความหมาย |
+|-----|---------|---------|
+| `DEPLOY_AUTO_ROLLBACK` | ปิด | `1` = smoke ล้มแล้วถอยให้เอง |
+| `DEPLOY_SMOKE` | เปิด | `0` = ไม่รัน smoke หลัง deploy |
+| `DEPLOY_SMOKE_PATHS` | ว่าง | path เพิ่ม คั่นด้วยช่องว่าง ต้องตอบ < 500 เช่น `/login /api/ping` |
+| `DEPLOY_ENV_CHECK` | เปิด | `0` = ไม่ตรวจ `.env.example` |
+| `DEPLOY_ENV_IGNORE` | ว่าง | key ที่เครื่องนี้ไม่ต้องตั้ง คั่นด้วยช่องว่าง |
+| `DEPLOY_ALLOW_DOWNTIME` | ปิด | `1` = ไม่มี docker-rollout ก็ deploy (เว็บดับสั้น ๆ) |
+
+### แจ้ง Telegram ทุกผล
+
+ตั้ง `NOTIFY_TELEGRAM_BOT_TOKEN` + `NOTIFY_TELEGRAM_CHAT_ID` ใน `.env` กลาง — ทุกข้อความบอก commit, คน commit, ข้อความ commit และ deploy มือหรือ auto
+
+| ข้อความ | เมื่อไหร่ |
+|---------|----------|
+| ✅ deploy สำเร็จ | ทุกครั้ง (ปิด: `NOTIFY_DEPLOY_SUCCESS=0`) |
+| ❌ deploy ล้มตอน: `<ขั้น>` | pull / ตรวจ .env / build / migrate / rollout ล้ม — บอกว่าเว็บยังเป็นเวอร์ชันเดิมไหม |
+| ⚠️ ขึ้นเว็บแล้วแต่ smoke ล้ม | ไม่ได้เปิด auto-rollback → ตัดสินใจเอง: `infra rollback <ชื่อ>` |
+| ↩️ rollback แล้ว | smoke ล้ม + auto-rollback |
+| 🔌 git fetch ล้ม / กลับมาได้ | auto-deploy ดึงโค้ดไม่ได้ (deploy key หาย, repo ย้าย) — แจ้งครั้งเดียวจนกว่าจะหาย |
+| ⏸ รอคำตอบเรื่อง seed | เหมือนเดิม |
+
+`infra list` แสดงสถานะเดียวกัน (❌ ล้ม · ⚠️ smoke ล้ม · 🔌 fetch ล้ม · ⏸ รอตอบ)
+
+commit ที่ล้ม (รวมถูก rollback) จำใน `.deploy-failed` — auto-deploy ไม่ลองซ้ำ รอ commit ใหม่ หรือ `infra deploy <ชื่อ>`
+
+### ที่ด่านพวกนี้ยังจับไม่ได้
+
+- บั๊กที่ไม่ทำให้ health / หน้าแรก / path ใน `DEPLOY_SMOKE_PATHS` พัง — ใส่ path สำคัญเพิ่ม หรือใส่ test ใน Dockerfile (`RUN … test` ล้ม = build ล้ม)
+- error ฝั่ง browser ของ SPA (JS พังแต่ server ตอบ 200)
+- migration ที่ทำลายข้อมูล — rollback ย้อนโค้ดได้ ย้อนข้อมูลไม่ได้
 
 ## ข้อยกเว้น (ตัวที่ rolling ไม่ได้ — และไม่เป็นไร)
 
