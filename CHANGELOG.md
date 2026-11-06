@@ -5,6 +5,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
 
 ## [Unreleased]
 
+### Fixed
+- `infra deploy` มือที่รันตอน auto-deploy (cron) กำลัง deploy project เดียวกัน → `git pull` / build / `docker rollout` / migrate
+  ซ้อนกัน · `deploy.sh` ถือ lock ต่อ project (`projects/<ชื่อ>/.deploy.lock`): ตัวที่มาทีหลังรอจนตัวแรกจบ
+  · `auto-deploy.sh` เจอ project ที่กำลัง deploy อยู่ → ข้ามรอบนั้นแทนการต่อคิว
+
 ### Docs
 - README หัวข้อ Versioning บอกเวอร์ชันปัจจุบันเป็น v2.14.0 ให้ตรง `VERSION` · README + GUIDE บอกช่วงคู่มือเป็น 00–29
 

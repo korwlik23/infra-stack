@@ -36,6 +36,16 @@ fi
 
 cd "$DIR"
 
+# ── lock ต่อ project — deploy ตัวเดียวกันทีละครั้ง ─────
+# infra deploy มือ ชนกับ auto-deploy (cron) → git pull / build / docker rollout / migrate ซ้อนกัน
+# ตัวที่มาทีหลังรอจนตัวแรกจบ แล้ว deploy ต่อ (project อื่นไม่ต้องรอ — lock แยกต่อโฟลเดอร์)
+# fd 8: auto-deploy.sh ใช้ fd 9 เป็น lock ของตัวเอง (สืบทอดมาถึง process นี้)
+exec 8>.deploy.lock
+if ! flock -n 8; then
+  echo "[deploy:$NAME] ⏳ มี deploy ของ $NAME กำลังรันอยู่ — รอให้จบก่อน…"
+  flock 8
+fi
+
 ROLLOUT_SERVICE="$(grep -E '^ROLLOUT_SERVICE=' .env 2>/dev/null | head -1 | cut -d= -f2- || true)"
 APP_IMAGE="$(grep -E '^APP_IMAGE=' .env 2>/dev/null | head -1 | cut -d= -f2- || true)"
 

@@ -57,6 +57,12 @@ for SRC in projects/*/src; do
   [ "$REMOTE" = "$DEPLOYED" ] && continue
   # commit นี้ deploy ล้มไปแล้ว — ไม่ลองซ้ำทุก 2 นาที รอ commit ใหม่ (หรือ deploy มือ)
   [ "$(cat "$DIR/.deploy-failed" 2>/dev/null)" = "$REMOTE" ] && continue
+  # มีคน deploy มืออยู่ (deploy.sh ถือ lock) → ไม่ต่อคิว รอบถัดไปค่อยเทียบใหม่
+  # (deploy มือจะ pull ไปถึง commit ล่าสุดอยู่แล้ว — ส่วนใหญ่รอบหน้าไม่มีอะไรต้องทำ)
+  if [ -f "$DIR/.deploy.lock" ] && ! flock -n "$DIR/.deploy.lock" true; then
+    echo "[auto-deploy] $(date '+%F %T') $NAME: ⏳ มี deploy กำลังรันอยู่ — ข้ามรอบนี้"
+    continue
+  fi
 
   REASON="$(needs_answer "$DIR" "$SRC" "$DEPLOYED" "$REMOTE")"
   if [ -n "$REASON" ]; then
