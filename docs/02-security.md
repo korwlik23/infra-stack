@@ -150,3 +150,8 @@ Traefik (Go ≥ 1.24) เปิด MPTCP เอง → compose ของ Traefik
 
 ถ้าล็อกตัวเองออก: ใช้ VNC console ของ provider (Contabo CCP มีให้)
 แก้ `/etc/ssh/sshd_config` กลับแล้ว `systemctl restart ssh`
+
+## 🛡️ ตรวจซ้ำหลังติดตั้ง
+
+`infra audit` ตรวจทุกข้อในบทนี้ (และอีกหลายอย่าง — อัปเดต, ไฟล์ลับ, หน้าแอดมิน, cert, backup) แบบอ่านอย่างเดียว
+checklist เต็ม: [30-security-checklist.md](30-security-checklist.md)

@@ -58,7 +58,7 @@ Three layers:
 - **Zero-downtime deployment** — rolling deploy + healthcheck gate + `rollback.sh`
 - Project templates (Laravel, Next.js, Go, n8n, AI Worker) + `create-project.sh` + `setup-git.sh` (deploy key + clone)
 - คำสั่ง `infra` — `infra deploy myapp`, `infra env myapp`, `infra up tools`, `infra psql`, … จากทุกโฟลเดอร์ + Tab completion
-- Full documentation under `docs/` (00–29)
+- Full documentation under `docs/` (00–30)
 
 ## Repository Structure
 
@@ -66,7 +66,7 @@ Three layers:
 infra-stack/
 ├── prepare.sh       # ช่วง A (root): user deploy + Docker + ล็อกเครื่อง → ต่อช่วง B ให้
 ├── install.sh       # ช่วง B (deploy): ถามโดเมน → database / monitoring / n8n → DNS → HTTPS
-├── docs/            # คู่มือทั้งหมด (00-introduction … 29-deploy-go)
+├── docs/            # คู่มือทั้งหมด (00-introduction … 30-security-checklist)
 ├── docker/          # Stack aggregation (core / database / monitoring / tools / messaging / storage)
 ├── services/        # หนึ่ง service = หนึ่งโฟลเดอร์ = หนึ่ง docker-compose.yml
 ├── monitoring/      # Prometheus config, alerts, Grafana dashboards

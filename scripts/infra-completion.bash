@@ -21,7 +21,7 @@ _infra() {
   root="$(dirname "$(readlink -f "$(command -v infra)")")/.."
   if [ "$n" = 1 ]; then
     words="list new git deploy env restart rollback check logs artisan shell load
-           status secrets up stop update dns cron completion
+           status audit secrets up stop update dns cron completion
            backup restore restore-server psql mysql redis reset-password help"
     COMPREPLY=($(compgen -W "$words" -- "$cur"))
     return
@@ -38,7 +38,7 @@ _infra() {
         COMPREPLY=($(compgen -f -- "$cur")); return
       fi ;;
     logs|log)
-      [ "$n" != 2 ] || words="$(_infra_projects "$root") auto-deploy backup install $(docker ps --format '{{.Names}}' 2>/dev/null)" ;;
+      [ "$n" != 2 ] || words="$(_infra_projects "$root") auto-deploy backup audit install $(docker ps --format '{{.Names}}' 2>/dev/null)" ;;
     up|stop)
       if [ "$n" = 2 ]; then
         words="$(_infra_stacks "$root")"

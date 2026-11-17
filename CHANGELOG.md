@@ -16,6 +16,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
 - auto-deploy แจ้ง `git fetch` ล้มครั้งเดียว + ตอนกลับมาได้ (เดิมลงแค่ log — auto-deploy หยุดเงียบ)
 - `infra list` แสดง ⚠️ smoke ล้ม / 🔌 fetch ล้ม
 
+### Added — ตรวจความปลอดภัย (docs/30)
+- `infra audit` (`scripts/audit.sh`) — ตรวจแบบอ่านอย่างเดียว 8 หมวด: SSH · UFW/fail2ban/port ที่เปิด · security update/reboot ·
+  สิทธิ์ไฟล์ลับ + รหัสที่ยังเป็น `CHANGE_ME`/สั้น + ไฟล์ลับใน Git · basicauth หน้าแอดมิน + container ที่ publish port ข้าม UFW
+  + อายุ cert · container ของ project ที่ privileged/docker.sock + image เก่า · `APP_DEBUG`/`APP_ENV`/`APP_KEY` + DB ภายนอกไม่มี TLS ·
+  cron/อายุ backup/off-site/Telegram — ทุกข้อที่ไม่ผ่านบอกคำสั่งแก้ · exit 1 เมื่อมี ❌
+- `infra cron` ตั้ง `audit.sh --notify` ทุกจันทร์ 08:00 → Telegram เฉพาะเมื่อมี ⚠️/❌ · `infra logs audit`
+- docs/30-security-checklist.md — checklist เต็ม (🤖 = ตรวจอัตโนมัติ) + รอบที่ต้องทำ
+
 ### Added — ทางถอยของข้อมูล + แจ้งเตือน backup (docs/13)
 - `deploy.sh` dump database ของ project ก่อน migrate ทุกครั้ง (`DEPLOY_MIGRATE=1`) → `backup/archives/pre-deploy/<ชื่อ>/`
   · dump ล้ม = ไม่ migrate · `DEPLOY_DB_BACKUP=0` ปิด · `DEPLOY_DB_BACKUP_KEEP` (default 5) · ข้าม `--external-db`
