@@ -25,7 +25,7 @@
 | `up <stack> [service…]` / `stop …` | `docker compose -f docker/docker-compose.<stack>.yml` | `up` เช็ค DNS ก่อนถ้า stack มีหน้าเว็บ · `stop` ทั้ง core / database / mysql ถามก่อน |
 | `update [stack\|all]` | `update.sh` | |
 | `dns [stack\|host…]` | `check-dns.sh` | ไม่ใส่ = ทุก stack ที่เปิด + โดเมนของ project |
-| `cron` | — | ตั้ง cron `auto-deploy.sh` (ทุก 2 นาที) + `backup.sh` (03:00) + `audit.sh --notify` (จันทร์ 08:00) ตัวที่ยังขาด |
+| `cron` | — | ตั้ง cron `auto-deploy.sh` (ทุก 2 นาที) + `backup.sh` (03:00) + `cleanup.sh` (04:00) + `audit.sh --notify` (จันทร์ 08:00) ตัวที่ยังขาด |
 | `backup` · `restore <postgres\|mysql\|secrets> [ไฟล์]` · `restore volumes [--overwrite] [vol…]` | `backup.sh` · `backup/scripts/*-restore.sh` | ไม่ใส่ไฟล์ = ล่าสุด |
 | `restore db <p> [ไฟล์]` | `backup/scripts/project-db-restore.sh` | ย้อน DB ของ project เดียวจาก dump ก่อน migrate (docs/13) |
 | `restore-server <src>` | `restore-server.sh` | |
@@ -41,6 +41,7 @@
 | `check-dns.sh [--wait] <stack\|hostname…>` | เช็คว่า subdomain ของ stack มี DNS record ที่**ชี้มาเครื่องนี้** (อ่านจาก compose จริง) — รันก่อน `up -d`; `--wait` รอจนครบ | ไม่ครบ/ชี้เครื่องอื่น = exit 1; ข้ามได้ด้วย `SKIP_DNS_CHECK=1` |
 | `update.sh [stack\|all]` | pull image ใหม่ + up -d ทีละ stack (`all` = core + monitoring + stack อื่นที่เปิดอยู่) | database / mysql ต้อง backup ก่อน (มี gate) |
 | `backup.sh` | backup PostgreSQL + ทุก named volume + secrets (เข้ารหัส) → off-site R2 (cron รายวัน) | จด `BACKUP_ENCRYPTION_PASSWORD` ไว้นอกเครื่อง |
+| `cleanup.sh` | cron รายวัน: ล้าง build cache ที่ไม่ได้ใช้เกิน 72h (`CLEANUP_CACHE_AGE`) + image `<none>` + container ที่หยุดค้าง (ไม่ใช่ของ compose) — image `:previous` รอด | ไม่ลบ volume |
 | `restore.sh [file]` | restore PostgreSQL (default = ล่าสุด) | เขียนทับข้อมูล — มี confirmation |
 | `restore-server.sh <r2:bucket/host \| dir>` | กู้ทั้งเครื่องลง VPS ใหม่: secrets → volumes → core → database → stack ที่มีข้อมูล | เครื่องใหม่เท่านั้น — มี confirmation (docs/13) |
 | `audit.sh [--notify]` | ตรวจความปลอดภัย 8 หมวด (SSH, firewall, อัปเดต, ไฟล์ลับ, หน้าแอดมิน/cert, container, app, backup) — อ่านอย่างเดียว | exit 1 เมื่อมี ❌ · checklist เต็ม docs/30 |

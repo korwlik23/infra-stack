@@ -63,6 +63,17 @@ A    *.sg    <IP เครื่องใหม่>    DNS only ⚪
 Let's Encrypt ตามปกติ (ข้อเสีย: ไม่ได้ WAF/ซ่อน IP ของ Cloudflare — ใช้กับหน้าแอดมินได้ ส่วนเว็บของ
 ลูกค้าบนเครื่องนี้ให้ใช้ชื่อชั้นเดียว เช่น `APP_DOMAIN=shop.example.com` แบบส้มได้ตามปกติ)
 
+## 🌐 IP จริงของผู้ใช้หลัง Cloudflare
+
+เมื่อเปิดเมฆส้ม ทุก request เข้า Traefik จาก IP ของ Cloudflare — Traefik จึงเชื่อ `X-Forwarded-For`
+เฉพาะจากช่วง IP ของ Cloudflare (`forwardedHeaders.trustedIPs` ใน `services/traefik/docker-compose.yml`)
+แอปหลัง Traefik (เช่น Laravel ที่ trust แค่ IP ภายใน Docker) จึงเห็น IP จริงของผู้ใช้
+ไม่ใช่ IP ของ Cloudflare edge — rate limit ต่อ IP และ log ถึงจะถูกต้อง
+
+- รายการ IP มาจาก <https://www.cloudflare.com/ips-v4> และ `ips-v6` — Cloudflare เปลี่ยนรายการเมื่อไหร่ต้องอัปเดตใน compose
+  แล้ว `infra up core traefik`
+- ห้ามให้แอปเชื่อ `CF-Connecting-IP` ตรง ๆ — คนที่ต่อตรงเข้า IP เครื่องปลอม header นี้ได้
+
 ## ⚠️ ระวัง
 
 - **ห้ามใช้ mode "Flexible"** — จะเกิด redirect loop กับ Traefik
