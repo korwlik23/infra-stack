@@ -43,7 +43,9 @@ find "projects/$NAME" -type d -name src -prune -o -type f -exec sed -i "s/__PROJ
 
 # เตรียม .env จาก example
 if [ -f "projects/$NAME/.env.example" ]; then
-  cp "projects/$NAME/.env.example" "projects/$NAME/.env"
+  # สร้างด้วย umask 077 ก่อนเติมรหัส — ไม่มีช่วงที่ไฟล์เป็น 664 (user อื่นในเครื่องอ่านรหัส DB ได้)
+  (umask 077 && cp "projects/$NAME/.env.example" "projects/$NAME/.env")
+  chmod 600 "projects/$NAME/.env"
 fi
 
 # เติมค่าจาก .env กลาง เข้า .env ของ project (token __ROOT:KEY__)

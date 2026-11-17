@@ -21,6 +21,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
   สิทธิ์ไฟล์ลับ + รหัสที่ยังเป็น `CHANGE_ME`/สั้น + ไฟล์ลับใน Git · basicauth หน้าแอดมิน + container ที่ publish port ข้าม UFW
   + อายุ cert · container ของ project ที่ privileged/docker.sock + image เก่า · `APP_DEBUG`/`APP_ENV`/`APP_KEY` + DB ภายนอกไม่มี TLS ·
   cron/อายุ backup/off-site/Telegram — ทุกข้อที่ไม่ผ่านบอกคำสั่งแก้ · exit 1 เมื่อมี ❌
+- `infra new` สร้าง `projects/<ชื่อ>/.env` เป็นสิทธิ์ 600 (เดิม 664 — user อื่นในเครื่องอ่านรหัส DB ได้ · เครื่องเดิม: `chmod 600 projects/*/.env`)
 - `infra cron` ตั้ง `audit.sh --notify` ทุกจันทร์ 08:00 → Telegram เฉพาะเมื่อมี ⚠️/❌ · `infra logs audit`
 - docs/30-security-checklist.md — checklist เต็ม (🤖 = ตรวจอัตโนมัติ) + รอบที่ต้องทำ
 
