@@ -39,6 +39,8 @@
 - [ ] Import Grafana dashboards (1860, 193, 9628, 11835) แล้ว export JSON เก็บเข้า Git
 - [ ] ซ้อม restore backup ครั้งแรก + จับเวลา disaster recovery
 - [ ] วัด baseline การใช้ RAM/CPU เพื่อรู้จุด "ตึง" ก่อนถึง Stage 2
+- [ ] แจ้งเตือน CVE ของที่รันอยู่ + รับมือ zero-day + AI ยามเฝ้า (n8n + Gemini) — แผน:
+      [specs/2026-11-17-security-watch-plan.md](specs/2026-11-17-security-watch-plan.md)
 
 ## v3.0 (อนาคตไกล)
 
