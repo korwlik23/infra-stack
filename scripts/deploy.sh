@@ -194,6 +194,21 @@ fi
 
 # ── 1.5 Migrate + seed ด้วยโค้ดใหม่ ก่อนสลับ traffic (opt-in: DEPLOY_MIGRATE=1) ─
 # ทุก stack — คำสั่งตั้งใน .env ของ project (default = Laravel) ดู scripts/lib/deploy-db.sh
+# ก่อน migrate: dump database ของ project นี้ไว้ (rollback ย้อนแค่โค้ด — ตัวนี้ไว้ย้อนข้อมูล)
+#   ย้อน: infra restore db <ชื่อ> · ปิด: DEPLOY_DB_BACKUP=0 · เก็บ: DEPLOY_DB_BACKUP_KEEP (default 5)
+#   backup ล้ม → หยุด ไม่ migrate (เว็บเดิมอยู่) — ไม่ยอม migrate โดยไม่มีทางถอย
+DB_BACKUP=""
+if [ "$(penv DEPLOY_MIGRATE)" = 1 ] && [ "$(penv DEPLOY_DB_BACKUP)" != 0 ]; then
+  STEP="backup database ก่อน migrate"
+  if ! DB_BACKUP="$("$ROOT/backup/scripts/project-db-backup.sh" "$NAME" | tee /dev/stderr | tail -1)"; then
+    FAIL_DETAIL="backup database ก่อน migrate ไม่สำเร็จ — ไม่ migrate (ดู error ด้านบน)
+ข้ามเฉพาะครั้งนี้: DEPLOY_DB_BACKUP=0 ใน projects/$NAME/.env แล้ว infra deploy $NAME"
+    echo "[deploy:$NAME] ❌ $FAIL_DETAIL" >&2
+    exit 1
+  fi
+  case "$DB_BACKUP" in *.sql.gz) ;; *) DB_BACKUP="" ;; esac   # ข้าม (external db) → ไม่มีไฟล์
+fi
+
 STEP="migrate/seed"
 # shellcheck source=scripts/lib/deploy-db.sh
 . "$ROOT/scripts/lib/deploy-db.sh"
@@ -260,7 +275,7 @@ if [ "$SMOKE_OK" = 0 ]; then
     mark_failed
     notify "↩️ $NAME smoke ล้มหลัง deploy → rollback กลับเวอร์ชันก่อนแล้ว · $after
 $(commit_info)
-migration ที่รันไปแล้วไม่ถูกย้อน · แก้แล้ว push ใหม่ · โดย: $TRIGGER"
+migration ที่รันไปแล้วไม่ถูกย้อน${DB_BACKUP:+ · ข้อมูลเสีย? ย้อน DB: infra restore db $NAME} · แก้แล้ว push ใหม่ · โดย: $TRIGGER"
     echo "↩️  [deploy:$NAME] rolled back — $after"
     exit 4
   fi
@@ -270,7 +285,7 @@ migration ที่รันไปแล้วไม่ถูกย้อน · 
     git -C src rev-parse HEAD > .deploy-smoke-failed
     rm -f .deploy-failed .deploy-waiting
   fi
-  notify "⚠️ $NAME ขึ้นเว็บแล้วแต่ smoke ล้ม — ตรวจ: infra check $NAME · ถอย: infra rollback $NAME
+  notify "⚠️ $NAME ขึ้นเว็บแล้วแต่ smoke ล้ม — ตรวจ: infra check $NAME · ถอย: infra rollback $NAME${DB_BACKUP:+ (+ infra restore db $NAME ถ้า migration ทำข้อมูลเสีย)}
 $(commit_info)
 (เปิดถอยเอง: DEPLOY_AUTO_ROLLBACK=1 ใน .env ของ project) · โดย: $TRIGGER"
   echo "⚠️  [deploy:$NAME] ขึ้นเว็บแล้วแต่ smoke ล้ม — infra rollback $NAME ถ้าเว็บพัง"

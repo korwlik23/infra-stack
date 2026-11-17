@@ -367,8 +367,19 @@ cmd_restore() {
         case "$a" in --*) flags+=("$a") ;; *) vols+=("$a") ;; esac
       done
       exec ./backup/scripts/volumes-restore.sh "${flags[@]}" backup/archives/volumes "${vols[@]}" ;;
+    db)
+      # database ของ project เดียว จาก backup ก่อน deploy (backup/archives/pre-deploy/<p>/)
+      with_project 0 "$@"
+      if [ -n "${ARGS[0]:-}" ]; then
+        exec ./backup/scripts/project-db-restore.sh "$PROJECT" "$(abspath "${ARGS[0]}")"
+      fi
+      echo "backup ก่อน deploy ของ $PROJECT (ใหม่สุดก่อน):"
+      ls -1t "backup/archives/pre-deploy/$PROJECT"/*.sql.gz 2>/dev/null | head -10 | sed 's/^/  /' \
+        || die "ยังไม่มี — สร้างทุกครั้งที่ deploy project ที่มี DEPLOY_MIGRATE=1"
+      exec ./backup/scripts/project-db-restore.sh "$PROJECT" ;;
     *)
       die "ใช้: infra restore <postgres|mysql|secrets> [ไฟล์]   (ไม่ใส่ไฟล์ = ล่าสุด)
+         infra restore db <project> [ไฟล์]   ย้อน database ของ project เดียว (backup ก่อน deploy)
          infra restore volumes [--overwrite] [volume…]
    กู้ทั้งเครื่องลง VPS ใหม่: infra restore-server <r2:bucket/host | โฟลเดอร์>" ;;
   esac
@@ -480,6 +491,7 @@ usage() {
 backup
   backup                        backup ทั้งเครื่องตอนนี้
   restore <postgres|mysql|secrets> [ไฟล์]       ไม่ใส่ไฟล์ = ล่าสุด
+  restore db <p> [ไฟล์]                        ย้อน DB ของ project เดียว (backup อัตโนมัติก่อน migrate)
   restore volumes [--overwrite] [volume…]
   restore-server <r2:bucket/host|โฟลเดอร์>        กู้ทั้งเครื่องลง VPS ใหม่
 

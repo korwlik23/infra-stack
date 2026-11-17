@@ -62,6 +62,14 @@ infra cron      # ตั้ง backup ทุกคืน 03:00 + auto-deploy (do
 `backup.sh` รันทุกส่วน (postgres / mysql / volumes / secrets) ต่อกันแม้ส่วนแรกล้ม แล้วจบด้วย
 `❌ backup ไม่สำเร็จ: …` ถ้ามีส่วนไหนพัง · เช็คทุกเช้าวันจันทร์: `infra logs backup`
 
+**แจ้ง Telegram** (ตั้ง `NOTIFY_TELEGRAM_BOT_TOKEN` + `NOTIFY_TELEGRAM_CHAT_ID` ใน `.env` — ตัวเดียวกับที่ deploy ใช้):
+
+| ข้อความ | เมื่อไหร่ |
+|---------|----------|
+| ❌ backup ไม่สำเร็จ: `<ส่วนที่ล้ม>` | ส่วนไหนล้ม (รวม upload R2 / ขนาดไม่ตรง) |
+| ⚠️ backup อยู่แค่ในเครื่องนี้ | ยังไม่ได้ตั้ง rclone / `R2_BUCKET_BACKUP` — แจ้งทุกคืนจนกว่าจะตั้ง |
+| ✅ backup ครบ | เฉพาะเมื่อตั้ง `NOTIFY_BACKUP_SUCCESS=1` (default เงียบ) |
+
 ## 🔄 กู้ทั้งเครื่องลง VPS ใหม่ (เครื่องพัง / ย้ายเครื่อง)
 
 ```bash
@@ -96,6 +104,30 @@ infra restore volumes grafana_data      # volume เดียว
 #   volume มีข้อมูลอยู่แล้ว → ข้าม; ทับจริง: stop container ที่ใช้ก่อน แล้วเติม --overwrite
 infra restore secrets backup/archives/secrets/secrets_<stamp>.tar.gz.gpg
 ```
+
+⚠️ `infra restore postgres` / `mysql` คือ backup **ทั้งเครื่อง** — ทับ database ที่มีข้อมูลอยู่ไม่ได้ผลอย่างที่คิด
+(Postgres ได้ duplicate · MySQL ย้อน**ทุก project** พร้อมกัน) จะย้อน project เดียวให้ใช้ `infra restore db` ด้านล่าง
+
+## ↩️ ย้อน database ของ project เดียว (migration ทำข้อมูลเสีย)
+
+`deploy.sh` dump database ของ project ไว้**ก่อน migrate ทุกครั้ง** (project ที่มี `DEPLOY_MIGRATE=1` ·
+database อยู่ใน container `postgres` / `mysql` ของเครื่องนี้) → `backup/archives/pre-deploy/<ชื่อ>/`
+dump ล้ม = deploy หยุด ไม่ migrate (เว็บเดิมอยู่)
+
+```bash
+infra rollback app          # ย้อนโค้ด (image :previous)
+infra restore db app        # ย้อน database ของ app เป็นตอนก่อน deploy ล่าสุด (โชว์รายการ + ยืนยัน)
+infra restore db app backup/archives/pre-deploy/app/app_<stamp>.sql.gz   # เลือกไฟล์เอง
+```
+
+- ทับ**เฉพาะ database ของ project นั้น** — project อื่นไม่โดน · ข้อมูลที่เขียนหลังเวลา backup หาย
+- ถาม stop container ของ project ระหว่าง restore (แนะนำ — กัน app เขียนปนระหว่างทับ) แล้ว start คืนให้
+- ก่อนทับ dump สถานะปัจจุบันเก็บเป็น `*.before-restore.sql.gz` — เลือกไฟล์ผิดย้อนกลับได้
+- Postgres: ล้าง schema `public` แล้วโหลดใน transaction เดียว — ล้มกลางทาง = ไม่มีอะไรเปลี่ยน
+- MySQL: `DROP DATABASE` แล้วโหลดใหม่ (DDL ของ MySQL ไม่อยู่ใน transaction — ล้มกลางทางใช้ไฟล์ before-restore)
+- อยู่ในเครื่องเท่านั้น ไม่ส่ง R2 · เก็บ 5 ไฟล์ล่าสุดต่อ project (`DEPLOY_DB_BACKUP_KEEP`)
+- database ใหญ่จน deploy ช้า → `DEPLOY_DB_BACKUP=0` ใน `.env` ของ project (ไม่มีทางย้อนข้อมูลนอกจาก backup 03:00)
+- `--external-db` ข้ามให้เอง — backup ฝั่งเครื่อง database เอง
 
 ## กฎเหล็ก
 

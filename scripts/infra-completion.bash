@@ -57,7 +57,9 @@ _infra() {
       fi ;;
     restore)
       if [ "$n" = 2 ]; then
-        words="postgres mysql volumes secrets"
+        words="postgres mysql volumes secrets db"
+      elif [ "${COMP_WORDS[2]}" = db ] && [ "$n" = 3 ]; then
+        for d in "$root"/projects/*/docker-compose.yml; do [ -e "$d" ] && { d="${d%/*}"; words="$words ${d##*/}"; }; done
       elif [ "${COMP_WORDS[2]}" = volumes ]; then
         words="--overwrite $(docker volume ls -q 2>/dev/null)"
       else

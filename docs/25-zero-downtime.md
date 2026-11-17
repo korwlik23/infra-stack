@@ -103,7 +103,12 @@ project ที่สร้างก่อน v2.8.1: เพิ่ม 2 จุด
 - `DEPLOY_SEED_CMD=none` = project นี้ไม่ seed ตอน deploy (เช่น seed มีรหัส/ข้อมูลตัวอย่างที่ไม่ควรขึ้น production)
 - project Laravel เดิมไม่ต้องแก้ — ไม่ตั้งค่าเหล่านี้ = ใช้ค่า Laravel
 
-ลำดับ: build image ใหม่ → **migrate ด้วย image ใหม่** → rolling deploy
+ลำดับ: build image ใหม่ → **dump database ของ project** → **migrate ด้วย image ใหม่** → rolling deploy
+
+dump ก่อน migrate (`backup/archives/pre-deploy/<ชื่อ>/`) คือทางถอยของ**ข้อมูล** — rollback ย้อนแค่โค้ด:
+migration ทำข้อมูลเสีย → `infra rollback <ชื่อ>` + `infra restore db <ชื่อ>` (docs/13) · dump ล้ม = ไม่ migrate
+· ปิด: `DEPLOY_DB_BACKUP=0` · เก็บกี่ไฟล์: `DEPLOY_DB_BACKUP_KEEP` (default 5)
+
 → schema พร้อมก่อนโค้ดใหม่รับ traffic ถ้า migrate ล้ม `set -e` หยุดทันที ไม่ deploy ต่อ
 
 🩹 **เหตุผลที่ต้องมี (post-mortem 2026-07-12):** ก่อนมีฟีเจอร์นี้ push โค้ดที่มี

@@ -16,6 +16,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
 - auto-deploy แจ้ง `git fetch` ล้มครั้งเดียว + ตอนกลับมาได้ (เดิมลงแค่ log — auto-deploy หยุดเงียบ)
 - `infra list` แสดง ⚠️ smoke ล้ม / 🔌 fetch ล้ม
 
+### Added — ทางถอยของข้อมูล + แจ้งเตือน backup (docs/13)
+- `deploy.sh` dump database ของ project ก่อน migrate ทุกครั้ง (`DEPLOY_MIGRATE=1`) → `backup/archives/pre-deploy/<ชื่อ>/`
+  · dump ล้ม = ไม่ migrate · `DEPLOY_DB_BACKUP=0` ปิด · `DEPLOY_DB_BACKUP_KEEP` (default 5) · ข้าม `--external-db`
+- `infra restore db <project> [ไฟล์]` — ย้อน database ของ project เดียว (project อื่นไม่โดน): dump สถานะปัจจุบันเก็บไว้ก่อนทับ
+  · stop container ระหว่างทับ · Postgres ล้าง schema `public` แล้วโหลดใน transaction เดียว
+- ข้อความ Telegram ตอน smoke ล้ม / rollback บอกคำสั่งย้อน DB เมื่อมี dump ของ deploy นั้น
+- `backup.sh` แจ้ง Telegram เมื่อส่วนไหนล้ม และเมื่อยังไม่ได้ตั้ง off-site (backup อยู่แค่ในเครื่อง) — เดิมลงแค่ log
+  · `NOTIFY_BACKUP_SUCCESS=1` = แจ้งตอนสำเร็จด้วย
+
 ### Changed
 - `deploy.sh` ไม่ fallback เป็น restart แบบเว็บดับอีกแล้ว: ตั้ง `ROLLOUT_SERVICE` แต่ไม่มี docker-rollout + เว็บรันอยู่ → หยุด
   · ยอมดับ: `DEPLOY_ALLOW_DOWNTIME=1 infra deploy <ชื่อ>`
