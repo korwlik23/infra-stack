@@ -50,7 +50,7 @@ log เก็บใน `/opt/infra-stack/logs/` (gitignored) — user `deploy` �
 (เดิมใช้ `/var/log/…` ซึ่ง deploy สร้างไฟล์ใหม่เองไม่ได้ → cron ล้มเงียบ ๆ ทุกคืน — เจอจริง)
 
 ```bash
-infra cron      # ตั้ง backup ทุกคืน 03:00 + auto-deploy (docs/19) ที่ยังขาด — รันซ้ำได้
+infra cron      # ตั้ง backup ทุกคืน 03:00 + auto-deploy (docs/19) + audit ทุกจันทร์ (docs/30) ที่ยังขาด — รันซ้ำได้
 ```
 
 ได้บรรทัดนี้ใน `crontab -l`:

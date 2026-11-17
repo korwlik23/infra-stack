@@ -21,11 +21,13 @@
 | `shell <p>` | — | bash (หรือ sh) ใน service หลัก |
 | `load <p> <tar.gz>` | `load-src.sh` | path อิงโฟลเดอร์ที่พิมพ์ |
 | `status` / `secrets` | — | container + DNS + HTTPS / รหัสทั้งหมด (`secrets` แสดงรหัสบนจอ) |
+| `audit [--notify]` | `audit.sh` | ตรวจความปลอดภัย อ่านอย่างเดียว · `--notify` = Telegram เมื่อมี ⚠️/❌ (docs/30) |
 | `up <stack> [service…]` / `stop …` | `docker compose -f docker/docker-compose.<stack>.yml` | `up` เช็ค DNS ก่อนถ้า stack มีหน้าเว็บ · `stop` ทั้ง core / database / mysql ถามก่อน |
 | `update [stack\|all]` | `update.sh` | |
 | `dns [stack\|host…]` | `check-dns.sh` | ไม่ใส่ = ทุก stack ที่เปิด + โดเมนของ project |
-| `cron` | — | ตั้ง cron `auto-deploy.sh` (ทุก 2 นาที) + `backup.sh` (03:00) ตัวที่ยังขาด |
+| `cron` | — | ตั้ง cron `auto-deploy.sh` (ทุก 2 นาที) + `backup.sh` (03:00) + `audit.sh --notify` (จันทร์ 08:00) ตัวที่ยังขาด |
 | `backup` · `restore <postgres\|mysql\|secrets> [ไฟล์]` · `restore volumes [--overwrite] [vol…]` | `backup.sh` · `backup/scripts/*-restore.sh` | ไม่ใส่ไฟล์ = ล่าสุด |
+| `restore db <p> [ไฟล์]` | `backup/scripts/project-db-restore.sh` | ย้อน DB ของ project เดียวจาก dump ก่อน migrate (docs/13) |
 | `restore-server <src>` | `restore-server.sh` | |
 | `psql [db] [args]` · `mysql [db]` · `redis [args]` | `docker exec` | ใช้รหัสใน container ไม่ต้องพิมพ์ |
 | `reset-password n8n [p]` · `grafana` | — | n8n: `user-management:reset` (ถาม backup + พิมพ์ยืนยัน) · grafana: ตั้งกลับเป็นค่าใน `.env` |
@@ -41,6 +43,7 @@
 | `backup.sh` | backup PostgreSQL + ทุก named volume + secrets (เข้ารหัส) → off-site R2 (cron รายวัน) | จด `BACKUP_ENCRYPTION_PASSWORD` ไว้นอกเครื่อง |
 | `restore.sh [file]` | restore PostgreSQL (default = ล่าสุด) | เขียนทับข้อมูล — มี confirmation |
 | `restore-server.sh <r2:bucket/host \| dir>` | กู้ทั้งเครื่องลง VPS ใหม่: secrets → volumes → core → database → stack ที่มีข้อมูล | เครื่องใหม่เท่านั้น — มี confirmation (docs/13) |
+| `audit.sh [--notify]` | ตรวจความปลอดภัย 8 หมวด (SSH, firewall, อัปเดต, ไฟล์ลับ, หน้าแอดมิน/cert, container, app, backup) — อ่านอย่างเดียว | exit 1 เมื่อมี ❌ · checklist เต็ม docs/30 |
 | `create-project.sh <name> <template> [--mysql\|--external-db]` | สร้าง project จาก template (laravel/nextjs/go/n8n/ai-worker) + database (`--external-db` = database อยู่เครื่องอื่น ไม่สร้างในเครื่อง) | — |
 | `setup-git.sh <project> [<owner/repo> [branch]]` | clone เข้า `src/` (repo private → deploy key) + เปิด build → auto-deploy ใช้ได้ · clone เองแล้วใส่แค่ชื่อ project |  private repo: ต้องวาง key ใน GitHub แล้วรันซ้ำ |
 | `deploy.sh <project> [--seed\|--no-seed]` | **zero-downtime rolling deploy** (build-on-server หรือ pull) + migrate/seed ทุก stack (`lib/deploy-db.sh`) — ของพังไม่ได้รับ traffic | migration ต้อง expand/contract (docs/25) |

@@ -58,7 +58,7 @@ clone ที่ต้องพิมพ์รหัสทุกครั้ง (
 ## ⚙️ เปิด auto deploy (ครั้งเดียวต่อเครื่อง)
 
 ```bash
-infra cron      # ตั้ง auto-deploy ทุก 2 นาที + backup ทุกคืน (docs/13) ที่ยังขาด — รันซ้ำได้
+infra cron      # ตั้ง auto-deploy ทุก 2 นาที + backup ทุกคืน (docs/13) + audit ทุกจันทร์ (docs/30) ที่ยังขาด — รันซ้ำได้
 infra logs auto-deploy   # ดูผลแต่ละรอบ
 ```
 

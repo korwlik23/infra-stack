@@ -54,6 +54,8 @@ Three layers:
 - Beszel (multi-server monitoring) + Watchtower (auto image updates)
 - RabbitMQ (message queue) + MinIO (self-hosted S3) — v2.0
 - Backup & restore scripts (PostgreSQL + Docker volumes → R2)
+- Pre-migrate database dump per project + `infra restore db` (undo a bad migration)
+- Security audit (`infra audit`) + checklist (docs/30)
 - CI/CD ฟรีไม่ใช้ GitHub Actions — build-on-server + auto-deploy (cron git poll) + migrate/seed ตอน deploy ทุก stack
 - **Zero-downtime deployment** — rolling deploy + healthcheck gate + `rollback.sh`
 - Project templates (Laravel, Next.js, Go, n8n, AI Worker) + `create-project.sh` + `setup-git.sh` (deploy key + clone)
@@ -105,7 +107,8 @@ curl -fsSL https://raw.githubusercontent.com/korwlik23/infra-stack/main/prepare.
 infra                               # รายการคำสั่งทั้งหมด (กด Tab เติมคำได้)
 infra status                        # container + DNS + HTTPS
 infra secrets                       # รหัสทั้งหมดอีกครั้ง
-infra cron                          # ตั้ง backup ทุกคืน + auto-deploy (ครั้งเดียว)
+infra cron                          # ตั้ง backup ทุกคืน + auto-deploy + ตรวจความปลอดภัยรายสัปดาห์ (ครั้งเดียว)
+infra audit                         # ตรวจความปลอดภัยทั้งเครื่อง (docs/30)
 
 # เว็บของคุณ (docs/26) — พิมพ์จากโฟลเดอร์ไหนก็ได้
 infra new myapp laravel

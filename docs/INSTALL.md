@@ -415,7 +415,8 @@ ssh deploy@<IP ของ VPS>
 |--------|--------|
 | `infra status` | ทุกอย่างยังปกติไหม — container, DNS, HTTPS |
 | `infra secrets` | ดูรหัสผ่านทั้งหมดอีกครั้ง |
-| `infra cron` | ตั้ง backup ทุกคืน + auto-deploy (ทำครั้งเดียว) |
+| `infra cron` | ตั้ง backup ทุกคืน + auto-deploy + ตรวจความปลอดภัยทุกจันทร์ (ทำครั้งเดียว) |
+| `infra audit` | ตรวจความปลอดภัยทั้งเครื่อง — ทุกข้อที่ไม่ผ่านบอกวิธีแก้ ([30-security-checklist.md](30-security-checklist.md)) |
 | `infra` | รายการคำสั่งทั้งหมด — กด Tab เติมคำได้ |
 
 ทำต่อตามลำดับนี้ (แต่ละอันมีคู่มือของตัวเอง):

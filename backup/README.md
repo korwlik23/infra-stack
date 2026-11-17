@@ -9,6 +9,8 @@
 | `scripts/postgres-restore.sh [--yes] <file>` | restore PostgreSQL — แยก "already exists" ที่ปกติออก ล้มเมื่อมี error จริง |
 | `scripts/volumes-restore.sh [--yes] [--overwrite] <dir> [volume…]` | restore volume จากไฟล์ล่าสุดของแต่ละตัว (ไม่ทับของที่มีข้อมูล) |
 | `scripts/secrets-restore.sh [--yes] <file.gpg>` | ถอดรหัส + วาง secrets กลับ (`.env` เดิมเก็บเป็น `.env.before-restore-*`) |
+| `scripts/project-db-backup.sh <project>` | dump DB ของ project เดียว → `archives/pre-deploy/<p>/` (deploy.sh เรียกก่อน migrate · เก็บ 5 ไฟล์ · ไม่ส่ง off-site) |
+| `scripts/project-db-restore.sh [--yes] <project> [file]` | ย้อน DB ของ project เดียว — dump สถานะปัจจุบันเก็บไว้ก่อนทับ (`infra restore db`) |
 
 รันทั้งชุด: `infra backup` · กู้ทั้งเครื่องลง VPS ใหม่: `infra restore-server <source>`
 — ขั้นตอนเต็มใน [docs/13-backup.md](../docs/13-backup.md)

@@ -101,7 +101,7 @@ infra backup
 ls -lh backup/archives/postgres/ backup/archives/volumes/ backup/archives/secrets/
 ```
 
-- [ ] `infra cron` — ตั้ง backup รายคืน + auto-deploy (`crontab -l` เห็น `backup.sh` และ `auto-deploy.sh`)
+- [ ] `infra cron` — ตั้ง backup รายคืน + auto-deploy + audit รายสัปดาห์ (`crontab -l` เห็น `backup.sh`, `auto-deploy.sh` และ `audit.sh`)
 - [ ] ตั้ง Object lifecycle rule ของ bucket backup ใน R2 (เช่นลบไฟล์อายุเกิน 30 วัน)
 - [ ] ซ้อมกู้ทั้งเครื่องลง VPS ทดลอง: `infra restore-server r2:<bucket>/<host>` และจดเวลา recovery
 
@@ -164,7 +164,7 @@ git status --short
 ## 11. Maintenance — งานประจำหลังติดตั้ง
 
 - [ ] ทุกสัปดาห์: ตรวจ disk, container restarts, backup age และ uptime
-- [ ] ทุกเดือน: ซ้อม restore, ทบทวน alerts และอัปเดต security patches
+- [ ] ทุกเดือน: ซ้อม restore, ทบทวน alerts, `infra audit` ใน terminal (ตรวจครบรวม SSH/UFW) และไล่ [docs/30](docs/30-security-checklist.md)
 - [ ] ก่อน update: อ่าน [CHANGELOG.md](CHANGELOG.md), ยืนยัน backup และ rollback path
 - [ ] หลัง update/deploy: ตรวจ health, logs และ metrics ก่อนจบงาน
 - [ ] บันทึกข้อมูลเฉพาะเครื่องใน runbook ส่วนตัวที่อยู่นอก repository นี้
