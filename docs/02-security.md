@@ -98,6 +98,99 @@ ssh deploy@<ip>                  # ต้องเข้าได้โดย "�
 ssh root@<ip>                    # ต้องถูกปฏิเสธ
 ```
 
+## 🔑 เข้าเครื่องด้วยชื่อสั้น: `ssh mainvps`
+
+แทนที่จะพิมพ์ `ssh -i "C:\Users\<user>\.ssh\<key>" deploy@<ip>` ทุกครั้ง (พิมพ์ path ผิดนิดเดียว →
+ssh ไม่ใช้ key → ถามรหัส → fail2ban แบน — ดูปัญหาข้อ 4) ตั้งชื่อเล่นให้เครื่องไว้ในไฟล์ `~/.ssh/config`
+ครั้งเดียว แล้วพิมพ์แค่ `ssh mainvps`
+
+### ทำบน PC เครื่องที่เข้า VPS ได้อยู่แล้ว (มีไฟล์ key แล้ว)
+
+**1. ดูชื่อไฟล์ key ที่มี** (PowerShell):
+
+```powershell
+dir $env:USERPROFILE\.ssh
+```
+
+ไฟล์ที่**ไม่มี** `.pub` คือกุญแจลับ (เช่น `id_ed25519` หรือ `id_ed25519_mainvps`) — จดชื่อไว้
+
+**2. เปิดไฟล์ config** (ยังไม่มี Notepad จะถามว่าสร้างใหม่ไหม → Yes):
+
+```powershell
+notepad $env:USERPROFILE\.ssh\config
+```
+
+**3. วางข้อความนี้** — แก้ `<IP ของ VPS>` และชื่อไฟล์ key ให้ตรงของตัวเอง แล้ว Save (Ctrl+S):
+
+```
+Host mainvps
+    HostName <IP ของ VPS>
+    User deploy
+    IdentityFile ~/.ssh/id_ed25519
+    IdentitiesOnly yes
+```
+
+| บรรทัด | ความหมาย |
+|--------|---------|
+| `Host mainvps` | ชื่อเล่นที่จะพิมพ์ — ตั้งอะไรก็ได้ (`Host mainvps vps1` = ใช้ได้ 2 ชื่อ) |
+| `HostName` | IP จริงของ VPS |
+| `User` | user ที่ใช้ login (`deploy` หลังรัน harden) |
+| `IdentityFile` | path ของกุญแจลับ — `~` = `C:\Users\<user>` (ใช้ได้บน Windows ด้วย) |
+| `IdentitiesOnly yes` | ใช้ key นี้ตัวเดียว ไม่ลองทุก key ที่มี (ลองหลายตัว = นับเป็น login พลาด → โดนแบนได้) |
+
+> ⚠️ ชื่อไฟล์ต้องเป็น `config` เฉยๆ **ไม่มี `.txt`** — ถ้า Save แล้วได้ `config.txt` ให้เปลี่ยนชื่อ:
+> `ren $env:USERPROFILE\.ssh\config.txt config`
+> และห้ามสร้างด้วย `Set-Content -Encoding utf8` / `Out-File` ใน PowerShell 5.1 — ได้ไฟล์ที่มี BOM
+> แล้ว ssh ขึ้น `Bad configuration option` (Notepad ของ Windows 10/11 บันทึกแบบไม่มี BOM — ใช้ได้)
+
+**4. เช็คว่า ssh อ่านถูก แล้วเข้า:**
+
+```powershell
+ssh -G mainvps | findstr /b /c:"hostname " /c:"user " /c:"identityfile "
+ssh mainvps
+```
+
+`ssh -G` ไม่ได้ต่อเครื่องจริง แค่แสดงค่าที่จะใช้ — ต้องเห็น IP / `deploy` / path key ถูกต้อง
+มีหลายเครื่อง → เพิ่มก้อน `Host ...` ต่อท้ายไฟล์เดียวกันได้เลย (เว้นบรรทัดคั่น)
+
+**Mac / Linux:** ไฟล์เดียวกันที่ `~/.ssh/config` (`nano ~/.ssh/config`) แล้ว `chmod 600 ~/.ssh/config`
+
+### ทำบน PC เครื่องใหม่ (ยังไม่มี key ของ VPS)
+
+server ปิด password login แล้ว — PC ใหม่ต้องมี key ที่ server รู้จักก่อน ถึงจะเข้าได้ เลือกทางเดียว:
+
+**ทาง A — สร้าง key ใหม่ให้ PC นี้ (แนะนำ: เครื่องหาย/ขาย ลบ key ของเครื่องนั้นทิ้งได้ตัวเดียว)**
+
+1. บน **PC ใหม่** สร้าง key แล้วแสดง public key:
+
+   ```powershell
+   ssh-keygen -t ed25519 -f $env:USERPROFILE\.ssh\id_ed25519_mainvps
+   type $env:USERPROFILE\.ssh\id_ed25519_mainvps.pub
+   ```
+
+   copy บรรทัด `ssh-ed25519 AAAA...` ทั้งบรรทัด — ไฟล์ `.pub` เปิดเผยได้ ส่งผ่านแชท/อีเมลหาตัวเองได้
+2. บน **PC เครื่องเดิมที่เข้าได้** (หรือ VNC console ของ provider) เพิ่ม key นั้นให้ server:
+
+   ```bash
+   ssh mainvps
+   echo '<วาง ssh-ed25519 AAAA... ทั้งบรรทัด>' >> ~/.ssh/authorized_keys
+   ```
+
+3. กลับมา **PC ใหม่** ทำขั้น 2–4 ของหัวข้อด้านบน โดยใช้ `IdentityFile ~/.ssh/id_ed25519_mainvps`
+
+**ทาง B — copy กุญแจเดิมไปใช้**
+
+copy ไฟล์กุญแจลับ (ไม่มี `.pub`) ไปไว้ที่ `C:\Users\<user>\.ssh\` ของ PC ใหม่ ผ่าน **USB / password manager
+เท่านั้น** — ห้ามส่งทาง LINE / อีเมล / Google Drive ที่แชร์ (ใครได้ไฟล์นี้ = เข้า server ได้)
+แล้วทำขั้น 2–4 ด้านบน ถ้า ssh ขึ้น `UNPROTECTED PRIVATE KEY FILE` / `bad permissions` ให้ล็อกสิทธิ์ไฟล์:
+
+```powershell
+icacls $env:USERPROFILE\.ssh\<ชื่อไฟล์ key> /inheritance:r /grant:r "$($env:USERNAME):R"
+```
+
+**เลิกใช้ PC เครื่องไหน** → บน server ลบบรรทัด key ของเครื่องนั้นออกจาก `~/.ssh/authorized_keys`
+(`nano ~/.ssh/authorized_keys` — ท้ายบรรทัดมีชื่อเครื่องที่สร้าง key บอกอยู่)
+
 ## 🩹 ปัญหาที่เจอจริง + วิธีแก้ (จากการติดตั้งครั้งแรก 2026-07)
 
 ### 1. `ssh deploy@<ip>` ยังถามรหัสผ่าน
@@ -127,6 +220,39 @@ chmod 600 /home/deploy/.ssh/authorized_keys
 
 user ถูกสร้างแบบ disabled-password — ตั้งด้วย `passwd deploy` จากหน้าต่าง root
 (ดูหัวข้อ "หลัง harden" ด้านบน)
+
+### 4. `Connection timed out` ทั้งที่เครื่องเปิดอยู่ — โดน fail2ban แบน IP (เจอจริง 2026-11)
+
+**อาการ:** `ssh ... port 22: Connection timed out` แต่ ping เครื่องได้ / เว็บบนเครื่องยังเปิดได้
+และก่อนหน้านั้นเคยเห็น `Warning: Identity file ... not accessible` (path key ผิด เช่นพิมพ์
+`C:\Users\<user>.ssh\...` ขาด `\` หน้า `.ssh`)
+
+**สาเหตุ:** path key ผิด → ssh ไม่ได้ส่ง key → server ปฏิเสธ (หรือถามรหัสแล้วพิมพ์ผิด) ซ้ำหลายรอบ →
+fail2ban นับเป็นการเดารหัส **แบน IP เรา** (default: พลาด 5 ครั้งใน 10 นาที = แบน 10 นาที) ช่วงที่โดนแบน
+server เงียบใส่ → ขึ้น timeout แม้แก้ path ถูกแล้ว (และลองซ้ำระหว่างโดนแบน = ยืดเวลาแบน)
+
+**เช็คจาก Windows** — port 22 ต้อง `False` แต่ ping `True`:
+
+```powershell
+Test-NetConnection <IP ของ VPS> -Port 22
+```
+
+**วิธีแก้** — เลือกทางเดียว:
+
+- รอ 15 นาทีโดย**ไม่ลอง ssh เลย** แล้วลองใหม่ด้วย path ที่ถูก (หรือ `ssh mainvps` — ดูหัวข้อด้านบน)
+- หรือเข้าจาก IP อื่น (hotspot มือถือ) / VNC console แล้วปลดแบน:
+
+  ```bash
+  sudo fail2ban-client status sshd                    # ดู "Banned IP list"
+  sudo fail2ban-client set sshd unbanip 203.0.113.10  # ใส่ IP จากรายการ — ไม่ต้องพิมพ์ < >
+  ```
+
+**กันไม่ให้เกิดอีก:** ใช้ `~/.ssh/config` + `IdentitiesOnly yes` (หัวข้อ `ssh mainvps` ด้านบน) — ไม่ต้องพิมพ์ path
+อีก ไม่แนะนำใส่ IP บ้านใน `ignoreip` ของ fail2ban — IP บ้านในไทยส่วนใหญ่เปลี่ยนเรื่อยๆ (dynamic)
+
+> ถ้า `ssh` ผ่าน hotspot แล้ว**ถามรหัสผ่านของ deploy และเข้าได้** = password login ยังเปิดอยู่
+> (harden ยังไม่ได้ปิด เพราะตอนรันยังไม่มี key) — ทดสอบ `ssh -o PasswordAuthentication=no mainvps`
+> ให้เข้าได้ก่อน แล้วรัน `sudo ./scripts/harden.sh` ซ้ำ (ข้อ 2) เพื่อปิด
 
 ## 🛡️ อัปเดต kernel (ช่องโหว่ kernel)
 

@@ -72,6 +72,9 @@ ssh-keygen -R <IP ของ VPS>
 - เช็ค IP ว่าพิมพ์ถูก
 - เครื่องเพิ่งสร้าง/รีบูต → รอ 2–3 นาที
 - ผู้ให้บริการบางเจ้ามี firewall ที่หน้าเว็บ (Hetzner Firewall, Oracle Security List) — เปิด port 22, 80, 443
+- ping ได้ / เว็บเปิดได้ แต่ ssh timeout → **IP เราโดน fail2ban แบน** (เคย login พลาดหลายรอบ เช่น path key ผิด)
+  → รอ 15 นาทีโดยไม่ลอง หรือปลดแบนจาก hotspot / console — ดู [02 ปัญหาข้อ 4](02-security.md)
+- เบื่อพิมพ์ `ssh -i ...` → ตั้ง `ssh mainvps` ([02-security.md](02-security.md) หัวข้อ "เข้าเครื่องด้วยชื่อสั้น")
 
 ## ช่วง A — prepare
 
