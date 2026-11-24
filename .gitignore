@@ -54,5 +54,6 @@ logs/
 .auto-deploy.lock
 .refresh.lock
 .cve-scan.lock
+.watch.lock
 # deploy.sh — lock ต่อ project
 projects/**/.deploy.lock
