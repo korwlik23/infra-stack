@@ -3,6 +3,9 @@ services:
     image: ${APP_IMAGE:?set in .env}
     container_name: __PROJECT__
     restart: unless-stopped
+    # กันโปรเซสใน container ยกระดับสิทธิ์ (setuid) ถ้าแอปโดนเจาะ — entrypoint ที่ใช้ sudo/su จะใช้ไม่ได้ (docs/31)
+    security_opt:
+      - no-new-privileges:true
     # build บนเครื่องแทน registry: clone app ไว้ที่ ./src แล้วเปิดบรรทัดล่าง (ดู docs/19-cicd.md)
     # build: ./src
     command: ${WORKER_COMMAND:?set in .env}

@@ -78,6 +78,18 @@ EOF
 }
 resolve_root_tokens "projects/$NAME/.env"
 
+# __DB_USER__ / __DB_PASSWORD__ = user ของ project นี้ใน Postgres กลาง (ไม่ใช่ superuser — docs/31)
+# project หนึ่งโดนเจาะ → เข้าได้แค่ database ตัวเอง · role สร้างจริงตอน ensure_project_db (scripts/db-user.sh)
+# --mysql / --external-db เขียนทับบรรทัดพวกนี้ทีหลังอยู่แล้ว
+if [ -f "projects/$NAME/.env" ] && grep -q '__DB_USER__\|__DB_PASSWORD__' "projects/$NAME/.env"; then
+  penv() { :; }   # project-db-lib.sh ต้องมี penv — ใช้แค่ project_db_role_name
+  # shellcheck source=backup/scripts/project-db-lib.sh
+  . backup/scripts/project-db-lib.sh
+  DB_ROLE="$(project_db_role_name "$NAME")"
+  [ "$DB_ROLE" != "$(grep -E '^POSTGRES_USER=' .env 2>/dev/null | head -1 | cut -d= -f2- | tr -d ' ')" ] || DB_ROLE="${DB_ROLE}_app"
+  sed -i -e "s/__DB_USER__/$DB_ROLE/g" -e "s/__DB_PASSWORD__/$(openssl rand -hex 24)/g" "projects/$NAME/.env"
+fi
+
 # __GENERATE__ = สุ่ม secret ใหม่ต่อค่า (เช่น N8N_ENCRYPTION_KEY) — ไม่ต้องพิมพ์ openssl เอง
 # hex ล้วน → แทนด้วย sed ได้ปลอดภัย; ทีละบรรทัดเพื่อให้แต่ละค่าไม่ซ้ำกัน
 while grep -q '__GENERATE__' "projects/$NAME/.env" 2>/dev/null; do
@@ -95,8 +107,9 @@ ensure_project_db() {
   # ชื่อมาจาก template + NAME ที่ validate แล้ว — กันไว้อีกชั้นก่อนส่งเข้า SQL
   [[ "$db" =~ ^[a-z0-9_-]+$ ]] || { echo "⚠️  ข้ามการสร้าง database: ชื่อ '$db' ไม่ถูกต้อง"; return 0; }
   if [ "$(docker inspect -f '{{.State.Running}}' postgres 2>/dev/null || true)" != "true" ]; then
-    echo "⚠️  postgres ไม่ได้รันอยู่ — สร้าง database เองทีหลัง:"
+    echo "⚠️  postgres ไม่ได้รันอยู่ — เปิด postgres แล้วสร้าง database + user ของ project ทีหลัง:"
     echo "    docker exec -i postgres psql -U <POSTGRES_USER> -c 'CREATE DATABASE \"$db\";'"
+    echo "    infra db-user $NAME"
     return 0
   fi
   pguser="$(grep -E '^POSTGRES_USER=' .env | head -1 | cut -d= -f2- | tr -d ' ' || true)"
@@ -108,6 +121,8 @@ ensure_project_db() {
     docker exec postgres psql -U "$pguser" -d postgres -c "CREATE DATABASE \"$db\";" >/dev/null
     echo "✅ created database '$db'"
   fi
+  # user ของ project (ตาม DB_USERNAME / DATABASE_URL ใน .env) + เป็นเจ้าของ database นี้
+  ./scripts/db-user.sh "$NAME" --quiet
 }
 
 # ── MySQL (--mysql) — database + user ต่อ project ใน MySQL กลาง ──

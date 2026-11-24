@@ -1,6 +1,6 @@
 # แผน: แจ้งเตือน CVE + รับมือ zero-day + AI ยามเฝ้า VPS
 
-สถานะ: **แผน — ยังไม่ได้ทำ** (จดไว้ 2026-11-17) · ทำทีละเฟส แต่ละเฟสใช้งานได้ด้วยตัวเอง
+สถานะ: เฟส 1 + บางส่วนของเฟส 4 ทำแล้ว (2026-11-24 — docs/31) · ที่เหลือยังเป็นแผน · ทำทีละเฟส แต่ละเฟสใช้งานได้ด้วยตัวเอง
 
 ## เป้าหมาย
 
@@ -26,7 +26,11 @@
 - [ ] ซ้อม `infra restore-server` ลง VPS ทดลองหนึ่งรอบ + จดเวลา
 - [ ] ปิด/ซ่อนหน้าแอดมินด้วย Cloudflare Access (ลดของที่ CVE ยิงถึงได้มากที่สุด)
 
-## เฟส 1 — แจ้งเตือน CVE ของที่ใช้อยู่ (ไม่ใช้ AI ก็ทำงานได้)
+## เฟส 1 — แจ้งเตือน CVE ของที่ใช้อยู่ (ไม่ใช้ AI ก็ทำงานได้) — ✅ ทำแล้ว
+
+ทำแล้วเป็น `scripts/cve-scan.sh` (`infra cve`) — ต่างจากแผน: state เป็น `logs/cve-state.txt` (ยังไม่มี
+`reports/cve-latest.json` สำหรับเฟส 2) · ไม่ได้ตรวจ `apt list --upgradable` ซ้ำ (audit ทำอยู่แล้ว) ·
+เพิ่ม `scripts/refresh.sh` (base image แพตช์ใหม่ → deploy เอง) + Renovate สำหรับ library ของแอป
 
 **`scripts/cve-scan.sh`** (cron รายวัน 05:00 หลัง cleanup)
 
@@ -83,8 +87,8 @@ Schedule (06:00) → Read file reports/cve-latest.json + reports/watch-latest.js
 
 ## เฟส 4 — ลดความเสียหายเมื่อโดน zero-day (ทำได้ทุกเมื่อ ไม่ขึ้นกับเฟสอื่น)
 
-- [ ] DB user แยกต่อ project (ตอนนี้ app ต่อ Postgres ด้วย superuser ตัวเดียวกัน → app เดียวโดน = ทุก database + RCE ผ่าน `COPY … PROGRAM`)
-- [ ] template project: `security_opt: no-new-privileges`, `cap_drop: [ALL]`, รันเป็น non-root, `read_only` ถ้าทำได้
+- [x] DB user แยกต่อ project (`infra db-user` — docs/31) (ตอนนี้ app ต่อ Postgres ด้วย superuser ตัวเดียวกัน → app เดียวโดน = ทุก database + RCE ผ่าน `COPY … PROGRAM`)
+- [x] template project: `security_opt: no-new-privileges` · [ ] `cap_drop: [ALL]`, รันเป็น non-root, `read_only` (ขึ้นกับ image ของแอป — ยังไม่ทำ)
 - [ ] Cloudflare WAF managed rules (virtual patch ระหว่างรออัปเดต)
 - [ ] runbook "ตอนโดนจริง" ใน docs (ลำดับ: snapshot → ตัดการเข้าถึง → เปลี่ยน secret จากเครื่องอื่น → หาวันที่โดน →
       restore-server ลงเครื่องใหม่ → แจ้ง PDPA ภายใน 72 ชม. ถ้าข้อมูลส่วนบุคคลหลุด)

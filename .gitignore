@@ -52,5 +52,7 @@ Thumbs.db
 # auto-deploy (cron) — log + lock อยู่ในเครื่อง
 logs/
 .auto-deploy.lock
+.refresh.lock
+.cve-scan.lock
 # deploy.sh — lock ต่อ project
 projects/**/.deploy.lock

@@ -26,9 +26,13 @@ docker exec -it postgres sh -c 'psql -U "$POSTGRES_USER" -d postgres -c "CREATE 
 ```text
 host:     postgres        (ผ่าน Docker network `backend`)
 port:     5432
-user:     $POSTGRES_USER
-password: $POSTGRES_PASSWORD
+user:     user ของ project เอง (create-project.sh สร้างให้ — ดู DB_USERNAME / DATABASE_URL ใน .env ของ project)
+password: สุ่มต่อ project
 ```
+
+**ห้ามให้แอปใช้ `$POSTGRES_USER`** (superuser) — แอปเดียวโดนเจาะ = ทุก database + สั่งคำสั่งบนเครื่องได้
+project ที่สร้างก่อน v2.15 ยังใช้ superuser อยู่: `infra db-user <ชื่อ>` แล้ว `infra restart <ชื่อ>` (docs/31)
+superuser มีไว้สำหรับ backup / restore / `infra psql` เท่านั้น
 
 ## ⚠️ ระวัง
 

@@ -16,16 +16,19 @@
 | `restart <p>` | — | recreate ด้วย `.env` ปัจจุบัน ไม่ build: rollout service หลัก (ไม่ดับ) + `--force-recreate` ตัวที่เหลือ (`docker compose restart` ไม่อ่าน `.env` ใหม่) |
 | `rollback <p> [tag]` | `rollback.sh` | tag default `previous` |
 | `check <p> [/path…]` | `smoke.sh` | |
-| `logs <p\|container\|auto-deploy\|backup\|install>` | — | `docker compose logs -f` / `docker logs -f` / `tail -f logs/*.log` |
+| `logs <p\|container\|auto-deploy\|backup\|cleanup\|audit\|refresh\|cve-scan\|install>` | — | `docker compose logs -f` / `docker logs -f` / `tail -f logs/*.log` |
 | `artisan <p> <args>` | — | แบบ `artisan.sh` แต่ใช้ `ROLLOUT_SERVICE` · มี project เดียวไม่ต้องใส่ชื่อ (`infra artisan migrate:status`) |
 | `shell <p>` | — | bash (หรือ sh) ใน service หลัก |
 | `load <p> <tar.gz>` | `load-src.sh` | path อิงโฟลเดอร์ที่พิมพ์ |
 | `status` / `secrets` | — | container + DNS + HTTPS / รหัสทั้งหมด (`secrets` แสดงรหัสบนจอ) |
 | `audit [--notify]` | `audit.sh` | ตรวจความปลอดภัย อ่านอย่างเดียว · `--notify` = Telegram เมื่อมี ⚠️/❌ (docs/30) |
+| `cve [--notify]` | `cve-scan.sh` | สแกน CVE ของ image ที่รันอยู่ (Trivy) เฉพาะที่มีแพตช์ · `--notify` = Telegram เฉพาะของใหม่ (docs/31) |
+| `refresh [p…]` | `refresh.sh` | base image มีแพตช์ใหม่ → deploy (docs/31) |
+| `db-user <p>` | `db-user.sh` | ย้าย project จาก superuser ไปใช้ database user ของตัวเอง แล้ว `restart` (docs/31) |
 | `up <stack> [service…]` / `stop …` | `docker compose -f docker/docker-compose.<stack>.yml` | `up` เช็ค DNS ก่อนถ้า stack มีหน้าเว็บ · `stop` ทั้ง core / database / mysql ถามก่อน |
 | `update [stack\|all]` | `update.sh` | |
 | `dns [stack\|host…]` | `check-dns.sh` | ไม่ใส่ = ทุก stack ที่เปิด + โดเมนของ project |
-| `cron` | — | ตั้ง cron `auto-deploy.sh` (ทุก 2 นาที) + `backup.sh` (03:00) + `cleanup.sh` (04:00) + `audit.sh --notify` (จันทร์ 08:00) ตัวที่ยังขาด |
+| `cron` | — | ตั้ง cron `auto-deploy.sh` (ทุก 2 นาที) + `backup.sh` (03:00) + `cleanup.sh` (04:00) + `refresh.sh` (05:00) + `cve-scan.sh --notify` (06:00) + `audit.sh --notify` (จันทร์ 08:00) ตัวที่ยังขาด |
 | `backup` · `restore <postgres\|mysql\|secrets> [ไฟล์]` · `restore volumes [--overwrite] [vol…]` | `backup.sh` · `backup/scripts/*-restore.sh` | ไม่ใส่ไฟล์ = ล่าสุด |
 | `restore db <p> [ไฟล์]` | `backup/scripts/project-db-restore.sh` | ย้อน DB ของ project เดียวจาก dump ก่อน migrate (docs/13) |
 | `restore-server <src>` | `restore-server.sh` | |
@@ -41,9 +44,12 @@
 | `check-dns.sh [--wait] <stack\|hostname…>` | เช็คว่า subdomain ของ stack มี DNS record ที่**ชี้มาเครื่องนี้** (อ่านจาก compose จริง) — รันก่อน `up -d`; `--wait` รอจนครบ | ไม่ครบ/ชี้เครื่องอื่น = exit 1; ข้ามได้ด้วย `SKIP_DNS_CHECK=1` |
 | `update.sh [stack\|all]` | pull image ใหม่ + up -d ทีละ stack (`all` = core + monitoring + stack อื่นที่เปิดอยู่) | database / mysql ต้อง backup ก่อน (มี gate) |
 | `backup.sh` | backup PostgreSQL + ทุก named volume + secrets (เข้ารหัส) → off-site R2 (cron รายวัน) | จด `BACKUP_ENCRYPTION_PASSWORD` ไว้นอกเครื่อง |
-| `cleanup.sh` | cron รายวัน: ล้าง build cache ที่ไม่ได้ใช้เกิน 72h (`CLEANUP_CACHE_AGE`) + image `<none>` + container ที่หยุดค้าง (ไม่ใช่ของ compose) — image `:previous` รอด | ไม่ลบ volume |
+| `cleanup.sh` | cron รายวัน: ล้าง build cache ที่ไม่ได้ใช้เกิน 72h (`CLEANUP_CACHE_AGE`) และรวมไม่เกิน 4gb (`CLEANUP_CACHE_MAX`) + image `<none>` + container ที่หยุดค้าง (ไม่ใช่ของ compose) — image `:previous` รอด | ไม่ลบ volume |
 | `restore.sh [file]` | restore PostgreSQL (default = ล่าสุด) | เขียนทับข้อมูล — มี confirmation |
 | `restore-server.sh <r2:bucket/host \| dir>` | กู้ทั้งเครื่องลง VPS ใหม่: secrets → volumes → core → database → stack ที่มีข้อมูล | เครื่องใหม่เท่านั้น — มี confirmation (docs/13) |
+| `refresh.sh [project…]` | cron รายวัน: `docker pull` base image ของ stage ที่รันจริง (อ่าน `ARG` default + `build.target`/`dockerfile` จาก compose) แล้วดูว่า `APP_IMAGE` build บน base นี้ไหม (เทียบ layer) → ไม่ใช่ = `deploy.sh` (PHP/Node/OS ได้แพตช์แม้ไม่มี commit) · ข้าม project ที่ deploy ล้ม/rollback อยู่/มี commit ค้าง | `DEPLOY_REFRESH=0` ปิดต่อ project (docs/31) |
+| `cve-scan.sh [--notify]` | สแกน CVE (Trivy, `CRITICAL,HIGH`, เฉพาะที่มีแพตช์) ของทุก image ที่รันอยู่ + บอกวิธีแก้ · จำที่แจ้งแล้วใน `logs/cve-state.txt` | pin `TRIVY_IMAGE` — อ่าน release notes ก่อนอัปเกรด |
+| `db-user.sh <project>` | สร้าง Postgres user ของ project + ย้ายเจ้าของ database/ตาราง + แก้ `.env` + ทดสอบ login (รันซ้ำได้) · `create-project.sh` เรียกเอง | container ใช้ user ใหม่หลัง `infra restart` |
 | `audit.sh [--notify]` | ตรวจความปลอดภัย 8 หมวด (SSH, firewall, อัปเดต, ไฟล์ลับ, หน้าแอดมิน/cert, container, app, backup) — อ่านอย่างเดียว | exit 1 เมื่อมี ❌ · checklist เต็ม docs/30 |
 | `create-project.sh <name> <template> [--mysql\|--external-db]` | สร้าง project จาก template (laravel/nextjs/go/n8n/ai-worker) + database (`--external-db` = database อยู่เครื่องอื่น ไม่สร้างในเครื่อง) | — |
 | `setup-git.sh <project> [<owner/repo> [branch]]` | clone เข้า `src/` (repo private → deploy key) + เปิด build → auto-deploy ใช้ได้ · clone เองแล้วใส่แค่ชื่อ project |  private repo: ต้องวาง key ใน GitHub แล้วรันซ้ำ |

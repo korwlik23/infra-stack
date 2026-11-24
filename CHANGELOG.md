@@ -5,6 +5,35 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
 
 ## [Unreleased]
 
+### Added — อัปเดตความปลอดภัยอัตโนมัติ + จำกัดความเสียหาย (docs/31)
+- `infra refresh [project…]` (`scripts/refresh.sh`) + cron ทุกคืน 05:00 — base image ของ stage ที่รันจริงมีแพตช์ใหม่
+  → deploy ให้เอง (PHP / Node / OS ได้แพตช์แม้ไม่มี commit) · อ่าน `ARG` default + `build.dockerfile`/`target` จาก compose ·
+  เทียบ layer ของ `APP_IMAGE` กับ base ล่าสุด (ไม่ต้องจดสถานะ) · ข้าม project ที่มี commit ค้าง / deploy ล้ม / smoke ล้ม / rollback อยู่ · `DEPLOY_REFRESH=0` ปิด ·
+  `DEPLOY_REFRESH=1` = project ที่ใช้ image จาก registry (เช่น n8n) เทียบ digest · `DEPLOY_DOCKERFILE`
+- `infra cve [--notify]` (`scripts/cve-scan.sh`) + cron ทุกเช้า 06:00 — Trivy สแกนทุก image ที่รันอยู่ เฉพาะ
+  `CRITICAL,HIGH` ที่มีแพตช์แล้ว → Telegram เฉพาะ CVE ใหม่ พร้อมวิธีแก้ (refresh / Renovate / update) ·
+  `CVE_SEVERITY` · `TRIVY_IMAGE` (pin เวอร์ชัน)
+- `infra db-user <project>` (`scripts/db-user.sh`) — ย้าย project จาก Postgres superuser ไปใช้ user ของตัวเอง:
+  สร้าง role + ให้เป็นเจ้าของ database/ตาราง/sequence/function + ปิด role อื่นไม่ให้ connect + แก้ `.env` + ทดสอบ login
+  (เว็บไม่สะดุด — container เปลี่ยนหลัง `infra restart`)
+- `examples/renovate/renovate.json` — Renovate สำหรับ repo ของแอป: แพตช์ merge เองตอนตี 1–5 → auto-deploy ·
+  minor/major เปิด PR · ไม่หยิบเวอร์ชันที่ออกไม่ถึง 3 วัน (กัน supply-chain) · ไม่ต้องใช้ GitHub Actions
+- `infra audit`: ❌ project ต่อ Postgres ด้วย superuser · ⚠️ container ของ project ไม่มี `no-new-privileges` ·
+  ⚠️ project ใช้ R2 key ตัวเดียวกับ backup · ⚠️ ไม่มี cron refresh / cve-scan
+
+### Changed
+- `infra new` สร้าง **Postgres user แยกต่อ project** (ชื่อตาม project, รหัสสุ่ม) เป็นเจ้าของ database ของตัวเอง —
+  เดิมทุก project ใช้ `POSTGRES_USER` (superuser): แอปเดียวโดนเจาะ = ทุก database + สั่งคำสั่งบนเครื่องผ่าน
+  `COPY … PROGRAM` · template ใช้ `__DB_USER__` / `__DB_PASSWORD__` แทน `__ROOT:POSTGRES_USER__` ·
+  project เดิม: `infra db-user <ชื่อ>` แล้ว `infra restart <ชื่อ>`
+- template ทุกตัว: `security_opt: no-new-privileges:true` ทุก service (project เดิมต้องเพิ่มเอง — docs/31)
+- `deploy.sh` build ด้วย `--pull` (ได้ base image ล่าสุดทุก deploy) · `DEPLOY_BUILD_PULL=0` ปิด
+- `infra restore db` คืนเจ้าของตารางให้ user ของ project หลังโหลด dump (เดิม superuser เป็นเจ้าของ → migrate ครั้งหน้าล้ม
+  "must be owner")
+- `cleanup.sh` จำกัดขนาด build cache รวม `CLEANUP_CACHE_MAX` (default `4gb`) — เดิมลบแค่ที่ไม่ได้ใช้เกิน 72h:
+  เครื่องที่ deploy ทุกวัน cache ไม่เคยแก่พอ โตถึง 12GB · Docker 29+ ใช้ `--max-used-space` (`--keep-storage` ถูกถอด)
+- `rollback.sh` จด `.deploy-rolled-back` — refresh ไม่ rebuild commit ที่พังขึ้นไปทับ · deploy ที่สำเร็จลบให้
+
 ### Added — ด่านกันพังรอบ deploy (docs/25)
 - ตรวจ `.env` ก่อน build: key ที่เพิ่มใหม่ใน `src/.env.example` ตั้งแต่ deploy ล่าสุดแต่ยังไม่มีใน `.env` ของ project
   → หยุด (เว็บเดิมอยู่) · key เก่าที่ขาดแค่เตือน · `DATABASE_URL`/`DB_HOST` = `CHANGE_ME` หยุด · `DEPLOY_ENV_IGNORE` / `DEPLOY_ENV_CHECK=0`

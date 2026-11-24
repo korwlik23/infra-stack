@@ -18,7 +18,7 @@ InfraStack คือ **"ระบบปฏิบัติการของ Serv
 
 | ขั้น | คู่มือ |
 |------|--------|
-| เตรียมเครื่อง | [01-server-setup.md](01-server-setup.md) → [02-security.md](02-security.md) · ตรวจซ้ำ: [30-security-checklist.md](30-security-checklist.md) (`infra audit`) |
+| เตรียมเครื่อง | [01-server-setup.md](01-server-setup.md) → [02-security.md](02-security.md) · ตรวจซ้ำ: [30-security-checklist.md](30-security-checklist.md) (`infra audit`) · แพตช์อัตโนมัติ: [31-security-updates.md](31-security-updates.md) |
 | ฐาน | [03-docker.md](03-docker.md) → [04-traefik.md](04-traefik.md) → [05-portainer.md](05-portainer.md) |
 | Database | [06-postgresql.md](06-postgresql.md) → [07-redis.md](07-redis.md) · MySQL (ทางเลือก): [27-mysql.md](27-mysql.md) |
 | Monitoring | [08-netdata.md](08-netdata.md) → [09-grafana.md](09-grafana.md) → [10-uptime-kuma.md](10-uptime-kuma.md) |

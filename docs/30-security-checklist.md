@@ -40,7 +40,9 @@ infra audit
 ### 3. อัปเดต
 - [ ] 🤖 `unattended-upgrades` เปิดอยู่ (security patch ลงเองทุกวัน)
 - [ ] 🤖 ไม่มีอัปเดตที่รอ reboot · ไม่มี security update ค้าง
-- [ ] 🤖 image ที่รันอยู่อายุไม่เกิน 180 วัน → `infra update <stack>` · project: build ใหม่
+- [ ] 🤖 image ที่รันอยู่อายุไม่เกิน 180 วัน → `infra update <stack>` · project: `infra refresh <ชื่อ>`
+- [ ] 🤖 cron `refresh` (PHP/Node/OS ใน image ของ project ได้แพตช์เอง) + `cve-scan` (แจ้ง CVE ที่มีแพตช์) ตั้งแล้ว — docs/31
+- [ ] repo ของแอปติดตั้ง Renovate + เปิด Dependabot alerts (library ของแอปได้แพตช์เอง — docs/31)
 - [ ] Dockerfile ของ app ใช้ base image ที่ยังได้ security support (เช่น PHP / Node เวอร์ชันที่ยังไม่ EOL)
 
 ### 4. รหัสผ่าน + ไฟล์ลับ
@@ -57,6 +59,7 @@ infra audit
       phpMyAdmin) อยู่หลัง basicauth ทั้งหมด
 - [ ] 🤖 cert HTTPS ใช้ได้ทุกโดเมน และเหลืออายุ ≥ 14 วัน
 - [ ] ปิด stack ที่ไม่ได้ใช้แล้ว (`infra stop tools` ฯลฯ) — ยิ่งมีหน้าแอดมินน้อย ยิ่งโดนโจมตีได้น้อย
+- [ ] หน้าแอดมินอยู่หลัง Cloudflare Access — โดยเฉพาะตัวที่ mount `docker.sock` (Portainer, Dozzle, Netdata) (docs/31)
 - [ ] Cloudflare: proxy (เมฆสีส้ม) เปิดสำหรับเว็บ app · SSL mode = **Full (strict)** (docs/11)
 
 ### 6. App
@@ -64,7 +67,11 @@ infra audit
 - [ ] 🤖 Next.js: `NODE_ENV=production`
 - [ ] 🤖 database ภายนอก (`--external-db`) ต่อผ่าน TLS (`sslmode=require`)
 - [ ] 🤖 container ของ project ไม่มี `privileged` / `docker.sock` (= เป็น root ของเครื่องได้)
-- [ ] dependency ของ app ไม่มีช่องโหว่ร้ายแรง: `composer audit` / `npm audit --omit=dev` ใน repo ของ app
+- [ ] 🤖 container ของ project ตั้ง `no-new-privileges` (docs/31)
+- [ ] 🤖 project ต่อ Postgres ด้วย user ของตัวเอง ไม่ใช่ superuser → `infra db-user <ชื่อ>` (docs/31)
+- [ ] 🤖 project ไม่ใช้ R2 key ตัวเดียวกับ backup (docs/31)
+- [ ] 🤖 dependency ของ app ไม่มีช่องโหว่ร้ายแรงที่มีแพตช์แล้ว: `infra cve` (ดูใน image ที่รันจริง)
+- [ ] ทุกคนที่ push เข้า repo ของแอปได้ เปิด GitHub 2FA (push เข้า main = รันโค้ดบนเซิร์ฟเวอร์)
 - [ ] seeder ที่รันบน production ไม่สร้างบัญชีทดสอบหรือรหัส default (docs/25 หัวข้อ seed)
 - [ ] หน้า login ของ app มี rate limit (Laravel: `throttle` middleware)
 
@@ -74,13 +81,15 @@ infra audit
 - [ ] 🤖 ตั้ง Telegram แล้ว (deploy / backup / audit ล้มจะมีคนรู้)
 - [ ] ซ้อม restore ลง VPS ทดลองแล้วอย่างน้อยหนึ่งครั้ง (`infra restore-server` — docs/13)
 - [ ] R2 bucket ของ backup **ไม่เปิด public** และ API token ที่ใช้มีสิทธิ์แค่ bucket นั้น
+- [ ] bucket ของ backup เปิด Bucket Lock (retention ≥ 30 วัน) — เครื่องโดนยึดก็ลบ backup ไม่ได้ (docs/31)
 
 ## 🔁 ทำเมื่อไหร่
 
 | เมื่อ | ทำ |
 |-------|----|
 | ติดตั้งเสร็จ | `infra audit` ให้ไม่มี ❌ แล้วไล่ข้อที่ไม่มี 🤖 ครบหนึ่งรอบ |
-| ทุกสัปดาห์ | อัตโนมัติ (cron) — อ่าน Telegram ถ้ามีข้อความ |
+| ทุกวัน | อัตโนมัติ (cron refresh + cve-scan) — Telegram บอกเมื่อมีแพตช์ deploy / CVE ใหม่ (docs/31) |
+| ทุกสัปดาห์ | อัตโนมัติ (cron audit) — อ่าน Telegram ถ้ามีข้อความ · กด merge PR ของ Renovate ที่ค้าง |
 | ทุกเดือน | `infra audit` ใน terminal (ตรวจครบรวม SSH/UFW) + ข้อ 4, 6 ที่ไม่มี 🤖 |
 | คนออกจากทีม | ลบ SSH key ของเขา · เปลี่ยนรหัสหน้าแอดมินและ `DASHBOARD_PASSWORD` (แก้ `.env` แล้ว `./install.sh`) |
 | สงสัยว่ารหัสหลุด | เปลี่ยนรหัสใน `.env` ทุกตัวที่เกี่ยว แล้ว restart stack นั้น · ดู `sudo fail2ban-client status sshd` และ `last` |

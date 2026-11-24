@@ -21,13 +21,13 @@ _infra() {
   root="$(dirname "$(readlink -f "$(command -v infra)")")/.."
   if [ "$n" = 1 ]; then
     words="list new git deploy env restart rollback check logs artisan shell load
-           status audit secrets up stop update dns cron completion
+           status audit cve refresh db-user secrets up stop update dns cron completion
            backup restore restore-server psql mysql redis reset-password help"
     COMPREPLY=($(compgen -W "$words" -- "$cur"))
     return
   fi
   case "$cmd" in
-    git|deploy|env|restart|rollback|check|artisan|shell|load)
+    git|deploy|env|restart|rollback|check|artisan|shell|load|db-user)
       if [ "$n" = 2 ]; then
         words="$(_infra_projects "$root")"
       elif [ "$cmd" = deploy ] && [ "$n" = 3 ]; then
@@ -38,7 +38,7 @@ _infra() {
         COMPREPLY=($(compgen -f -- "$cur")); return
       fi ;;
     logs|log)
-      [ "$n" != 2 ] || words="$(_infra_projects "$root") auto-deploy backup cleanup audit install $(docker ps --format '{{.Names}}' 2>/dev/null)" ;;
+      [ "$n" != 2 ] || words="$(_infra_projects "$root") auto-deploy backup cleanup audit refresh cve-scan install $(docker ps --format '{{.Names}}' 2>/dev/null)" ;;
     up|stop)
       if [ "$n" = 2 ]; then
         words="$(_infra_stacks "$root")"
@@ -47,6 +47,10 @@ _infra() {
       fi ;;
     update)
       [ "$n" != 2 ] || words="$(_infra_stacks "$root") all" ;;
+    refresh)
+      words="$(_infra_projects "$root")" ;;
+    cve)
+      [ "$n" != 2 ] || words="--notify" ;;
     dns)
       words="$(_infra_stacks "$root")" ;;
     new)

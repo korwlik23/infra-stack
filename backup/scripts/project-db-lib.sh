@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# หา database ของ project จาก projects/<name>/.env — ใช้ร่วมโดย project-db-backup.sh / project-db-restore.sh
+# หา database ของ project จาก projects/<name>/.env — ใช้ร่วมโดย project-db-backup.sh / project-db-restore.sh / scripts/db-user.sh
 # ต้องมี: NAME, penv() (อ่านค่าใน .env ของ project)
 # project_db_resolve → ตั้ง DB_ENGINE (postgres|mysql) + DB_NAME แล้ว return 0
 #                     database ไม่ได้อยู่ในเครื่องนี้ / ไม่มี database → บอกเหตุผลแล้ว return 1
@@ -36,4 +36,76 @@ project_db_resolve() {
   fi
   DB_NAME="$db"
   return 0
+}
+
+# ── user ของ database (แยกต่อ project — scripts/db-user.sh) ─────────────
+# project_db_creds → ตั้ง DB_USER / DB_PASS จาก DB_USERNAME/DB_PASSWORD หรือ user:pass ใน DATABASE_URL
+project_db_creds() {
+  local url rest userinfo
+  DB_USER="$(penv DB_USERNAME)"
+  DB_PASS="$(penv DB_PASSWORD)"
+  url="$(penv DATABASE_URL)"
+  if [ -z "$DB_USER" ] && [[ "$url" == *://*@* ]]; then
+    rest="${url#*://}"
+    userinfo="${rest%@*}"               # รหัสมี @ ได้ → ตัดที่ @ ตัวสุดท้าย
+    DB_USER="${userinfo%%:*}"
+    DB_PASS=""
+    [[ "$userinfo" != *:* ]] || DB_PASS="${userinfo#*:}"
+  fi
+}
+
+# ชื่อ role ของ project ใน Postgres: my-app → my_app (ขึ้นต้นด้วยตัวเลข → p_3dshop)
+project_db_role_name() {
+  local r="${1//-/_}"
+  [[ ! "$r" =~ ^[0-9] ]] || r="p_$r"
+  printf '%s' "${r:0:63}"
+}
+
+# SQL: ให้ role เป็นเจ้าของ schema public + ทุก object ข้างใน (ตาราง / sequence / view / function / type)
+# ใช้หลัง restore (superuser สร้าง object ใหม่ → เจ้าของเป็น superuser แอปแก้ตารางไม่ได้) และตอนย้าย project เดิม
+# ข้าม object ของ extension และ sequence ที่ผูกกับคอลัมน์ (ย้ายตามตารางเอง)
+# role ต้องผ่าน ^[a-z_][a-z0-9_]*$ ก่อนเรียก (ต่อเข้า SQL ตรง ๆ)
+pg_reown_sql() {
+  local role="$1"
+  cat <<SQL
+DO \$reown\$
+DECLARE r record;
+BEGIN
+  EXECUTE format('ALTER SCHEMA public OWNER TO %I', '$role');
+  FOR r IN
+    SELECT c.oid::regclass AS obj, c.relkind
+      FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+     WHERE n.nspname = 'public' AND c.relkind IN ('r', 'p', 'v', 'm', 'S', 'f')
+       AND NOT EXISTS (SELECT 1 FROM pg_catalog.pg_depend d
+                        WHERE d.classid = 'pg_catalog.pg_class'::regclass AND d.objid = c.oid
+                          AND (d.deptype = 'e' OR (c.relkind = 'S' AND d.deptype IN ('a', 'i'))))
+  LOOP
+    EXECUTE format('ALTER %s %s OWNER TO %I',
+      CASE r.relkind WHEN 'v' THEN 'VIEW' WHEN 'm' THEN 'MATERIALIZED VIEW'
+                     WHEN 'S' THEN 'SEQUENCE' WHEN 'f' THEN 'FOREIGN TABLE' ELSE 'TABLE' END,
+      r.obj, '$role');
+  END LOOP;
+  FOR r IN
+    SELECT p.oid::regprocedure AS fn
+      FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
+     WHERE n.nspname = 'public'
+       AND NOT EXISTS (SELECT 1 FROM pg_catalog.pg_depend d
+                        WHERE d.classid = 'pg_catalog.pg_proc'::regclass AND d.objid = p.oid AND d.deptype = 'e')
+  LOOP
+    EXECUTE format('ALTER ROUTINE %s OWNER TO %I', r.fn, '$role');
+  END LOOP;
+  FOR r IN
+    SELECT t.oid::regtype AS typ
+      FROM pg_catalog.pg_type t JOIN pg_catalog.pg_namespace n ON n.oid = t.typnamespace
+     WHERE n.nspname = 'public'
+       AND (t.typtype IN ('e', 'd', 'r')
+            OR (t.typtype = 'c' AND (SELECT c.relkind FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid) = 'c'))
+       AND NOT EXISTS (SELECT 1 FROM pg_catalog.pg_depend d
+                        WHERE d.classid = 'pg_catalog.pg_type'::regclass AND d.objid = t.oid AND d.deptype = 'e')
+  LOOP
+    EXECUTE format('ALTER TYPE %s OWNER TO %I', r.typ, '$role');
+  END LOOP;
+END
+\$reown\$;
+SQL
 }
