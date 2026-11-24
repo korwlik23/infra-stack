@@ -100,7 +100,8 @@ ask_ai_any() {
 ' "$MODEL" gemini-flash-lite-latest gemini-flash-latest | awk '!seen[$0]++'); do
     for i in 1 2 3; do
       if ask_ai "$m" <<<"$p" 2>"$err"; then rm -f "$err"; return 0; fi
-      grep -qE 'UNAVAILABLE|RESOURCE_EXHAUSTED|"code":(429|500|503)|not registered|ตอบ 000' "$err" || break
+      # not registered / 403 หลัง --setup = n8n ยังโหลด workflow ใหม่ไม่เสร็จ (ไม่กี่วินาที)
+      grep -qE 'UNAVAILABLE|RESOURCE_EXHAUSTED|"code":(429|500|503)|not registered|ตอบ (000|403)' "$err" || break
       sleep $(( i * 15 ))
     done
     grep -qE 'UNAVAILABLE|RESOURCE_EXHAUSTED|NOT_FOUND|"code":(404|429|500|503)' "$err" || break
@@ -330,6 +331,8 @@ PROMPT="คุณคือผู้ช่วยดูแลความปลอ
 2. สิ่งที่ผิดไปจากปกติ (เทียบกับค่าเฉลี่ย / เกณฑ์ทั่วไป) และเหตุผลสั้น ๆ
 3. สิ่งที่ควรทำ ถ้ามี (คำสั่ง infra เช่น infra check <ชื่อ>, infra logs <งาน>, infra audit)
 ห้ามเดาสิ่งที่ไม่มีในข้อมูล ถ้าทุกอย่างปกติให้ตอบสั้น ๆ · ไม่ต้องใช้ markdown หัวข้อ (ส่งเข้า Telegram)
+ค่า \"อ่านไม่ได้\" / \"ไม่มี log\" คือข้อจำกัดของเครื่องมือ ไม่ใช่ปัญหา — ไม่ต้องนับเป็นความผิดปกติ
+ชื่อ container ขึ้นต้นด้วยชื่อ project (zego-spy-scheduler → project zego-spy) · คำสั่ง infra รับชื่อ project ไม่ใช่ชื่อ container
 
 ข้อมูล:
 $RAW"
