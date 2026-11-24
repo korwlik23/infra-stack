@@ -17,9 +17,14 @@ CVE ใหม่ออกแทบทุกวัน แต่ที่ต้อ
 
 ## ⚙️ ตั้งครั้งเดียวต่อเครื่อง
 
+**เครื่องใหม่: ไม่ต้องทำอะไร** — `install.sh` ตั้ง cron ทั้งหมดให้แล้ว · `infra new` สร้าง database user ของ project ให้เอง
+
+**เครื่องที่ติดตั้งก่อนหน้านี้:** `git pull` แล้ว
+
 ```bash
-infra cron          # เพิ่ม refresh (05:00) + cve-scan (06:00) ให้ — ตัวเดิมไม่แตะ
-infra audit         # ดูว่ายังขาดข้อไหน (ข้อ 6, 7, 8 ในหัวข้อนี้)
+infra cron                # เพิ่ม refresh (05:00) + cve-scan (06:00) — ตัวเดิมไม่แตะ
+infra db-user --all       # ทุก project ที่ยังใช้ superuser → user ของตัวเอง + restart ให้ (ถามก่อน)
+infra audit               # ดูว่ายังขาดข้อไหน
 ```
 
 ทุกข้อความไป Telegram เดียวกับ deploy (`NOTIFY_TELEGRAM_*` ใน `.env` — docs/19)
@@ -104,6 +109,7 @@ infra logs cve-scan       # ผลของ cron ทุกเช้า
 
 - สแกน **image ที่รันอยู่ทุกตัว** ด้วย [Trivy](https://trivy.dev) (รันเป็น container ชั่วคราวแล้วลบทิ้ง)
 - ใช้ disk ราว **2GB** (ฐานข้อมูล CVE ใน volume `trivy-cache` 1.7GB + image ~230MB) · สแกน image ละ ~8 วินาที
+- **disk ว่างน้อยกว่า 10GB → ข้ามเอง** (แจ้ง Telegram ครั้งเดียว) กัน VPS เล็กเต็ม · `CVE_MIN_FREE_GB` ปรับเกณฑ์ · `CVE_SCAN=0` ปิด
   ไม่ใช้แล้ว: ลบบรรทัด `cve-scan.sh` ใน `crontab -e` แล้ว `docker volume rm trivy-cache`
 - เฉพาะระดับ `CRITICAL,HIGH` และ **มีเวอร์ชันที่แก้แล้ว** — ไม่ใช่ข่าว CVE ทั้งโลก
 - cron ส่ง Telegram **เฉพาะ CVE ที่ไม่เคยแจ้ง** · ไม่มีของใหม่ = เงียบ
@@ -137,9 +143,13 @@ role อื่นที่ไม่ใช่ superuser connect database นี�
 **project ที่สร้างก่อนหน้านี้** (`infra audit` ขึ้น ❌ "ต่อ database ด้วย superuser"):
 
 ```bash
+infra db-user --all       # ทุกตัวที่ยังใช้ superuser ในคำสั่งเดียว (ถามก่อน แล้ว restart ให้)
+# หรือทีละตัว:
 infra db-user myapp       # สร้าง user + ย้ายเจ้าของตาราง + แก้ .env + ทดสอบ login (เว็บยังไม่สะดุด)
 infra restart myapp       # ให้ container ใช้ user ใหม่ (rolling — เว็บไม่ดับ)
 ```
+
+n8n ที่ติดตั้งจาก `install.sh` ก็ย้ายได้เหมือนกัน (host อยู่ใน compose — script อ่านให้) · n8n ไม่มี rolling → ดับไม่กี่วินาทีตอน restart
 
 - รันซ้ำได้ · superuser ยังใช้ได้ตามเดิม (backup / `infra psql` / restore ใช้ superuser)
 - ระหว่างย้ายเจ้าของ แต่ละตารางถูก lock สั้น ๆ — ทำตอนคนใช้น้อย

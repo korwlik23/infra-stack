@@ -20,6 +20,14 @@ project_db_resolve() {
     fi
   fi
 
+  # n8n: host/database อยู่ใน docker-compose.yml (DB_POSTGRESDB_HOST=postgres) ไม่ใช่ .env
+  local compose="${ROOT:-.}/projects/$NAME/docker-compose.yml"
+  if [ -z "$host" ] && [ -z "$url" ] && grep -qE 'DB_POSTGRESDB_HOST[=:][[:space:]]*postgres([[:space:]]|$)' "$compose" 2>/dev/null; then
+    host=postgres
+    if [ -z "$db" ]; then
+      db="$(grep -oE 'DB_DATABASE:-[a-z0-9_-]+' "$compose" | head -1 | cut -d- -f2-)"   # ${DB_DATABASE:-n8n_db} → n8n_db
+    fi
+  fi
   case "$host" in
     postgres) DB_ENGINE=postgres ;;
     mysql)    DB_ENGINE=mysql ;;

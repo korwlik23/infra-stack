@@ -189,8 +189,42 @@ cmd_dns() {
   exec ./scripts/check-dns.sh "${targets[@]}"
 }
 
+# ย้ายทุก project ที่ยังต่อ Postgres ด้วย superuser → user ของตัวเอง + restart ให้ (docs/31)
+cmd_db_user() {
+  local d p ans todo=() ok=() bad=()
+  if [ "${1:-}" != --all ]; then
+    with_project 0 "$@"
+    exec ./scripts/db-user.sh "$PROJECT"
+  fi
+  for d in projects/*/; do
+    p="$(basename "$d")"
+    [ -f "$d/.env" ] || continue
+    ./scripts/db-user.sh "$p" --needs >/dev/null 2>&1 && todo+=("$p")
+  done
+  [ ${#todo[@]} -gt 0 ] || { echo "✅ ทุก project ใช้ database user ของตัวเองแล้ว"; return 0; }
+  echo "project ที่ยังต่อ Postgres ด้วย superuser: ${todo[*]}"
+  echo "ทีละตัว: สร้าง user → ย้ายเจ้าของตาราง → แก้ .env → restart (rolling ถ้ามี ROLLOUT_SERVICE — ไม่มีจะดับไม่กี่วินาที)"
+  if [ "${2:-}" != --yes ]; then
+    read -r -p "ทำเลยไหม? [Y/n] " ans || ans=n
+    [[ ! "$ans" =~ ^[Nn] ]] || { echo "ยกเลิก"; return 1; }
+  fi
+  for p in "${todo[@]}"; do
+    echo ""
+    echo "── $p"
+    if ./scripts/db-user.sh "$p" --quiet && restart_project "$p"; then ok+=("$p"); else bad+=("$p"); fi
+  done
+  echo ""
+  [ ${#ok[@]} = 0 ] || echo "✅ ย้ายแล้ว: ${ok[*]} — ตรวจเว็บ: infra check <ชื่อ>"
+  if [ ${#bad[@]} -gt 0 ]; then
+    echo "❌ ไม่สำเร็จ: ${bad[*]} — เว็บยังใช้ค่าเดิม (superuser ยังใช้ได้) · ดู error ด้านบน แล้ว infra db-user <ชื่อ>"
+    return 1
+  fi
+  echo "ℹ️  แอปที่ cache config ไว้ใน image (config:cache ตอน build) ต้อง: infra deploy <ชื่อ>"
+}
+
 cmd_cron() {
-  local cur job ans missing=()
+  local cur job ans missing=() yes=0
+  [ "${1:-}" != --yes ] || yes=1
   local -A line=(
     [auto-deploy]="*/2 * * * * $ROOT/scripts/auto-deploy.sh >> $ROOT/logs/auto-deploy.log 2>&1"
     [backup]="0 3 * * * $ROOT/scripts/backup.sh >> $ROOT/logs/backup.log 2>&1"
@@ -217,8 +251,10 @@ cmd_cron() {
   echo "  audit       = ตรวจความปลอดภัยทุกจันทร์ 08:00 → Telegram เมื่อมีปัญหา (docs/30)"
   echo "  refresh     = ทุกคืน 05:00 base image (PHP/Node/OS) มีแพตช์ใหม่ → build + deploy ให้เอง (docs/31)"
   echo "  cve-scan    = ทุกเช้า 06:00 สแกน CVE ของ image ที่รันอยู่ → Telegram เฉพาะของใหม่ที่มีแพตช์ (docs/31)"
-  read -r -p "ตั้งที่ยังขาดเลยไหม? [Y/n] " ans || ans=n
-  [[ ! "$ans" =~ ^[Nn] ]] || { echo "ยกเลิก"; return 1; }
+  if [ "$yes" = 0 ]; then
+    read -r -p "ตั้งที่ยังขาดเลยไหม? [Y/n] " ans || ans=n
+    [[ ! "$ans" =~ ^[Nn] ]] || { echo "ยกเลิก"; return 1; }
+  fi
   mkdir -p logs
   { [ -z "$cur" ] || printf '%s\n' "$cur"; printf '%s\n' "${missing[@]}"; } | crontab -
   echo "✅ ตั้งแล้ว — ดู: crontab -l"
@@ -490,7 +526,7 @@ usage() {
   audit [--notify]              ตรวจความปลอดภัยทั้งเครื่อง (อ่านอย่างเดียว — docs/30)
   cve [--notify]                สแกน CVE ของ image ที่รันอยู่ (Trivy) เฉพาะที่มีแพตช์แล้ว (docs/31)
   refresh [p…]                  base image (PHP/Node/OS) มีแพตช์ใหม่ → build + deploy (ไม่ใส่ = ทุก project)
-  db-user <p>                   ให้ project ใช้ database user ของตัวเอง แทน superuser (docs/31)
+  db-user <p|--all>             ให้ project ใช้ database user ของตัวเอง แทน superuser · --all = ทุกตัว + restart (docs/31)
   secrets                       รหัสที่ต้องจด + รหัส login หน้าแอดมิน
   up <stack> [service…]         เปิด stack (เช็ค DNS ให้ก่อน) — tools / messaging / storage / mysql …
   stop <stack> [service…]       หยุด stack หรือบาง service
@@ -498,7 +534,7 @@ usage() {
   dns [stack|โดเมน…]            เช็ค DNS record ชี้มาเครื่องนี้ (ไม่ใส่ = ทุกอย่างที่เปิดอยู่)
   logs <container|auto-deploy|backup|cleanup|audit|refresh|cve-scan|install>
                                 log ของ container หรือของ cron / ติดตั้ง
-  cron                          ตั้ง auto-deploy + backup + cleanup + refresh + cve-scan + audit (ครั้งเดียวต่อเครื่อง)
+  cron [--yes]                  ตั้ง auto-deploy + backup + cleanup + refresh + cve-scan + audit (install.sh ตั้งให้แล้ว)
   completion                    ติดตั้ง Tab completion (เครื่องที่ติดตั้งก่อน v2.13)
 
 backup
@@ -536,13 +572,13 @@ case "$CMD" in
   audit)            exec ./scripts/audit.sh "$@" ;;
   cve)              exec ./scripts/cve-scan.sh "$@" ;;
   refresh)          exec ./scripts/refresh.sh "$@" ;;
-  db-user)          with_project 0 "$@"; exec ./scripts/db-user.sh "$PROJECT" ;;
+  db-user)          cmd_db_user "$@" ;;
   secrets)          cmd_secrets ;;
   up)               cmd_up "$@" ;;
   stop)             cmd_stop "$@" ;;
   update)           exec ./scripts/update.sh "$@" ;;
   dns)              cmd_dns "$@" ;;
-  cron)             cmd_cron ;;
+  cron)             cmd_cron "$@" ;;
   completion)       cmd_completion ;;
   backup)           exec ./scripts/backup.sh ;;
   restore)          cmd_restore "$@" ;;
