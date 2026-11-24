@@ -45,6 +45,7 @@ for DIR in "${DIRS[@]}"; do
   [ -f "$DIR/docker-compose.yml" ] || { [ $# -eq 0 ] || log "$NAME: ไม่มี project นี้"; continue; }
   MODE="$(penv "$DIR" DEPLOY_REFRESH)"
   [ "$MODE" != 0 ] || { log "$NAME: ข้าม (DEPLOY_REFRESH=0)"; continue; }
+  [ ! -f "$DIR/.paused" ] || { log "$NAME: ข้าม — ปิดไว้ (infra resume $NAME)"; continue; }
 
   # สถานะที่ต้องมีคนดูก่อน — ไม่ deploy ทับเอง
   skip=""

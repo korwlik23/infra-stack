@@ -112,6 +112,7 @@ infra secrets                       # รหัสทั้งหมดอีก
 infra cron                          # ตั้ง backup ทุกคืน + auto-deploy + แพตช์/CVE รายวัน + ตรวจความปลอดภัยรายสัปดาห์ (ครั้งเดียว)
 infra audit                         # ตรวจความปลอดภัยทั้งเครื่อง (docs/30)
 infra cve                           # CVE ของ image ที่รันอยู่ ที่มีแพตช์แล้ว (docs/31)
+infra pause myapp                   # ปิด project ชั่วคราว (ข้อมูลอยู่ครบ) · เปิดกลับ: infra resume myapp
 infra watch                         # ยามเฝ้า VPS ตรวจตอนนี้ · --setup ต่อ Gemini · --report ส่งสรุป (docs/31)
 
 # เว็บของคุณ (docs/26) — พิมพ์จากโฟลเดอร์ไหนก็ได้
