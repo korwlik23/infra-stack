@@ -277,8 +277,9 @@ cmd_list() {
   printf '  %-16s %-32s %-9s %s\n' PROJECT DOMAIN RUNNING DEPLOYED
   for p in "${list[@]}"; do
     dom="$(penv "$p" APP_DOMAIN)"
-    total="$(pcompose "$p" config --services 2>/dev/null | wc -l)"
-    up="$(pcompose "$p" ps --status running --services 2>/dev/null | sort -u | wc -l)"
+    # project ที่ตั้งค่าไม่ครบ (ไม่มี .env ฯลฯ) compose ล้ม — ห้ามให้ set -e หยุดทั้งรายการ
+    total="$( { pcompose "$p" config --services 2>/dev/null || true; } | wc -l)"
+    up="$( { pcompose "$p" ps --status running --services 2>/dev/null || true; } | sort -u | wc -l)"
     src="projects/$p"
     if [ -f "$src/.paused" ]; then
       state="⏸ ปิดไว้ตั้งแต่ $(cut -c1-10 "$src/.paused") — infra resume $p"
