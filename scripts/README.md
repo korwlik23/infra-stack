@@ -24,11 +24,11 @@
 | `audit [--notify]` | `audit.sh` | ตรวจความปลอดภัย อ่านอย่างเดียว · `--notify` = Telegram เมื่อมี ⚠️/❌ (docs/30) |
 | `cve [--notify]` | `cve-scan.sh` | สแกน CVE ของ image ที่รันอยู่ (Trivy) เฉพาะที่มีแพตช์ · `--notify` = Telegram เฉพาะของใหม่ (docs/31) |
 | `refresh [p…]` | `refresh.sh` | base image มีแพตช์ใหม่ → deploy (docs/31) |
-| `db-user <p>` | `db-user.sh` | ย้าย project จาก superuser ไปใช้ database user ของตัวเอง แล้ว `restart` (docs/31) |
+| `db-user <p\|--all>` | `db-user.sh` | ย้าย project จาก superuser ไปใช้ database user ของตัวเอง · `--all` = ทุกตัวที่ยังใช้ superuser + restart ให้ (docs/31) |
 | `up <stack> [service…]` / `stop …` | `docker compose -f docker/docker-compose.<stack>.yml` | `up` เช็ค DNS ก่อนถ้า stack มีหน้าเว็บ · `stop` ทั้ง core / database / mysql ถามก่อน |
 | `update [stack\|all]` | `update.sh` | |
 | `dns [stack\|host…]` | `check-dns.sh` | ไม่ใส่ = ทุก stack ที่เปิด + โดเมนของ project |
-| `cron` | — | ตั้ง cron `auto-deploy.sh` (ทุก 2 นาที) + `backup.sh` (03:00) + `cleanup.sh` (04:00) + `refresh.sh` (05:00) + `cve-scan.sh --notify` (06:00) + `audit.sh --notify` (จันทร์ 08:00) ตัวที่ยังขาด |
+| `cron [--yes]` | — | (`install.sh` เรียกให้แล้ว) ตั้ง cron `auto-deploy.sh` (ทุก 2 นาที) + `backup.sh` (03:00) + `cleanup.sh` (04:00) + `refresh.sh` (05:00) + `cve-scan.sh --notify` (06:00) + `audit.sh --notify` (จันทร์ 08:00) ตัวที่ยังขาด |
 | `backup` · `restore <postgres\|mysql\|secrets> [ไฟล์]` · `restore volumes [--overwrite] [vol…]` | `backup.sh` · `backup/scripts/*-restore.sh` | ไม่ใส่ไฟล์ = ล่าสุด |
 | `restore db <p> [ไฟล์]` | `backup/scripts/project-db-restore.sh` | ย้อน DB ของ project เดียวจาก dump ก่อน migrate (docs/13) |
 | `restore-server <src>` | `restore-server.sh` | |

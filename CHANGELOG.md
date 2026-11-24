@@ -5,6 +5,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
 
 ## [Unreleased]
 
+### Added — ใช้ง่ายขึ้น (docs/31)
+- `install.sh` ตั้ง cron ทั้งหมดให้เอง (auto-deploy · backup · cleanup · refresh · cve-scan · audit) — เดิมต้องสั่ง `infra cron`
+  เองแล้วมักลืม · `infra cron --yes` ไม่ถาม
+- `infra db-user --all` — ย้ายทุก project ที่ยังใช้ Postgres superuser ในคำสั่งเดียว (ถามก่อน) แล้ว restart ให้ ·
+  `db-user.sh <p> --needs` = ตรวจอย่างเดียว
+- `cve-scan.sh` ข้ามเองเมื่อ disk ว่าง < `CVE_MIN_FREE_GB` (default 10) แจ้ง Telegram ครั้งเดียว · `CVE_SCAN=0` ปิด
+
+### Fixed
+- n8n (template / `install.sh`) ไม่มี `DB_HOST` ใน `.env` (host อยู่ใน compose) → `db-user` / backup ก่อน deploy / audit
+  มองไม่เห็น database ของ n8n · project ใหม่จะได้ `DB_USERNAME` ที่ไม่มี role จริง = n8n ต่อ database ไม่ได้
+  · อ่าน `DB_POSTGRESDB_HOST` / `${DB_DATABASE:-…}` จาก compose แทน + template n8n มี `DB_HOST=postgres`
+
 ### Added — อัปเดตความปลอดภัยอัตโนมัติ + จำกัดความเสียหาย (docs/31)
 - `infra refresh [project…]` (`scripts/refresh.sh`) + cron ทุกคืน 05:00 — base image ของ stage ที่รันจริงมีแพตช์ใหม่
   → deploy ให้เอง (PHP / Node / OS ได้แพตช์แม้ไม่มี commit) · อ่าน `ARG` default + `build.dockerfile`/`target` จาก compose ·

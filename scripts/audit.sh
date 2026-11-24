@@ -283,6 +283,10 @@ for penvf in "$ROOT"/projects/*/.env; do
   if [ -z "$dbu" ] && [[ "$url" =~ ^[a-z]+://([^:@/]+)(:[^@]*)?@([^:/]+) ]]; then
     dbu="${BASH_REMATCH[1]}"; dbh="${BASH_REMATCH[3]}"
   fi
+  # n8n: host อยู่ใน compose (DB_POSTGRESDB_HOST) ไม่ใช่ .env
+  if [ -z "$dbh" ] && [ -n "$dbu" ] && grep -qE 'DB_POSTGRESDB_HOST[=:][[:space:]]*postgres([[:space:]]|$)' "$(dirname "$penvf")/docker-compose.yml" 2>/dev/null; then
+    dbh=postgres
+  fi
   if [ "$dbh" = postgres ] && [ -n "$dbu" ]; then
     FOUND=1
     if [ "$dbu" = "$PG_SUPER" ]; then

@@ -27,7 +27,9 @@ _infra() {
     return
   fi
   case "$cmd" in
-    git|deploy|env|restart|rollback|check|artisan|shell|load|db-user)
+    db-user)
+      [ "$n" != 2 ] || words="--all $(_infra_projects "$root")" ;;
+    git|deploy|env|restart|rollback|check|artisan|shell|load)
       if [ "$n" = 2 ]; then
         words="$(_infra_projects "$root")"
       elif [ "$cmd" = deploy ] && [ "$n" = 3 ]; then

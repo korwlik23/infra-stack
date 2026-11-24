@@ -392,9 +392,12 @@ if [ "$HTTPS_STATE" != ok ]; then
   echo ""
   echo "⏳ HTTPS ยังไม่พร้อม — ลิงก์ด้านบนจะเปิดได้เมื่อ DNS ครบและได้ cert (ดู: infra status)"
 fi
+# ── cron: auto-deploy / backup / cleanup / refresh / cve-scan / audit — ตั้งให้เลย (เดิมต้องสั่ง infra cron เอง แล้วลืมกัน)
+# รันซ้ำได้: เพิ่มเฉพาะตัวที่ยังขาด · ไม่เอา: crontab -e ลบบรรทัดนั้น
+./scripts/infra cron --yes >/dev/null 2>&1 || echo "⚠️  ตั้ง cron ไม่สำเร็จ — รันเอง: infra cron"
 echo ""
 echo "ครั้งหน้าเข้าเครื่อง:  ssh $(id -un)@$IP"
-echo "ตั้ง cron ครั้งเดียว:   infra cron   (auto-deploy เมื่อ push + backup ทุกคืน)"
+echo "งานอัตโนมัติ (cron):  ตั้งให้แล้ว — auto-deploy · backup · ล้างขยะ · แพตช์ความปลอดภัย · สแกน CVE · audit (ดู: infra cron)"
 echo "ทำต่อ (ไม่บังคับ):    ตั้ง backup ขึ้น Cloudflare R2 — docs/13-backup.md"
 echo "คำสั่งทั้งหมด:        infra   (กด Tab เติมคำได้)"
 echo "เพิ่มเว็บของคุณ:      infra new <ชื่อ> <laravel|nextjs|go|n8n|ai-worker> — docs/26"

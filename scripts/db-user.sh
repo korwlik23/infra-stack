@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # แยก database user ต่อ project (PostgreSQL) — project หนึ่งโดนเจาะ ไม่ลามไป database ของ project อื่น
 # ใช้: infra db-user <project>          (หรือ ./scripts/db-user.sh <project>)
+#      infra db-user --all              ทุก project ที่ยังใช้ superuser + restart ให้ (scripts/infra)
 #      create-project.sh เรียกให้เองตอนสร้าง project ใหม่ (--quiet)
+#      --needs = ไม่แก้อะไร · exit 0 ถ้า project นี้ยังต่อ Postgres กลางด้วย superuser
 #
 # ปัญหาเดิม (ก่อน v2.15): ทุก project ต่อ Postgres ด้วย POSTGRES_USER (superuser) ตัวเดียวกัน
 #   → แอปเดียวโดน SQL injection / RCE = อ่าน/ลบได้ทุก database + สั่งคำสั่งบนเครื่องผ่าน COPY … PROGRAM
@@ -17,10 +19,10 @@ set -euo pipefail
 cd "$(dirname "$(readlink -f "$0")")/.."
 ROOT="$PWD"
 
-USAGE="usage: db-user.sh <project> [--quiet]"
+USAGE="usage: db-user.sh <project> [--quiet|--needs]"
 NAME="${1:?$USAGE}"
-QUIET=0
-case "${2:-}" in --quiet) QUIET=1 ;; "") ;; *) echo "$USAGE" >&2; exit 1 ;; esac
+QUIET=0; NEEDS=0
+case "${2:-}" in --quiet) QUIET=1 ;; --needs) NEEDS=1 ;; "") ;; *) echo "$USAGE" >&2; exit 1 ;; esac
 PENV="$ROOT/projects/$NAME/.env"
 [ -f "$PENV" ] || { echo "ERROR: ไม่มี $PENV" >&2; exit 1; }
 
@@ -30,7 +32,13 @@ say() { echo "[db-user:$NAME] $*"; }
 
 # shellcheck source=backup/scripts/project-db-lib.sh
 . "$ROOT/backup/scripts/project-db-lib.sh"
-project_db_resolve || exit 0
+if ! project_db_resolve; then [ "$NEEDS" = 0 ] || exit 1; exit 0; fi
+if [ "$NEEDS" = 1 ]; then
+  [ "$DB_ENGINE" = postgres ] || exit 1
+  SUPER="$(env_val POSTGRES_USER)"; project_db_creds
+  [ -z "$DB_USER" ] || [ "$DB_USER" = "${SUPER:-infra}" ]
+  exit
+fi
 if [ "$DB_ENGINE" = mysql ]; then
   say "MySQL — แยก user ต่อ project อยู่แล้ว (สร้างตอน infra new … --mysql) ไม่ต้องทำอะไร"
   exit 0
