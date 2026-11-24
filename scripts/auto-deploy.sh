@@ -52,6 +52,8 @@ for SRC in projects/*/src; do
   [ -d "$SRC/.git" ] || continue
   DIR="$(dirname "$SRC")"
   NAME="$(basename "$DIR")"
+  # ปิดไว้ (infra pause) — ไม่ fetch ไม่ deploy · commit ที่ push ระหว่างปิดจะขึ้นเองหลัง infra resume
+  [ ! -f "$DIR/.paused" ] || continue
 
   # fetch ล้ม = auto-deploy ของ project นี้หยุดเงียบ ๆ → แจ้งครั้งแรกที่ล้ม + ตอนกลับมาได้ (ไม่แจ้งทุก 2 นาที)
   if ! ERR="$(git -C "$SRC" fetch --quiet 2>&1)"; then

@@ -45,6 +45,10 @@ elif [ ! -f "$DIR/docker-compose.yml" ]; then
   echo "       แก้: infra new $NAME <template> — ถ้ามี src/ อยู่แล้วจะถูกเก็บไว้" >&2
   exit 1
 fi
+if [ -f "$DIR/.paused" ]; then
+  echo "ERROR: $NAME ปิดไว้ตั้งแต่ $(cat "$DIR/.paused") (infra pause) — เปิดก่อน: infra resume $NAME" >&2
+  exit 1
+fi
 
 cd "$DIR"
 

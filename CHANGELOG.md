@@ -5,6 +5,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
 
 ## [Unreleased]
 
+### Added — ปิด project ชั่วคราว
+- `infra pause <p>` / `infra resume <p>` — หยุด container แต่เก็บโค้ด / database / volume / backup ไว้ครบ ·
+  auto-deploy, refresh (05:00) และ deploy ข้าม project ที่ปิด (เดิมหยุดด้วยมือแล้ว refresh / push เปิดกลับมาเอง) ·
+  `infra list` แสดง ⏸ ปิดไว้
+
 ### Added — ยามเฝ้า VPS (docs/31)
 - `infra watch` (cron ทุกชั่วโมง) — Telegram ทันทีเมื่อ: SSH login จาก IP ใหม่ · authorized_keys / crontab / sudoers /
   sshd_config / systemd unit เปลี่ยน · container นอก compose ค้าง หรือ container ใหม่ที่ privileged / docker.sock ·

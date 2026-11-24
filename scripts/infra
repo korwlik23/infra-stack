@@ -280,7 +280,9 @@ cmd_list() {
     total="$(pcompose "$p" config --services 2>/dev/null | wc -l)"
     up="$(pcompose "$p" ps --status running --services 2>/dev/null | sort -u | wc -l)"
     src="projects/$p"
-    if [ ! -d "$src/src/.git" ]; then
+    if [ -f "$src/.paused" ]; then
+      state="⏸ ปิดไว้ตั้งแต่ $(cut -c1-10 "$src/.paused") — infra resume $p"
+    elif [ ! -d "$src/src/.git" ]; then
       state="ไม่ได้ต่อ git (infra git $p <owner/repo>)"
     elif [ -f "$src/.deploy-fetch-failed" ]; then
       state="🔌 git fetch ล้มตั้งแต่ $(cat "$src/.deploy-fetch-failed") — auto-deploy หยุด"
@@ -317,6 +319,34 @@ cmd_env() {
 cmd_restart() {
   with_project 0 "$@"
   restart_project "$PROJECT"
+}
+
+# ปิด project ชั่วคราว — container หยุด ข้อมูลอยู่ครบ · auto-deploy / refresh / deploy ข้ามจนกว่าจะ resume
+cmd_pause() {
+  with_project 0 "$@"
+  local p="$PROJECT" dom
+  dom="$(penv "$p" APP_DOMAIN)"
+  date '+%F %T' > "projects/$p/.paused"
+  pcompose "$p" stop
+  echo ""
+  echo "⏸  ปิด $p แล้ว — container หยุด · โค้ด / database / volume / backup อยู่ครบ"
+  echo "   auto-deploy · refresh · deploy ข้าม project นี้ (push เข้า repo ก็ไม่ขึ้นเว็บ)"
+  [ -z "$dom" ] || echo "   https://$dom จะตอบ 404 · Uptime Kuma: กด Pause monitor ของเว็บนี้ด้วย ไม่งั้นจะแจ้งว่าล่ม"
+  echo "   เปิดกลับ: infra resume $p"
+}
+
+cmd_resume() {
+  with_project 0 "$@"
+  local p="$PROJECT" dir="projects/$PROJECT"
+  [ -f "$dir/.paused" ] || echo "ℹ️  $p ไม่ได้ปิดไว้ — เปิด container ให้"
+  rm -f "$dir/.paused"
+  pcompose "$p" start 2>/dev/null || pcompose "$p" up -d --no-build
+  echo ""
+  echo "▶️  เปิด $p แล้ว — ตรวจ: infra check $p"
+  if [ -d "$dir/src/.git" ] && git -C "$dir/src" fetch -q 2>/dev/null \
+     && [ "$(git -C "$dir/src" rev-parse '@{u}' 2>/dev/null)" != "$(cat "$dir/.deploy-commit" 2>/dev/null)" ]; then
+    echo "   มี commit ใหม่ที่ push ระหว่างปิด — auto-deploy จะขึ้นเว็บให้ภายใน 2 นาที (หรือ: infra deploy $p)"
+  fi
 }
 
 # สร้าง container ใหม่ด้วย .env ปัจจุบัน — ไม่ pull/build
@@ -516,6 +546,7 @@ usage() {
   deploy <p> [--seed|--no-seed] build + migrate + ขึ้นเว็บ (เว็บไม่ดับ)
   env <p>                       แก้ .env แล้วใช้ค่าใหม่ให้เลย
   restart <p>                   สร้าง container ใหม่ด้วย .env ปัจจุบัน (ไม่ build)
+  pause <p> / resume <p>        ปิด project ชั่วคราว (ข้อมูลอยู่ครบ · auto-deploy/refresh ข้าม) / เปิดกลับ
   rollback <p> [tag]            กลับเวอร์ชันก่อน deploy ล่าสุด (tag ไม่ใส่ = previous)
   check <p> [/path…]            ตรวจเว็บหลัง deploy (อ่านอย่างเดียว)
   logs <p>                      log สดของ project
@@ -565,6 +596,8 @@ case "$CMD" in
   deploy)           with_project 0 "$@"; exec ./scripts/deploy.sh "$PROJECT" "${ARGS[@]}" ;;
   env)              cmd_env "$@" ;;
   restart)          cmd_restart "$@" ;;
+  pause)            cmd_pause "$@" ;;
+  resume)           cmd_resume "$@" ;;
   rollback)         cmd_rollback "$@" ;;
   check)            with_project 0 "$@"; exec ./scripts/smoke.sh "$PROJECT" "${ARGS[@]}" ;;
   logs|log)         cmd_logs "$@" ;;

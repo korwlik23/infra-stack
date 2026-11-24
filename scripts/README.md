@@ -23,6 +23,7 @@
 | `status` / `secrets` | — | container + DNS + HTTPS / รหัสทั้งหมด (`secrets` แสดงรหัสบนจอ) |
 | `audit [--notify]` | `audit.sh` | ตรวจความปลอดภัย อ่านอย่างเดียว · `--notify` = Telegram เมื่อมี ⚠️/❌ (docs/30) |
 | `watch [--notify\|--report\|--setup]` | `watch.sh` | ยามเฝ้า VPS: ตรวจตอนนี้ · `--notify` cron ทุกชั่วโมง (Telegram ทันที + รายงานประจำวัน) · `--report` ส่งรายงานเดี๋ยวนี้ · `--setup` ต่อ Gemini ผ่าน n8n (docs/31) |
+| `pause <p>` / `resume <p>` | — | ปิด project ชั่วคราว: `docker compose stop` + ไฟล์ `.paused` → auto-deploy / refresh / deploy ข้าม · ข้อมูลอยู่ครบ · `resume` เปิดกลับ (commit ที่ push ระหว่างปิด auto-deploy ขึ้นให้) |
 | `cve [--notify]` | `cve-scan.sh` | สแกน CVE ของ image ที่รันอยู่ (Trivy) เฉพาะที่มีแพตช์ · `--notify` = Telegram เฉพาะของใหม่ (docs/31) |
 | `refresh [p…]` | `refresh.sh` | base image มีแพตช์ใหม่ → deploy (docs/31) |
 | `db-user <p\|--all>` | `db-user.sh` | ย้าย project จาก superuser ไปใช้ database user ของตัวเอง · `--all` = ทุกตัวที่ยังใช้ superuser + restart ให้ (docs/31) |
