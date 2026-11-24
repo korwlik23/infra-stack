@@ -157,6 +157,7 @@ infra env myapp           # แก้ .env แล้วใช้ค่าให�
 | push แล้วขึ้นเว็บไหม | `infra logs auto-deploy` (หรือ `infra list`) — `✅` ขึ้นแล้ว · `❌` ล้ม (เว็บยังเป็นเวอร์ชันเดิม) · `⏸` รอคุณตอบเรื่อง seed |
 | เครื่องยังปลอดภัยไหม | `infra audit` — ❌ ต้องแก้ · ⚠️ ควรแก้ (cron ตรวจทุกจันทร์แล้วแจ้ง Telegram เมื่อมีปัญหา — [docs/30](docs/30-security-checklist.md)) |
 | มี CVE / แพตช์ใหม่ไหม | ไม่ต้องทำอะไร — PHP/Node ใน image อัปเดตเองทุกคืน (`infra logs refresh`) · CVE ที่ยังค้างแจ้ง Telegram ทุกเช้า (`infra cve`) · library ของแอปใช้ Renovate ([docs/31](docs/31-security-updates.md)) |
+| มีคนบุกรุกไหม | ไม่ต้องทำอะไร — `infra watch` ตรวจทุกชั่วโมง เจอแล้วแจ้ง Telegram ทันที + สรุปทุกเช้า (ต่อ Gemini: `infra watch --setup` — [docs/31](docs/31-security-updates.md)) |
 | deploy แล้ว migration ทำข้อมูลเสีย | `infra rollback myapp` แล้ว `infra restore db myapp` — ย้อนแค่ DB ของ project นั้น ([docs/13](docs/13-backup.md)) |
 
 Checklist สุขภาพประจำสัปดาห์ (5 นาที): [docs/14-monitoring.md](docs/14-monitoring.md)

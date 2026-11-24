@@ -130,6 +130,48 @@ infra logs cve-scan       # ผลของ cron ทุกเช้า
 
 ---
 
+## 🛡️ ยามเฝ้า VPS — `infra watch`
+
+ตรวจทุกชั่วโมง (cron นาทีที่ 7) — เจอสัญญาณผู้บุกรุก **ส่ง Telegram ทันทีจาก script ไม่ผ่าน AI** ·
+วันละครั้ง (`WATCH_REPORT_HOUR` default 7 โมง) ส่งตัวเลขสรุปให้ **Gemini (ฟรี) ผ่าน n8n** เรียบเรียงเป็นภาษาไทย
+
+| เตือนทันที | ทำไมสำคัญ |
+|-----------|-----------|
+| SSH login จาก IP ที่ไม่เคยเห็น | มีคนได้ key ไป |
+| `authorized_keys` · crontab · `/etc/cron.d` · sudoers.d · sshd_config · `/etc/passwd` · systemd unit เปลี่ยน | ผู้บุกรุกฝังทางเข้าถาวรตรงนี้ |
+| container นอก compose รันค้าง · container ใหม่ที่ privileged / mount `docker.sock` | ตัวขุดเหมือง / ยึดเครื่อง |
+| ไฟล์ `.php` / `.phar` ใหม่ใน `storage/` `public/` ของแอป · executable ใหม่ใน `/tmp` ของ container | webshell (เจาะเว็บ PHP แบบที่เจอบ่อยสุด) |
+| CPU ของ container เกิน `WATCH_CPU_ALERT` (150% = 1.5 core) 2 ชั่วโมงติด · ส่งข้อมูลออกเกิน `WATCH_TX_ALERT_GB` ต่อชั่วโมง | ขุดเหมือง / ดูดข้อมูล |
+
+- รอบแรกจดของที่มีอยู่เป็น baseline (`logs/watch/`) · แต่ละเรื่องแจ้ง**ครั้งเดียว** · deploy image ใหม่ = จด baseline ใหม่เงียบ ๆ
+- คุณแก้เอง (เพิ่ม SSH key, `infra cron`, ลง package) ก็จะเตือนหนึ่งครั้ง — ปกติ
+- **AI ไม่ได้เป็นคนตัดสิน**: ได้แค่ตัวเลขสรุป (ไม่มี IP / user / log ดิบ) · ไม่มีสิทธิ์อะไรบนเครื่อง ·
+  รายงานแนบตัวเลขดิบเสมอ · AI ล่ม = ยังได้ตัวเลขดิบ
+- ข้อจำกัด: user `deploy` อ่าน `/var/log/auth.log` ไม่ได้ → เห็นเฉพาะ login แบบมี terminal และไม่รู้จำนวน SSH ล้มเหลว
+  เปิดให้เห็นครบ: `sudo usermod -aG adm deploy`
+
+### ต่อ Gemini (ครั้งเดียว — ไม่ต่อก็ยังเตือนทันทีได้ รายงานจะเป็นตัวเลขดิบ)
+
+1. สร้าง API key ฟรีที่ https://aistudio.google.com/apikey (ไม่ต้องผูกบัตร = ไม่มีทางเสียเงิน)
+   แนะนำ: Google Cloud Console → APIs & Services → Credentials → key → API restrictions → **Generative Language API** อย่างเดียว
+2. n8n → Credentials → Create → **Google Gemini(PaLM) Api** → วาง key → ชื่อ `Gemini infra-watch` → Save
+3. บนเครื่อง:
+
+```bash
+infra watch --setup     # นำ workflow เข้า n8n + สร้าง token + ทดสอบ
+infra watch --report    # ส่งรายงานเข้า Telegram เดี๋ยวนี้
+```
+
+- workflow รับคำขอที่ `…/webhook/infra-watch` เฉพาะที่มี token ถูก (`WATCH_N8N_TOKEN`) — ไม่มี/ผิด = 403 (กันคนนอกใช้โควตา Gemini)
+- model: `gemini-flash-lite-latest` (ชื่อ `-latest` Google ชี้รุ่นล่าสุดให้เอง) · คนใช้เยอะ (503) → รอแล้วลองใหม่ + สลับไป `gemini-flash-latest`
+- free tier: Google อาจใช้ข้อมูลที่ส่งไปปรับปรุงโมเดล — จึงส่งแค่ตัวเลข
+
+```bash
+infra watch             # ตรวจตอนนี้ แสดงผลอย่างเดียว (ไม่ส่ง ไม่แตะ baseline)
+infra logs watch        # ผลทุกชั่วโมง
+# ปิด: WATCH=0 ใน .env · container ของคุณเองที่รันนอก compose: WATCH_IGNORE_CONTAINERS='^(my-tool|test-)'
+```
+
 ## 🧱 จำกัดความเสียหายเมื่อโดนเจาะ
 
 ### 5. database user แยกต่อ project

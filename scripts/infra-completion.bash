@@ -40,7 +40,7 @@ _infra() {
         COMPREPLY=($(compgen -f -- "$cur")); return
       fi ;;
     logs|log)
-      [ "$n" != 2 ] || words="$(_infra_projects "$root") auto-deploy backup cleanup audit refresh cve-scan install $(docker ps --format '{{.Names}}' 2>/dev/null)" ;;
+      [ "$n" != 2 ] || words="$(_infra_projects "$root") auto-deploy backup cleanup audit refresh cve-scan watch install $(docker ps --format '{{.Names}}' 2>/dev/null)" ;;
     up|stop)
       if [ "$n" = 2 ]; then
         words="$(_infra_stacks "$root")"

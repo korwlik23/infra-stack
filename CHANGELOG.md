@@ -5,6 +5,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
 
 ## [Unreleased]
 
+### Added — ยามเฝ้า VPS (docs/31)
+- `infra watch` (cron ทุกชั่วโมง) — Telegram ทันทีเมื่อ: SSH login จาก IP ใหม่ · authorized_keys / crontab / sudoers /
+  sshd_config / systemd unit เปลี่ยน · container นอก compose ค้าง หรือ container ใหม่ที่ privileged / docker.sock ·
+  ไฟล์ `.php` ใหม่ใน storage/public หรือ executable ใน /tmp ของ container (webshell) · CPU ค้าง / ส่งข้อมูลออกพุ่ง
+  · แต่ละเรื่องแจ้งครั้งเดียว · deploy image ใหม่ไม่เตือน
+- รายงานประจำวันให้ Gemini (free tier) เรียบเรียงผ่าน n8n — ส่งแค่ตัวเลขสรุป แนบตัวเลขดิบเสมอ · AI ไม่มีสิทธิ์บนเครื่อง ·
+  `infra watch --setup` นำ workflow เข้า n8n ให้ (webhook ต้องมี token) · ลองซ้ำ + สลับ model เมื่อ Gemini คนใช้เยอะ
+- `examples/n8n/infra-watch.workflow.json`
+
 ### Added — ใช้ง่ายขึ้น (docs/31)
 - `install.sh` ตั้ง cron ทั้งหมดให้เอง (auto-deploy · backup · cleanup · refresh · cve-scan · audit) — เดิมต้องสั่ง `infra cron`
   เองแล้วมักลืม · `infra cron --yes` ไม่ถาม

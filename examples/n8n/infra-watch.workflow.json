@@ -1,0 +1,167 @@
+{
+  "id": "infraWatchGemini",
+  "name": "InfraStack watch → Gemini (scripts/watch.sh)",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "none"
+  },
+  "nodes": [
+    {
+      "id": "8f3c1b6a-0001-4c9e-9a51-6c1d2e3f4a01",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "__WEBHOOK_ID__",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "infra-watch",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "8f3c1b6a-0002-4c9e-9a51-6c1d2e3f4a02",
+      "name": "Token ถูกไหม",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "8f3c1b6a-0003-4c9e-9a51-6c1d2e3f4a03",
+              "leftValue": "={{ $json.headers['x-watch-token'] }}",
+              "rightValue": "__TOKEN__",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "8f3c1b6a-0004-4c9e-9a51-6c1d2e3f4a04",
+      "name": "Gemini",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        -100
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "__CRED_ID__",
+          "name": "__CRED_NAME__"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://generativelanguage.googleapis.com/v1beta/models/' + $json.body.model + ':generateContent' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googlePalmApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ contents: [{ parts: [{ text: $json.body.prompt }] }], generationConfig: { temperature: 0.2, maxOutputTokens: 4096 } }) }}",
+        "options": {
+          "timeout": 80000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "8f3c1b6a-0005-4c9e-9a51-6c1d2e3f4a05",
+      "name": "ตอบกลับ",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        -100
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.candidates ? $json.candidates[0].content.parts.map(p => p.text || '').join('') : 'GEMINI_ERROR ' + JSON.stringify($json.error || $json).slice(0, 300) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "8f3c1b6a-0006-4c9e-9a51-6c1d2e3f4a06",
+      "name": "ปฏิเสธ",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        440,
+        100
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "forbidden",
+        "options": {
+          "responseCode": 403
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Token ถูกไหม",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Token ถูกไหม": {
+      "main": [
+        [
+          {
+            "node": "Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "ปฏิเสธ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini": {
+      "main": [
+        [
+          {
+            "node": "ตอบกลับ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

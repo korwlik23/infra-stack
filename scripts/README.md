@@ -16,19 +16,20 @@
 | `restart <p>` | — | recreate ด้วย `.env` ปัจจุบัน ไม่ build: rollout service หลัก (ไม่ดับ) + `--force-recreate` ตัวที่เหลือ (`docker compose restart` ไม่อ่าน `.env` ใหม่) |
 | `rollback <p> [tag]` | `rollback.sh` | tag default `previous` |
 | `check <p> [/path…]` | `smoke.sh` | |
-| `logs <p\|container\|auto-deploy\|backup\|cleanup\|audit\|refresh\|cve-scan\|install>` | — | `docker compose logs -f` / `docker logs -f` / `tail -f logs/*.log` |
+| `logs <p\|container\|auto-deploy\|backup\|cleanup\|audit\|refresh\|cve-scan\|watch\|install>` | — | `docker compose logs -f` / `docker logs -f` / `tail -f logs/*.log` |
 | `artisan <p> <args>` | — | แบบ `artisan.sh` แต่ใช้ `ROLLOUT_SERVICE` · มี project เดียวไม่ต้องใส่ชื่อ (`infra artisan migrate:status`) |
 | `shell <p>` | — | bash (หรือ sh) ใน service หลัก |
 | `load <p> <tar.gz>` | `load-src.sh` | path อิงโฟลเดอร์ที่พิมพ์ |
 | `status` / `secrets` | — | container + DNS + HTTPS / รหัสทั้งหมด (`secrets` แสดงรหัสบนจอ) |
 | `audit [--notify]` | `audit.sh` | ตรวจความปลอดภัย อ่านอย่างเดียว · `--notify` = Telegram เมื่อมี ⚠️/❌ (docs/30) |
+| `watch [--notify\|--report\|--setup]` | `watch.sh` | ยามเฝ้า VPS: ตรวจตอนนี้ · `--notify` cron ทุกชั่วโมง (Telegram ทันที + รายงานประจำวัน) · `--report` ส่งรายงานเดี๋ยวนี้ · `--setup` ต่อ Gemini ผ่าน n8n (docs/31) |
 | `cve [--notify]` | `cve-scan.sh` | สแกน CVE ของ image ที่รันอยู่ (Trivy) เฉพาะที่มีแพตช์ · `--notify` = Telegram เฉพาะของใหม่ (docs/31) |
 | `refresh [p…]` | `refresh.sh` | base image มีแพตช์ใหม่ → deploy (docs/31) |
 | `db-user <p\|--all>` | `db-user.sh` | ย้าย project จาก superuser ไปใช้ database user ของตัวเอง · `--all` = ทุกตัวที่ยังใช้ superuser + restart ให้ (docs/31) |
 | `up <stack> [service…]` / `stop …` | `docker compose -f docker/docker-compose.<stack>.yml` | `up` เช็ค DNS ก่อนถ้า stack มีหน้าเว็บ · `stop` ทั้ง core / database / mysql ถามก่อน |
 | `update [stack\|all]` | `update.sh` | |
 | `dns [stack\|host…]` | `check-dns.sh` | ไม่ใส่ = ทุก stack ที่เปิด + โดเมนของ project |
-| `cron [--yes]` | — | (`install.sh` เรียกให้แล้ว) ตั้ง cron `auto-deploy.sh` (ทุก 2 นาที) + `backup.sh` (03:00) + `cleanup.sh` (04:00) + `refresh.sh` (05:00) + `cve-scan.sh --notify` (06:00) + `audit.sh --notify` (จันทร์ 08:00) ตัวที่ยังขาด |
+| `cron [--yes]` | — | (`install.sh` เรียกให้แล้ว) ตั้ง cron `auto-deploy.sh` (ทุก 2 นาที) + `backup.sh` (03:00) + `cleanup.sh` (04:00) + `refresh.sh` (05:00) + `cve-scan.sh --notify` (06:00) + `audit.sh --notify` (จันทร์ 08:00) + `watch.sh --notify` (ทุกชั่วโมง) ตัวที่ยังขาด |
 | `backup` · `restore <postgres\|mysql\|secrets> [ไฟล์]` · `restore volumes [--overwrite] [vol…]` | `backup.sh` · `backup/scripts/*-restore.sh` | ไม่ใส่ไฟล์ = ล่าสุด |
 | `restore db <p> [ไฟล์]` | `backup/scripts/project-db-restore.sh` | ย้อน DB ของ project เดียวจาก dump ก่อน migrate (docs/13) |
 | `restore-server <src>` | `restore-server.sh` | |
@@ -48,6 +49,7 @@
 | `restore.sh [file]` | restore PostgreSQL (default = ล่าสุด) | เขียนทับข้อมูล — มี confirmation |
 | `restore-server.sh <r2:bucket/host \| dir>` | กู้ทั้งเครื่องลง VPS ใหม่: secrets → volumes → core → database → stack ที่มีข้อมูล | เครื่องใหม่เท่านั้น — มี confirmation (docs/13) |
 | `refresh.sh [project…]` | cron รายวัน: `docker pull` base image ของ stage ที่รันจริง (อ่าน `ARG` default + `build.target`/`dockerfile` จาก compose) แล้วดูว่า `APP_IMAGE` build บน base นี้ไหม (เทียบ layer) → ไม่ใช่ = `deploy.sh` (PHP/Node/OS ได้แพตช์แม้ไม่มี commit) · ข้าม project ที่ deploy ล้ม/rollback อยู่/มี commit ค้าง | `DEPLOY_REFRESH=0` ปิดต่อ project (docs/31) |
+| `watch.sh [--notify\|--report\|--setup]` | สัญญาณผู้บุกรุก (login IP ใหม่ · ไฟล์สำคัญเปลี่ยน · webshell · container แปลก · CPU/ข้อมูลขาออก) เทียบ baseline ใน `logs/watch/` → Telegram ทันที · รายงานประจำวันให้ Gemini ผ่าน n8n เรียบเรียง | AI ได้แค่ตัวเลข ไม่มีสิทธิ์บนเครื่อง · AI ล่มยังได้ตัวเลขดิบ |
 | `cve-scan.sh [--notify]` | สแกน CVE (Trivy, `CRITICAL,HIGH`, เฉพาะที่มีแพตช์) ของทุก image ที่รันอยู่ + บอกวิธีแก้ · จำที่แจ้งแล้วใน `logs/cve-state.txt` | pin `TRIVY_IMAGE` — อ่าน release notes ก่อนอัปเกรด |
 | `db-user.sh <project>` | สร้าง Postgres user ของ project + ย้ายเจ้าของ database/ตาราง + แก้ `.env` + ทดสอบ login (รันซ้ำได้) · `create-project.sh` เรียกเอง | container ใช้ user ใหม่หลัง `infra restart` |
 | `audit.sh [--notify]` | ตรวจความปลอดภัย 8 หมวด (SSH, firewall, อัปเดต, ไฟล์ลับ, หน้าแอดมิน/cert, container, app, backup) — อ่านอย่างเดียว | exit 1 เมื่อมี ❌ · checklist เต็ม docs/30 |

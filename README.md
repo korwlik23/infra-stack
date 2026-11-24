@@ -57,7 +57,7 @@ Three layers:
 - Pre-migrate database dump per project + `infra restore db` (undo a bad migration)
 - Security audit (`infra audit`) + checklist (docs/30)
 - อัปเดตความปลอดภัยอัตโนมัติ (docs/31) — `infra refresh` (PHP/Node/OS ใน image ของ project) · Renovate (library ของแอป)
-  · `infra cve` สแกน CVE ที่มีแพตช์ทุกเช้า → Telegram · database user แยกต่อ project
+  · `infra cve` สแกน CVE ที่มีแพตช์ทุกเช้า → Telegram · `infra watch` ยามเฝ้าผู้บุกรุกทุกชั่วโมง + AI สรุปรายวัน (Gemini ฟรี) · database user แยกต่อ project
 - CI/CD ฟรีไม่ใช้ GitHub Actions — build-on-server + auto-deploy (cron git poll) + migrate/seed ตอน deploy ทุก stack
 - **Zero-downtime deployment** — rolling deploy + healthcheck gate + `rollback.sh`
 - Project templates (Laravel, Next.js, Go, n8n, AI Worker) + `create-project.sh` + `setup-git.sh` (deploy key + clone)
@@ -112,6 +112,7 @@ infra secrets                       # รหัสทั้งหมดอีก
 infra cron                          # ตั้ง backup ทุกคืน + auto-deploy + แพตช์/CVE รายวัน + ตรวจความปลอดภัยรายสัปดาห์ (ครั้งเดียว)
 infra audit                         # ตรวจความปลอดภัยทั้งเครื่อง (docs/30)
 infra cve                           # CVE ของ image ที่รันอยู่ ที่มีแพตช์แล้ว (docs/31)
+infra watch                         # ยามเฝ้า VPS ตรวจตอนนี้ · --setup ต่อ Gemini · --report ส่งสรุป (docs/31)
 
 # เว็บของคุณ (docs/26) — พิมพ์จากโฟลเดอร์ไหนก็ได้
 infra new myapp laravel
