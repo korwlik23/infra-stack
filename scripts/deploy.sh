@@ -66,6 +66,11 @@ HAS_ROLLOUT=0
 [ -x "$HOME/.docker/cli-plugins/docker-rollout" ] && HAS_ROLLOUT=1
 TRIGGER="มือ ($(id -un))"
 [ "${DEPLOY_TRIGGER:-}" = auto ] && TRIGGER="auto-deploy"
+[ "${DEPLOY_TRIGGER:-}" = refresh ] && TRIGGER="อัปเดตแพตช์ base image (${DEPLOY_REFRESH_REASON:-refresh.sh})"
+# build ด้วย --pull: ดึง base image ล่าสุดทุกครั้ง (php:8.3 → 8.3.x ตัวล่าสุด = แพตช์ความปลอดภัยของ PHP/Node/OS)
+# ปิด (เช่น registry ล่มบ่อย): DEPLOY_BUILD_PULL=0 ใน .env ของ project — docs/31
+BUILD_ARGS=(--pull)
+[ "$(penv DEPLOY_BUILD_PULL)" != 0 ] || BUILD_ARGS=()
 
 # ── รายงานผล — ทุกทางออกผ่านที่นี่ ─────────────────────
 # STEP = ขั้นที่กำลังทำ (ล้มแล้วบอกได้ว่าตรงไหน) · SWITCHED = สลับ traffic ไปตัวใหม่แล้ว
@@ -177,7 +182,7 @@ if [ -d src/.git ]; then
   check_env "$ENV_BASE"
   STEP="build"
   echo "[deploy:$NAME] building image on server…"
-  docker compose build
+  docker compose build "${BUILD_ARGS[@]}"
 elif [ -d src ] && grep -qE '^[[:space:]]*build:' docker-compose.yml; then
   # src/ เป็นไฟล์ที่ copy มาเอง (ไม่ใช่ git clone) — build จากที่มี ไม่ pull โค้ด
   # (เดิมตกไป docker compose pull → "pull access denied" เพราะ image ไม่มีใน registry)
@@ -185,7 +190,7 @@ elif [ -d src ] && grep -qE '^[[:space:]]*build:' docker-compose.yml; then
   check_env ""
   STEP="build"
   echo "[deploy:$NAME] src/ ไม่ใช่ git clone — building from local src/ (auto-deploy ใช้ไม่ได้จนกว่าจะ clone)…"
-  docker compose build
+  docker compose build "${BUILD_ARGS[@]}"
 else
   STEP="pull image"
   echo "[deploy:$NAME] pulling image from registry…"
@@ -280,6 +285,7 @@ migration ที่รันไปแล้วไม่ถูกย้อน${DB
     exit 4
   fi
   # ขึ้นเว็บแล้ว — จำ commit (เป็นของจริงบนเว็บ) แต่แจ้งให้คนตัดสินใจ rollback
+  rm -f .deploy-rolled-back
   if [ -d src/.git ]; then
     git -C src rev-parse HEAD > .deploy-commit
     git -C src rev-parse HEAD > .deploy-smoke-failed
@@ -293,6 +299,7 @@ $(commit_info)
 fi
 
 docker image prune -f >/dev/null
+rm -f .deploy-rolled-back
 # จำ commit ที่ขึ้นเว็บจริงแล้ว — auto-deploy เทียบกับค่านี้ (ไม่ใช่ HEAD ของ src/ ที่ pull แล้วแต่ build อาจล้ม)
 if [ -d src/.git ]; then
   git -C src rev-parse HEAD > .deploy-commit

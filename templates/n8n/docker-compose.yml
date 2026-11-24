@@ -3,6 +3,9 @@ services:
     image: docker.n8n.io/n8nio/n8n:latest
     container_name: __PROJECT__
     restart: unless-stopped
+    # กันโปรเซสใน container ยกระดับสิทธิ์ (setuid) ถ้าแอปโดนเจาะ — entrypoint ที่ใช้ sudo/su จะใช้ไม่ได้ (docs/31)
+    security_opt:
+      - no-new-privileges:true
     environment:
       - TZ=${TZ:-Asia/Bangkok}
       - GENERIC_TIMEZONE=${TZ:-Asia/Bangkok}

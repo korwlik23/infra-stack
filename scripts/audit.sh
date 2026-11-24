@@ -233,18 +233,26 @@ else
   # ══════════════════════════════════════════════════════
   section "6. Container"
   # project ของผู้ใช้ไม่ควรเข้าถึง docker.sock / privileged (= root ของเครื่อง)
-  RISKY=""
+  RISKY=""; NONNP=""
   for cid in $(docker ps -q); do
-    info="$(docker inspect -f '{{.Name}}|{{index .Config.Labels "com.docker.compose.project.working_dir"}}|{{.HostConfig.Privileged}}|{{range .Mounts}}{{.Source}} {{end}}' "$cid")"
-    IFS='|' read -r n wd priv mnts <<<"$info"
+    info="$(docker inspect -f '{{.Name}}|{{index .Config.Labels "com.docker.compose.project.working_dir"}}|{{.HostConfig.Privileged}}|{{range .Mounts}}{{.Source}} {{end}}|{{.HostConfig.SecurityOpt}}' "$cid")"
+    IFS='|' read -r n wd priv mnts secopt <<<"$info"
     case "$wd" in */projects/*) ;; *) continue ;; esac
     [ "$priv" = true ] && RISKY="$RISKY ${n#/}(privileged)"
     [[ "$mnts" == *docker.sock* ]] && RISKY="$RISKY ${n#/}(docker.sock)"
+    [[ "$secopt" == *no-new-privileges* ]] || NONNP="$NONNP ${n#/}"
   done
   if [ -n "$RISKY" ]; then
     fail "container ของ project มีสิทธิ์ระดับ root ของเครื่อง:$RISKY" "เอา privileged / docker.sock ออกจาก projects/<ชื่อ>/docker-compose.yml"
   else
     pass "container ของ project ไม่มี privileged / docker.sock"
+  fi
+  # project ที่สร้างก่อน v2.15 — template ยังไม่มี no-new-privileges
+  if [ -n "$NONNP" ]; then
+    warn "container ของ project ไม่ได้ตั้ง no-new-privileges:$NONNP" \
+         "เพิ่มใต้ทุก service ใน projects/<ชื่อ>/docker-compose.yml: security_opt: [\"no-new-privileges:true\"] แล้ว infra restart <ชื่อ> — docs/31"
+  elif [ -n "$(docker ps -q --filter label=com.docker.compose.project.working_dir)" ]; then
+    pass "container ของ project ตั้ง no-new-privileges ครบ"
   fi
   # image เก่า = ช่องโหว่สะสม (base image ไม่ได้อัปเดต)
   OLD=""
@@ -256,7 +264,7 @@ else
     [ "$age" -le 180 ] || OLD="$OLD $img(${age}d)"
   done
   if [ -n "$OLD" ]; then
-    warn "image อายุเกิน 180 วัน:$OLD" "stack: infra update <stack> · project: build ใหม่ (base image ใหม่) แล้ว infra deploy <ชื่อ>"
+    warn "image อายุเกิน 180 วัน:$OLD" "stack: infra update <stack> · project: infra refresh <ชื่อ> (build บน base image ล่าสุด — docs/31)"
   else
     pass "image ที่รันอยู่อายุไม่เกิน 180 วัน"
   fi
@@ -265,9 +273,30 @@ fi
 # ══════════════════════════════════════════════════════
 section "7. App (projects/*/.env)"
 FOUND=0
+PG_SUPER="$(env_val POSTGRES_USER)"; PG_SUPER="${PG_SUPER:-infra}"
+R2_ROOT_SECRET="$(env_val R2_SECRET_ACCESS_KEY)"
 for penvf in "$ROOT"/projects/*/.env; do
   [ -f "$penvf" ] || continue
   p="$(basename "$(dirname "$penvf")")"
+  # ต่อ Postgres กลางด้วย superuser = แอปนี้โดนเจาะ → ทุก database + สั่งคำสั่งบนเครื่องได้ (COPY … PROGRAM)
+  dbu="$(fenv "$penvf" DB_USERNAME)"; dbh="$(fenv "$penvf" DB_HOST)"; url="$(fenv "$penvf" DATABASE_URL)"
+  if [ -z "$dbu" ] && [[ "$url" =~ ^[a-z]+://([^:@/]+)(:[^@]*)?@([^:/]+) ]]; then
+    dbu="${BASH_REMATCH[1]}"; dbh="${BASH_REMATCH[3]}"
+  fi
+  if [ "$dbh" = postgres ] && [ -n "$dbu" ]; then
+    FOUND=1
+    if [ "$dbu" = "$PG_SUPER" ]; then
+      fail "$p: ต่อ database ด้วย superuser ($PG_SUPER) — โดนเจาะแอปเดียว = ทุก database + คำสั่งบนเครื่อง" "infra db-user $p แล้ว infra restart $p — docs/31"
+    else
+      pass "$p: database user ของตัวเอง ($dbu)"
+    fi
+  fi
+  # key R2 ตัวเดียวกับ backup — แอปโดนเจาะ = ลบ backup off-site ได้
+  if [ -n "$R2_ROOT_SECRET" ] && [ "$R2_ROOT_SECRET" != CHANGE_ME ] \
+     && grep -qxF -e "AWS_SECRET_ACCESS_KEY=$R2_ROOT_SECRET" -e "R2_SECRET_ACCESS_KEY=$R2_ROOT_SECRET" "$penvf"; then
+    FOUND=1
+    warn "$p: ใช้ R2 key ตัวเดียวกับ backup — แอปโดนเจาะ = ลบ backup ได้" "สร้าง R2 API token ใหม่จำกัดเฉพาะ bucket ของ $p แล้วใส่ใน infra env $p — docs/31"
+  fi
   # Laravel
   if grep -qE '^APP_KEY=' "$penvf"; then
     FOUND=1
@@ -295,7 +324,7 @@ done
 [ "$FOUND" = 1 ] || skip "ไม่มี project ที่ตรวจได้"
 
 # ══════════════════════════════════════════════════════
-section "8. Backup"
+section "8. Backup + งานอัตโนมัติ"
 CRON="$(crontab -l -u "$OWNER" 2>/dev/null || crontab -l 2>/dev/null || true)"
 if grep -q 'scripts/backup.sh' <<<"$CRON"; then pass "cron backup ตั้งไว้แล้ว"
 else fail "ไม่มี cron backup — ไม่มีอะไร backup ให้ทุกคืน" "infra cron"; fi
@@ -314,6 +343,10 @@ if command -v rclone >/dev/null 2>&1 && [ -n "$B" ] && [ "$B" != CHANGE_ME ] \
 else
   warn "backup อยู่แค่ในเครื่องนี้ — VPS พัง = backup หายด้วย" "ตั้ง rclone + R2_BUCKET_BACKUP — docs/12, docs/13"
 fi
+for job in refresh cve-scan; do
+  if grep -q "scripts/$job.sh" <<<"$CRON"; then pass "cron $job ตั้งไว้แล้ว"
+  else warn "ไม่มี cron $job — แพตช์ความปลอดภัย / CVE ใหม่ไม่มีใครเห็น" "infra cron — docs/31"; fi
+done
 if [ -n "$(env_val NOTIFY_TELEGRAM_BOT_TOKEN)" ] && [ -n "$(env_val NOTIFY_TELEGRAM_CHAT_ID)" ]; then
   pass "แจ้งเตือน Telegram ตั้งแล้ว"
 else

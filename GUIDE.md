@@ -77,7 +77,7 @@ curl -fsSL https://raw.githubusercontent.com/korwlik23/infra-stack/main/prepare.
 infra-stack/
 ├── prepare.sh        ← จุดเริ่มต้น รันตัวนี้บนเครื่องใหม่ (แล้วมันเรียก install.sh ต่อให้)
 ├── TODO.md           ← checklist งานหลังติดตั้ง
-├── docs/             ← คู่มือทุกเรื่อง เรียงเป็นบท 00–30 (เริ่มที่ 00)
+├── docs/             ← คู่มือทุกเรื่อง เรียงเป็นบท 00–31 (เริ่มที่ 00)
 ├── services/         ← "พิมพ์เขียว" ของแต่ละโปรแกรมข้างบน (1 ตัว = 1 โฟลเดอร์)
 ├── docker/           ← ตัวรวมพิมพ์เขียวเป็นชุดๆ (core / database / monitoring / ...)
 ├── scripts/          ← คำสั่งสำเร็จรูป: ติดตั้ง, backup, deploy, ย้อนเวอร์ชัน
@@ -156,6 +156,7 @@ infra env myapp           # แก้ .env แล้วใช้ค่าให�
 | backup ยังทำงานไหม | `infra logs backup` — ต้องจบด้วย `✅ full backup complete` และไม่มี `backup อยู่แค่ในเครื่องนี้` |
 | push แล้วขึ้นเว็บไหม | `infra logs auto-deploy` (หรือ `infra list`) — `✅` ขึ้นแล้ว · `❌` ล้ม (เว็บยังเป็นเวอร์ชันเดิม) · `⏸` รอคุณตอบเรื่อง seed |
 | เครื่องยังปลอดภัยไหม | `infra audit` — ❌ ต้องแก้ · ⚠️ ควรแก้ (cron ตรวจทุกจันทร์แล้วแจ้ง Telegram เมื่อมีปัญหา — [docs/30](docs/30-security-checklist.md)) |
+| มี CVE / แพตช์ใหม่ไหม | ไม่ต้องทำอะไร — PHP/Node ใน image อัปเดตเองทุกคืน (`infra logs refresh`) · CVE ที่ยังค้างแจ้ง Telegram ทุกเช้า (`infra cve`) · library ของแอปใช้ Renovate ([docs/31](docs/31-security-updates.md)) |
 | deploy แล้ว migration ทำข้อมูลเสีย | `infra rollback myapp` แล้ว `infra restore db myapp` — ย้อนแค่ DB ของ project นั้น ([docs/13](docs/13-backup.md)) |
 
 Checklist สุขภาพประจำสัปดาห์ (5 นาที): [docs/14-monitoring.md](docs/14-monitoring.md)

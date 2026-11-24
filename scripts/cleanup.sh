@@ -4,6 +4,7 @@
 #
 # ลบ:
 #   - build cache ที่ไม่ได้ใช้เกิน CLEANUP_CACHE_AGE (default 72h) — ของใหม่เก็บไว้ให้ build ถัดไปเร็ว
+#     + รวมแล้วไม่เกิน CLEANUP_CACHE_MAX (default 4gb — ตั้งใน .env กลางได้)
 #   - image ที่ไม่มี tag (<none>) — :previous มี tag จึงรอด → rollback ได้เหมือนเดิม
 #   - container ที่หยุดแล้วเกิน 24 ชม. ที่ไม่ใช่ของ compose (เช่น docker run ที่ลืม --rm)
 # ไม่ลบ volume เด็ดขาด (มีข้อมูล) — ดูเองด้วย: docker volume ls -f dangling=true
@@ -16,6 +17,15 @@ used() { df -h / | awk 'NR==2 {print $3 " / " $2 " (" $5 ")"}'; }
 echo "=== InfraStack cleanup $(date '+%F %T') — ก่อน: $(used) ==="
 FAILED=""
 docker builder prune -f --filter "until=$AGE" | tail -n 1 || FAILED="$FAILED builder"
+# เพดานขนาด: เครื่องที่ deploy ทุกวัน cache ใหม่อยู่ตลอดจนไม่เคยเกิน 72h → โตไม่หยุด (เจอ 12GB บนเครื่องจริง)
+# เกิน CLEANUP_CACHE_MAX → ลบตัวที่ใช้ล่าสุดนานสุดออกจนเหลือเท่านี้ · Docker 29+ ใช้ --max-used-space / เก่ากว่า --keep-storage
+MAX="${CLEANUP_CACHE_MAX:-$(grep -E '^CLEANUP_CACHE_MAX=' .env 2>/dev/null | head -1 | cut -d= -f2- | tr -d '\r')}"
+MAX="${MAX:-4gb}"
+if docker builder prune --help 2>/dev/null | grep -q -- '--max-used-space'; then
+  docker builder prune -f --max-used-space "$MAX" | tail -n 1 || FAILED="$FAILED builder-max"
+else
+  docker builder prune -f --keep-storage "$MAX" | tail -n 1 || FAILED="$FAILED builder-max"
+fi
 docker image prune -f | tail -n 1 || FAILED="$FAILED image"
 docker container prune -f --filter "until=24h" \
   --filter "label!=com.docker.compose.project" | tail -n 1 || FAILED="$FAILED container"

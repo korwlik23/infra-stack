@@ -1,0 +1,33 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "InfraStack — อัปเดต library ของแอปอัตโนมัติ (docs/31): แพตช์ merge เอง → auto-deploy · minor/major เปิด PR รอคน",
+  "extends": ["config:recommended"],
+  "timezone": "Asia/Bangkok",
+  "labels": ["dependencies"],
+  "minimumReleaseAge": "3 days",
+  "internalChecksFilter": "strict",
+  "automergeSchedule": ["after 1am and before 5am"],
+  "packageRules": [
+    {
+      "description": "แพตช์ (x.y.Z) → Renovate merge เอง ตอนตี 1–5 → เซิร์ฟเวอร์ auto-deploy ต่อ (smoke test + rollback กันไว้)",
+      "matchUpdateTypes": ["patch"],
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": false,
+      "ignoreTests": true
+    },
+    {
+      "description": "minor / major → เปิด PR รอคนกด merge",
+      "matchUpdateTypes": ["minor", "major"],
+      "automerge": false
+    },
+    {
+      "description": "library เวอร์ชัน 0.x เปลี่ยน API ได้ทุกเวอร์ชัน → ไม่ merge เองแม้เป็นแพตช์",
+      "matchCurrentVersion": "/^[~^v=]*0\\./",
+      "automerge": false
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "labels": ["security"]
+  }
+}

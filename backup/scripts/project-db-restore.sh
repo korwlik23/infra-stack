@@ -66,7 +66,15 @@ if [ "$DB_ENGINE" = postgres ]; then
   #   (ค้าง = deploy ครั้งหน้า migrate ล้มด้วย "already exists")
   # ON_ERROR_STOP=1 + --single-transaction → ล้มกลางทาง = rollback ทั้งหมด ไม่มีอะไรเปลี่ยน
   PG_USER="$(env_val POSTGRES_USER)"
-  { echo 'DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;'; gunzip -c "$FILE"; } \
+  # project ที่มี user ของตัวเอง (infra db-user): superuser สร้างตารางใหม่ → คืนเจ้าของให้ user ของ project
+  # ใน transaction เดียวกัน (ไม่งั้นแอปแก้ตาราง / migrate ครั้งหน้าไม่ได้ "must be owner of table")
+  project_db_creds
+  REOWN=""
+  if [ -n "$DB_USER" ] && [ "$DB_USER" != "${PG_USER:-infra}" ] && [[ "$DB_USER" =~ ^[a-z_][a-z0-9_]*$ ]]; then
+    REOWN="$(pg_reown_sql "$DB_USER")"
+  fi
+  { echo 'DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;'; gunzip -c "$FILE"
+    [ -z "$REOWN" ] || printf '%s\n' "$REOWN"; } \
     | docker exec -i postgres psql -U "${PG_USER:-infra}" -d "$DB_NAME" \
         -v ON_ERROR_STOP=1 --single-transaction -q >/dev/null
 else

@@ -48,6 +48,9 @@ fi
 # ไม่ pull — ถ้า pull จะได้ :latest ตัวที่พังกลับมาทับ
 docker compose up -d
 
+# บอก refresh.sh ว่าเวอร์ชันบนเว็บคือตัวที่ถอยมา — ห้าม rebuild commit ล่าสุด (ตัวที่พัง) ขึ้นไปทับเอง
+# deploy ที่สำเร็จครั้งถัดไปลบไฟล์นี้ให้
+date '+%F %T' > .deploy-rolled-back
 echo "✅ [rollback:$NAME] $CURRENT = image ของ $TARGET แล้ว — $(date '+%F %T')"
 echo "ℹ️  deploy ครั้งถัดไปจะ build/pull เวอร์ชันใหม่ทับ tag นี้ตามปกติ — แก้โค้ดก่อน push"
 echo "⚠️  ถ้าเวอร์ชันใหม่รัน migration ไปแล้ว เช็ค schema ว่าโค้ดเก่ายังอ่านได้"
