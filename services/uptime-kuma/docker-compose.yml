@@ -1,6 +1,6 @@
 services:
   uptime-kuma:
-    image: louislam/uptime-kuma:2   # v2 (migrate DB จาก v1 ครั้งเดียว ย้อนไม่ได้ — backup ก่อนขึ้น major) · :latest ยังชี้ v1
+    image: louislam/uptime-kuma:2-slim   # v2 ไม่มี Chromium (CVE ~410 รายการ) — ต้องใช้ monitor แบบ Real Browser ค่อยเปลี่ยนเป็น :2 · ขึ้น major backup ก่อน (migrate DB ย้อนไม่ได้)
     container_name: uptime-kuma
     restart: unless-stopped
     security_opt:
