@@ -3,6 +3,12 @@ services:
     image: phpmyadmin:5
     container_name: phpmyadmin
     restart: unless-stopped
+    # log ไม่เกิน 30MB ต่อ container (ค่า default ของ Docker ไม่มีเพดาน — โตจน disk เต็มได้)
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     environment:
       - TZ=${TZ:-Asia/Bangkok}
       # ต่อ MySQL กลางผ่าน network backend — login ด้วย root / MYSQL_ROOT_PASSWORD

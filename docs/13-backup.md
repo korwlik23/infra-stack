@@ -14,7 +14,7 @@
 ไฟล์อยู่ที่ `backup/archives/` (ไม่อยู่ใน Git) และส่งขึ้น R2 ทุกไฟล์ถ้าตั้ง rclone แล้ว
 
 **volume ที่ไม่ backup:** `postgres_data` (ใช้ `pg_dumpall` แทน — copy ไฟล์ database ขณะรันได้ไฟล์เสีย),
-ชื่อเก่า `docker_*` ที่เหลือจาก `migrate-volumes.sh`, volume ไม่มีชื่อ และ `BACKUP_EXCLUDE_VOLUMES`
+ชื่อเก่า `docker_*` ที่เหลือจาก `migrate-volumes.sh`, volume ไม่มีชื่อ, cache ที่โหลดใหม่ได้ (`trivy-cache`, `*_clamav`, `redisinsight_data`) และ `BACKUP_EXCLUDE_VOLUMES`
 ใน `.env` (default: `netdata_cache prometheus_data loki_data promtail_positions` — ประวัติ metrics/log
 ที่ใหญ่และสร้างใหม่ได้ ถ้าต้องการเก็บด้วย เอาชื่อออกจากรายการ)
 

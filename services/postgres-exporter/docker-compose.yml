@@ -3,6 +3,12 @@ services:
     image: quay.io/prometheuscommunity/postgres-exporter:latest
     container_name: postgres-exporter
     restart: unless-stopped
+    # log ไม่เกิน 30MB ต่อ container (ค่า default ของ Docker ไม่มีเพดาน — โตจน disk เต็มได้)
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     security_opt:
       - no-new-privileges:true
     environment:

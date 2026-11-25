@@ -5,6 +5,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
 
 ## [Unreleased]
 
+### Added — กัน disk เต็ม
+- log ของทุก container ใน stack + template ของ project มีเพดาน `max-size 10m × 3` (default ของ Docker ไม่มีเพดาน) ·
+  project เดิมมีผลเมื่อ deploy ครั้งถัดไป
+- `cleanup.sh`: ลบ image ที่ไม่มี container ใช้และไม่ได้ pull เกิน `CLEANUP_IMAGE_DAYS` (7) — เว้น `:previous` / base และ
+  build stage ใน Dockerfile ของ project / Trivy / alpine · ลบไฟล์ของ user ใน /tmp ที่ไม่ได้แตะเกิน `CLEANUP_TMP_DAYS` (7) ·
+  `--dry-run`
+- `refresh.sh` เรียก `cleanup.sh` หลัง build (เดิม cache ที่ build ตอน 05:00 ค้างทั้งวันจนถึง cleanup 04:00 วันถัดไป — เจอ 13GB)
+
+### Changed
+- `CLEANUP_CACHE_MAX` default 4gb → 2gb
+- backup ไม่เก็บ volume ที่เป็น cache โหลดใหม่ได้: `trivy-cache`, `*_clamav`, `redisinsight_data` (ประหยัด ~1GB ต่อ 7 วัน)
+
 ### Added — อัปเดตแพตช์ image ของ stack อัตโนมัติ (docs/31)
 - `infra update --auto` (cron ทุกอาทิตย์ 04:30) — เทียบ digest ใน registry แล้ว pull + recreate **เฉพาะ service ที่รันอยู่**
   ใน core / monitoring / tools / messaging / storage · ไม่ healthy ใน 120 วินาที = ถอยกลับ image เดิมเอง · Telegram เมื่อมีการเปลี่ยน ·
