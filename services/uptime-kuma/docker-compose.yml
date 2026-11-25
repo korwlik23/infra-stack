@@ -1,6 +1,6 @@
 services:
   uptime-kuma:
-    image: louislam/uptime-kuma:1
+    image: louislam/uptime-kuma:2   # v2 (migrate DB จาก v1 ครั้งเดียว ย้อนไม่ได้ — backup ก่อนขึ้น major) · :latest ยังชี้ v1
     container_name: uptime-kuma
     restart: unless-stopped
     security_opt:
