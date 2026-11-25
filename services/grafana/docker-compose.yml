@@ -1,6 +1,6 @@
 services:
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:13.3   # pin minor — แพตช์ 13.3.x มาเอง (infra update --auto) · ขึ้น minor/major แก้เลขเองหลังอ่าน release notes
     container_name: grafana
     restart: unless-stopped
     security_opt:

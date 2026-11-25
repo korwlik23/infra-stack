@@ -16,7 +16,7 @@
 | `restart <p>` | — | recreate ด้วย `.env` ปัจจุบัน ไม่ build: rollout service หลัก (ไม่ดับ) + `--force-recreate` ตัวที่เหลือ (`docker compose restart` ไม่อ่าน `.env` ใหม่) |
 | `rollback <p> [tag]` | `rollback.sh` | tag default `previous` |
 | `check <p> [/path…]` | `smoke.sh` | |
-| `logs <p\|container\|auto-deploy\|backup\|cleanup\|audit\|refresh\|cve-scan\|watch\|install>` | — | `docker compose logs -f` / `docker logs -f` / `tail -f logs/*.log` |
+| `logs <p\|container\|auto-deploy\|backup\|cleanup\|audit\|refresh\|cve-scan\|watch\|stack-update\|install>` | — | `docker compose logs -f` / `docker logs -f` / `tail -f logs/*.log` |
 | `artisan <p> <args>` | — | แบบ `artisan.sh` แต่ใช้ `ROLLOUT_SERVICE` · มี project เดียวไม่ต้องใส่ชื่อ (`infra artisan migrate:status`) |
 | `shell <p>` | — | bash (หรือ sh) ใน service หลัก |
 | `load <p> <tar.gz>` | `load-src.sh` | path อิงโฟลเดอร์ที่พิมพ์ |
@@ -26,11 +26,12 @@
 | `pause <p>` / `resume <p>` | — | ปิด project ชั่วคราว: `docker compose stop` + ไฟล์ `.paused` → auto-deploy / refresh / deploy ข้าม · ข้อมูลอยู่ครบ · `resume` เปิดกลับ (commit ที่ push ระหว่างปิด auto-deploy ขึ้นให้) |
 | `cve [--notify]` | `cve-scan.sh` | สแกน CVE ของ image ที่รันอยู่ (Trivy) เฉพาะที่มีแพตช์ · `--notify` = Telegram เฉพาะของใหม่ (docs/31) |
 | `refresh [p…]` | `refresh.sh` | base image มีแพตช์ใหม่ → deploy (docs/31) |
+| `update --auto [--check]` | `stack-update.sh` | image ของ stack มีแพตช์ใหม่ → recreate เฉพาะ service ที่รันอยู่ · ไม่ healthy = ถอยกลับเอง · ไม่แตะ database (docs/31) |
 | `db-user <p\|--all>` | `db-user.sh` | ย้าย project จาก superuser ไปใช้ database user ของตัวเอง · `--all` = ทุกตัวที่ยังใช้ superuser + restart ให้ (docs/31) |
 | `up <stack> [service…]` / `stop …` | `docker compose -f docker/docker-compose.<stack>.yml` | `up` เช็ค DNS ก่อนถ้า stack มีหน้าเว็บ · `stop` ทั้ง core / database / mysql ถามก่อน |
 | `update [stack\|all]` | `update.sh` | |
 | `dns [stack\|host…]` | `check-dns.sh` | ไม่ใส่ = ทุก stack ที่เปิด + โดเมนของ project |
-| `cron [--yes]` | — | (`install.sh` เรียกให้แล้ว) ตั้ง cron `auto-deploy.sh` (ทุก 2 นาที) + `backup.sh` (03:00) + `cleanup.sh` (04:00) + `refresh.sh` (05:00) + `cve-scan.sh --notify` (06:00) + `audit.sh --notify` (จันทร์ 08:00) + `watch.sh --notify` (ทุกชั่วโมง) ตัวที่ยังขาด |
+| `cron [--yes]` | — | (`install.sh` เรียกให้แล้ว) ตั้ง cron `auto-deploy.sh` (ทุก 2 นาที) + `backup.sh` (03:00) + `cleanup.sh` (04:00) + `refresh.sh` (05:00) + `cve-scan.sh --notify` (06:00) + `audit.sh --notify` (จันทร์ 08:00) + `watch.sh --notify` (ทุกชั่วโมง) + `stack-update.sh` (อาทิตย์ 04:30) ตัวที่ยังขาด |
 | `backup` · `restore <postgres\|mysql\|secrets> [ไฟล์]` · `restore volumes [--overwrite] [vol…]` | `backup.sh` · `backup/scripts/*-restore.sh` | ไม่ใส่ไฟล์ = ล่าสุด |
 | `restore db <p> [ไฟล์]` | `backup/scripts/project-db-restore.sh` | ย้อน DB ของ project เดียวจาก dump ก่อน migrate (docs/13) |
 | `restore-server <src>` | `restore-server.sh` | |

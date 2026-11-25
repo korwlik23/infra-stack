@@ -40,7 +40,7 @@ _infra() {
         COMPREPLY=($(compgen -f -- "$cur")); return
       fi ;;
     logs|log)
-      [ "$n" != 2 ] || words="$(_infra_projects "$root") auto-deploy backup cleanup audit refresh cve-scan watch install $(docker ps --format '{{.Names}}' 2>/dev/null)" ;;
+      [ "$n" != 2 ] || words="$(_infra_projects "$root") auto-deploy backup cleanup audit refresh cve-scan watch stack-update install $(docker ps --format '{{.Names}}' 2>/dev/null)" ;;
     up|stop)
       if [ "$n" = 2 ]; then
         words="$(_infra_stacks "$root")"
@@ -48,7 +48,8 @@ _infra() {
         words="$(docker compose --env-file "$root/.env" -f "$root/docker/docker-compose.${COMP_WORDS[2]}.yml" config --services 2>/dev/null)"
       fi ;;
     update)
-      [ "$n" != 2 ] || words="$(_infra_stacks "$root") all" ;;
+      if [ "$n" = 2 ]; then words="$(_infra_stacks "$root") all --auto"
+      elif [ "${COMP_WORDS[2]}" = --auto ]; then words="--check"; fi ;;
     refresh)
       words="$(_infra_projects "$root")" ;;
     cve)

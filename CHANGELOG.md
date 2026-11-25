@@ -5,6 +5,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
 
 ## [Unreleased]
 
+### Added — อัปเดตแพตช์ image ของ stack อัตโนมัติ (docs/31)
+- `infra update --auto` (cron ทุกอาทิตย์ 04:30) — เทียบ digest ใน registry แล้ว pull + recreate **เฉพาะ service ที่รันอยู่**
+  ใน core / monitoring / tools / messaging / storage · ไม่ healthy ใน 120 วินาที = ถอยกลับ image เดิมเอง · Telegram เมื่อมีการเปลี่ยน ·
+  ไม่แตะ database / mysql · `--check` ดูอย่างเดียว · `STACK_UPDATE_SKIP` / `STACK_UPDATE=0`
+
+### Removed
+- Watchtower — ไม่มี service ไหนติด label opt-in จึงไม่เคยอัปเดตอะไร · โปรเจกต์เลิกพัฒนา (image มี CVE ค้าง 57 รายการ) ·
+  ต้องได้ docker.sock แบบเขียนได้ · แทนด้วย `infra update --auto` · เครื่องเดิม: `docker rm -f watchtower`
+
+### Changed
+- Grafana pin `grafana/grafana:13.3` (เดิม `:latest` ข้าม major ได้เองตอนอัปเดต)
+- cAdvisor ย้ายไป `ghcr.io/google/cadvisor:0.61` — `gcr.io/cadvisor/cadvisor` หยุดที่ v0.55.1 (CVE ค้าง 86 รายการ)
+
 ### Added — ปิด project ชั่วคราว
 - `infra pause <p>` / `infra resume <p>` — หยุด container แต่เก็บโค้ด / database / volume / backup ไว้ครบ ·
   auto-deploy, refresh (05:00) และ deploy ข้าม project ที่ปิด (เดิมหยุดด้วยมือแล้ว refresh / push เปิดกลับมาเอง) ·

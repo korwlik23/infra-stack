@@ -7,7 +7,7 @@ Source of truth ของแต่ละ service อยู่ที่ `services
 |-------|------|-----------------|-----------|
 | Core | `docker-compose.core.yml` | `infra-core` | Traefik, Portainer |
 | Database | `docker-compose.database.yml` | `infra-database` | PostgreSQL, Redis |
-| Monitoring | `docker-compose.monitoring.yml` | `infra-monitoring` | Netdata, Prometheus+exporters, Alertmanager, Grafana, Loki+Promtail, Uptime Kuma, Dozzle, Watchtower, Beszel |
+| Monitoring | `docker-compose.monitoring.yml` | `infra-monitoring` | Netdata, Prometheus+exporters, Alertmanager, Grafana, Loki+Promtail, Uptime Kuma, Dozzle, Beszel |
 | Tools | `docker-compose.tools.yml` | `infra-tools` | pgAdmin, phpMyAdmin, Redis Insight |
 | Messaging (v2.0) | `docker-compose.messaging.yml` | `infra-messaging` | RabbitMQ |
 | Storage (v2.0) | `docker-compose.storage.yml` | `infra-storage` | MinIO |

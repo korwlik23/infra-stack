@@ -9,7 +9,7 @@ Infrastructure  →  Platform  →  Application
 | Layer | ทำครั้งเดียว/แชร์ | ประกอบด้วย |
 |-------|------------------|-----------|
 | **Infrastructure** | ทำครั้งเดียวต่อเครื่อง | Ubuntu, Docker, Traefik, PostgreSQL, Redis, Cloudflare, R2 |
-| **Platform** | ทุก project แชร์ | Portainer, Netdata, Grafana, Prometheus, Uptime Kuma, Dozzle, Watchtower, Backup, CI/CD |
+| **Platform** | ทุก project แชร์ | Portainer, Netdata, Grafana, Prometheus, Uptime Kuma, Dozzle, Backup, CI/CD |
 | **Application** | Deploy อิสระต่อ project | Laravel/Next.js apps, n8n, AI Workers |
 
 ## ภาพรวมบนเครื่องเดียว (Stage 1)

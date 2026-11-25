@@ -392,7 +392,7 @@ if [ "$HTTPS_STATE" != ok ]; then
   echo ""
   echo "⏳ HTTPS ยังไม่พร้อม — ลิงก์ด้านบนจะเปิดได้เมื่อ DNS ครบและได้ cert (ดู: infra status)"
 fi
-# ── cron: auto-deploy / backup / cleanup / refresh / cve-scan / audit — ตั้งให้เลย (เดิมต้องสั่ง infra cron เอง แล้วลืมกัน)
+# ── cron: auto-deploy / backup / cleanup / refresh / cve-scan / audit / watch / stack-update — ตั้งให้เลย (เดิมต้องสั่ง infra cron เอง แล้วลืมกัน)
 # รันซ้ำได้: เพิ่มเฉพาะตัวที่ยังขาด · ไม่เอา: crontab -e ลบบรรทัดนั้น
 ./scripts/infra cron --yes >/dev/null 2>&1 || echo "⚠️  ตั้ง cron ไม่สำเร็จ — รันเอง: infra cron"
 echo ""

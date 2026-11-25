@@ -7,7 +7,7 @@ CVE ใหม่ออกแทบทุกวัน แต่ที่ต้อ
 | ชั้น | อัปเดตอะไร | ทำงานยังไง | ต้องมีคนกดไหม |
 |------|-----------|-----------|---------------|
 | 1. OS ของเครื่อง | Ubuntu package | `unattended-upgrades` (มีตั้งแต่ติดตั้ง — docs/02) | ไม่ |
-| 2. image ของ stack | Traefik, Grafana, Postgres … | Watchtower ทุกคืน 04:00 · หรือ `infra update <stack>` | ไม่ |
+| 2. image ของ stack | Traefik, Grafana, Netdata … | `infra update --auto` ทุกอาทิตย์ 04:30 (ไม่แตะ database) | แพตช์ไม่ต้อง · database / เปลี่ยนเวอร์ชันสั่งเอง |
 | 3. PHP / Node / OS **ใน image ของ project** | base image ใน Dockerfile (`FROM php:8.3-fpm`) | `infra refresh` ทุกคืน 05:00 | ไม่ |
 | 4. library ของแอป | `composer.lock` / `package-lock.json` / `go.sum` | Renovate (ใน repo ของแอป) | แพตช์ไม่ต้อง · minor/major กด merge |
 
@@ -22,12 +22,37 @@ CVE ใหม่ออกแทบทุกวัน แต่ที่ต้อ
 **เครื่องที่ติดตั้งก่อนหน้านี้:** `git pull` แล้ว
 
 ```bash
-infra cron                # เพิ่ม refresh (05:00) + cve-scan (06:00) — ตัวเดิมไม่แตะ
+infra cron                # เพิ่ม refresh (05:00) + cve-scan (06:00) + stack-update (อาทิตย์ 04:30) — ตัวเดิมไม่แตะ
 infra db-user --all       # ทุก project ที่ยังใช้ superuser → user ของตัวเอง + restart ให้ (ถามก่อน)
 infra audit               # ดูว่ายังขาดข้อไหน
 ```
 
 ทุกข้อความไป Telegram เดียวกับ deploy (`NOTIFY_TELEGRAM_*` ใน `.env` — docs/19)
+
+---
+
+## 2. image ของ stack — `infra update --auto`
+
+**ทุกอาทิตย์ 04:30 (`stack-update.sh`):** ต่อ service ที่ **รันอยู่** ใน stack core / monitoring / tools / messaging / storage
+1. เทียบ digest ใน registry กับ image ที่ container ใช้อยู่ — เหมือนเดิม = ไม่ทำอะไร
+2. ต่าง = `docker pull` แล้ว recreate **เฉพาะ service นั้น** (`up -d --no-deps`) — service ที่ปิดไว้ไม่ถูกเปิดขึ้นมา
+3. รอ healthy (มี healthcheck, 120 วินาที) หรือรันนิ่ง 20 วินาที (ไม่มี) → ไม่ผ่าน = ชี้ tag กลับ image เดิมแล้ว recreate (ถอยกลับเอง)
+4. Telegram เฉพาะเมื่อมีตัวที่อัปเดต / ถอยกลับ · ไม่มีอะไรใหม่ = เงียบ
+
+```bash
+infra update --auto --check   # ดูว่าตัวไหนมี image ใหม่ (ไม่ pull ไม่ restart)
+infra update --auto           # อัปเดตตอนนี้
+infra logs stack-update       # ผลของ cron
+```
+
+- **ได้แค่แพตช์ใน tag เดิม** — `phpmyadmin:5` → 5.x ล่าสุด · `grafana/grafana:13.3` → 13.3.x · ขึ้น minor/major แก้ tag ใน
+  `services/*/docker-compose.yml` เองหลังอ่าน release notes แล้ว `infra update <stack>`
+- tag `:latest` ข้าม major ได้ (breaking change มาเองตอนตี 4) → ตัวที่มีข้อมูล / config เยอะให้ pin เลขไว้
+- service ที่อัปเดตดับไม่กี่วินาที · **Traefik อัปเดต = ทุกเว็บดับสั้น ๆ** (จึงเลือกคืนวันอาทิตย์) ·
+  ไม่เอา: `STACK_UPDATE_SKIP=traefik` ใน `.env` กลาง (คั่นหลายตัวด้วยช่องว่าง) · ปิดทั้งหมด: `STACK_UPDATE=0`
+- **database / mysql ไม่อัปเดตเอง** — restart = ทุกแอปต่อ DB ไม่ได้ · สั่งเองหลัง `infra backup`: `infra update database` / `mysql`
+- แทน Watchtower (ถอดออกแล้ว — โปรเจกต์เลิกพัฒนา, ต้องได้ docker.sock แบบเขียนได้ และ image เองมี CVE ค้าง)
+  เครื่องเดิม: `docker rm -f watchtower` หลัง `git pull`
 
 ---
 

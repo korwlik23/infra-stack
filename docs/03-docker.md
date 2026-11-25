@@ -32,5 +32,5 @@ docker run --rm hello-world
 
 - การใส่ user เข้า group `docker` = ให้สิทธิ์เทียบเท่า root — ใช้กับ user ที่ไว้ใจเท่านั้น
 - อย่า expose Docker socket (`/var/run/docker.sock`) ให้ container ที่ไม่จำเป็น
-  ใน stack นี้มีเฉพาะ: Traefik, Portainer, Netdata, Dozzle, Promtail, Beszel agent (ทั้งหมด :ro)
-  และ Watchtower (read-write — ต้องสั่ง recreate container); cAdvisor mount `/var/run` แบบ :ro
+  ใน stack นี้มีเฉพาะ: Traefik, Portainer, Netdata, Dozzle, Promtail, Beszel agent (ทั้งหมด :ro);
+  cAdvisor mount `/var/run` แบบ :ro · ไม่มี container ไหนได้ socket แบบเขียนได้ (อัปเดต image ทำจาก cron บนเครื่อง — docs/31)
