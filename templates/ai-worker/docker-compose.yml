@@ -3,6 +3,12 @@ services:
     image: ${APP_IMAGE:?set in .env}
     container_name: __PROJECT__
     restart: unless-stopped
+    # log ไม่เกิน 30MB ต่อ container (ค่า default ของ Docker ไม่มีเพดาน — โตจน disk เต็มได้)
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     # กันโปรเซสใน container ยกระดับสิทธิ์ (setuid) ถ้าแอปโดนเจาะ — entrypoint ที่ใช้ sudo/su จะใช้ไม่ได้ (docs/31)
     security_opt:
       - no-new-privileges:true

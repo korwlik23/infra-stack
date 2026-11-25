@@ -3,6 +3,12 @@ services:
     image: mysql:8.4
     container_name: mysql
     restart: unless-stopped
+    # log ไม่เกิน 30MB ต่อ container (ค่า default ของ Docker ไม่มีเพดาน — โตจน disk เต็มได้)
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     security_opt:
       - no-new-privileges:true
     # เครื่อง 8 GB รันหลาย project — จำกัด buffer pool ไว้ ไม่งั้น MySQL จองตามขนาดเครื่อง

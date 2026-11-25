@@ -3,6 +3,12 @@ services:
     image: prom/prometheus:latest
     container_name: prometheus
     restart: unless-stopped
+    # log ไม่เกิน 30MB ต่อ container (ค่า default ของ Docker ไม่มีเพดาน — โตจน disk เต็มได้)
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     security_opt:
       - no-new-privileges:true
     command:
@@ -20,6 +26,12 @@ services:
     image: prom/node-exporter:latest
     container_name: node-exporter
     restart: unless-stopped
+    # log ไม่เกิน 30MB ต่อ container (ค่า default ของ Docker ไม่มีเพดาน — โตจน disk เต็มได้)
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     pid: host
     command:
       - "--path.rootfs=/host"
@@ -32,6 +44,12 @@ services:
     image: ghcr.io/google/cadvisor:0.61   # gcr.io หยุดที่ v0.55.1 — เวอร์ชันใหม่ออกที่ ghcr · pin minor
     container_name: cadvisor
     restart: unless-stopped
+    # log ไม่เกิน 30MB ต่อ container (ค่า default ของ Docker ไม่มีเพดาน — โตจน disk เต็มได้)
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     privileged: true
     command:
       - "--docker_only=true"

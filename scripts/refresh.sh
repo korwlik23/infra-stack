@@ -39,6 +39,7 @@ else
 fi
 
 RC_ALL=0
+BUILT=0
 for DIR in "${DIRS[@]}"; do
   DIR="${DIR%/}"
   NAME="$(basename "$DIR")"
@@ -94,7 +95,7 @@ for DIR in "${DIRS[@]}"; do
     continue
   fi
   log "$NAME: มีแพตช์ใหม่ของ:$CHANGED → deploy…"
-  RC=0
+  RC=0; BUILT=1
   # --no-seed: commit เดิม ไม่มี seeder ใหม่ให้รัน · deploy.sh แจ้ง Telegram ผลเอง
   DEPLOY_TRIGGER=refresh DEPLOY_REFRESH_REASON="${CHANGED# }" ./scripts/deploy.sh "$NAME" --no-seed || RC=$?
   case "$RC" in
@@ -104,4 +105,9 @@ for DIR in "${DIRS[@]}"; do
     *) log "$NAME: ❌ deploy ล้ม (เว็บยังเป็นเวอร์ชันเดิม) — ดู log ด้านบน"; RC_ALL=1 ;;
   esac
 done
+# build ใหม่ = build cache โตหลาย GB หลัง cleanup 04:00 ไปแล้ว → ล้างซ้ำเลย (ไม่ค้างทั้งวัน)
+if [ "$BUILT" = 1 ]; then
+  log "ล้าง build cache / image ที่เลิกใช้หลัง build…"
+  ./scripts/cleanup.sh || true
+fi
 exit "$RC_ALL"

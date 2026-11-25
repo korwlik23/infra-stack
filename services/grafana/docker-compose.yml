@@ -3,6 +3,12 @@ services:
     image: grafana/grafana:13.3   # pin minor — แพตช์ 13.3.x มาเอง (infra update --auto) · ขึ้น minor/major แก้เลขเองหลังอ่าน release notes
     container_name: grafana
     restart: unless-stopped
+    # log ไม่เกิน 30MB ต่อ container (ค่า default ของ Docker ไม่มีเพดาน — โตจน disk เต็มได้)
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     security_opt:
       - no-new-privileges:true
     environment:

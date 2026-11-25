@@ -8,6 +8,7 @@
 #   - postgres_data, mysql_data — ใช้ pg_dumpall / mysqldump แทน (copy ไฟล์ database ขณะรัน = ไฟล์เสีย)
 #   - docker_*            — volume ชื่อเก่าที่เหลือหลัง migrate-volumes.sh (ข้อมูลซ้ำ)
 #   - anonymous (64 hex)  — volume ชั่วคราวที่ไม่มีชื่อ
+#   - cache ที่โหลดใหม่ได้เอง: trivy-cache (ฐานข้อมูล CVE ~2GB) · *_clamav (ฐานข้อมูลไวรัส) · redisinsight_data
 #   - BACKUP_EXCLUDE_VOLUMES ใน .env — default: ประวัติ metrics/log ที่ใหญ่และสร้างใหม่ได้
 set -euo pipefail
 
@@ -18,13 +19,14 @@ STAMP="$(date +%Y%m%d_%H%M%S)"
 # $ ช่องว่าง & ; ทำ script พัง (set -u → unbound variable) หรือได้ค่าผิด
 env_val() { grep -E "^$1=" "$ROOT/.env" 2>/dev/null | head -1 | cut -d= -f2- | sed -E 's/^"(.*)"$/\1/' || true; }
 KEEP_DAYS="$(env_val BACKUP_KEEP_DAYS)"; KEEP_DAYS="${KEEP_DAYS:-7}"
-EXCLUDE=" postgres_data mysql_data $(env_val BACKUP_EXCLUDE_VOLUMES) "
+EXCLUDE=" postgres_data mysql_data trivy-cache redisinsight_data $(env_val BACKUP_EXCLUDE_VOLUMES) "
 
 VOLUMES=("$@")
 if [ ${#VOLUMES[@]} -eq 0 ]; then
   for VOL in $(docker volume ls -q); do
     [[ "$VOL" =~ ^[0-9a-f]{64}$ ]] && continue
     [[ "$VOL" == docker_* ]] && continue
+    [[ "$VOL" == *_clamav ]] && continue
     [[ "$EXCLUDE" == *" $VOL "* ]] && continue
     VOLUMES+=("$VOL")
   done

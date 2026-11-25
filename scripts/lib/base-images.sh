@@ -35,6 +35,33 @@ dockerfile_runtime_base() {   # <Dockerfile> [target]
     }'
 }
 
+# image ภายนอกทุกตัวใน Dockerfile (ทุก stage รวม build อย่างเดียว เช่น node / composer) — บรรทัดละตัว
+# ใช้โดย cleanup.sh: ไม่ลบ base ที่ build / refresh ใช้ (ลบแล้ว build ถัดไปต้องโหลดใหม่ทั้งก้อน)
+dockerfile_all_bases() {   # <Dockerfile>
+  [ -f "$1" ] || return 0
+  tr -d '\r' < "$1" | awk '
+    function subst(s,   tok, name) {
+      while (match(s, /\$\{?[A-Za-z_][A-Za-z0-9_]*\}?/)) {
+        tok = substr(s, RSTART, RLENGTH); name = tok; gsub(/[${}]/, "", name)
+        if (!(name in arg)) return s
+        s = substr(s, 1, RSTART - 1) arg[name] substr(s, RSTART + RLENGTH)
+      }
+      return s
+    }
+    toupper($1) == "ARG" {
+      eq = index($2, "=")
+      if (eq > 0) { v = substr($2, eq + 1); gsub(/^"|"$/, "", v); arg[substr($2, 1, eq - 1)] = subst(v) }
+    }
+    toupper($1) == "FROM" {
+      i = 2; while ($i ~ /^--/) i++
+      img = subst($i)
+      if (!(tolower(img) in stage) && img !~ /\$/ && tolower(img) != "scratch") print img
+      if (toupper($(i + 1)) == "AS") stage[tolower($(i + 2))] = 1
+    }
+    # COPY --from=<image> (เช่น composer:2) ก็เป็น image ภายนอก
+    toupper($1) == "COPY" { for (j = 2; j <= NF; j++) if ($j ~ /^--from=/) { f = subst(substr($j, 8)); if (!(tolower(f) in stage) && f ~ /[:\/]/) print f } }' | sort -u
+}
+
 # "<Dockerfile เต็ม>|<target>" ที่ project ใช้ build — ลำดับ:
 #   DEPLOY_DOCKERFILE ใน .env ของ project (relative กับ projects/<name>)
 #   build.context / dockerfile / target จาก docker compose config (service แรกที่มี build)
