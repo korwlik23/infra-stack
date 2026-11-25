@@ -209,7 +209,12 @@ fi
 DB_BACKUP=""
 if [ "$(penv DEPLOY_MIGRATE)" = 1 ] && [ "$(penv DEPLOY_DB_BACKUP)" != 0 ]; then
   STEP="backup database ก่อน migrate"
-  if ! DB_BACKUP="$("$ROOT/backup/scripts/project-db-backup.sh" "$NAME" | tee /dev/stderr | tail -1)"; then
+  # ห้าม tee /dev/stderr: บน Linux มันเปิดไฟล์ log ของ cron ใหม่แบบ truncate → log ก่อนหน้าหายทั้งไฟล์
+  BK_RC=0
+  BK_OUT="$("$ROOT/backup/scripts/project-db-backup.sh" "$NAME")" || BK_RC=$?
+  [ -z "$BK_OUT" ] || printf '%s\n' "$BK_OUT" >&2
+  DB_BACKUP="$(printf '%s\n' "$BK_OUT" | tail -1)"
+  if [ "$BK_RC" != 0 ]; then
     FAIL_DETAIL="backup database ก่อน migrate ไม่สำเร็จ — ไม่ migrate (ดู error ด้านบน)
 ข้ามเฉพาะครั้งนี้: DEPLOY_DB_BACKUP=0 ใน projects/$NAME/.env แล้ว infra deploy $NAME"
     echo "[deploy:$NAME] ❌ $FAIL_DETAIL" >&2
