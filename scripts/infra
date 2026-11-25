@@ -233,10 +233,11 @@ cmd_cron() {
     [refresh]="0 5 * * * $ROOT/scripts/refresh.sh >> $ROOT/logs/refresh.log 2>&1"
     [cve-scan]="0 6 * * * $ROOT/scripts/cve-scan.sh --notify >> $ROOT/logs/cve-scan.log 2>&1"
     [watch]="7 * * * * $ROOT/scripts/watch.sh --notify >> $ROOT/logs/watch.log 2>&1"
+    [stack-update]="30 4 * * 0 $ROOT/scripts/stack-update.sh >> $ROOT/logs/stack-update.log 2>&1"
   )
   cur="$(crontab -l 2>/dev/null || true)"
   echo "── cron ของ $(id -un)"
-  for job in auto-deploy backup cleanup audit refresh cve-scan watch; do
+  for job in auto-deploy backup cleanup audit refresh cve-scan watch stack-update; do
     if grep -q "scripts/$job.sh" <<<"$cur"; then
       echo "  ✅ $job"
     else
@@ -244,7 +245,7 @@ cmd_cron() {
       missing+=("${line[$job]}")
     fi
   done
-  [ ${#missing[@]} -gt 0 ] || { echo "ครบแล้ว — ดูผล: infra logs <auto-deploy|backup|cleanup|audit|refresh|cve-scan|watch>"; return 0; }
+  [ ${#missing[@]} -gt 0 ] || { echo "ครบแล้ว — ดูผล: infra logs <auto-deploy|backup|cleanup|audit|refresh|cve-scan|watch|stack-update>"; return 0; }
   echo ""
   echo "  auto-deploy = เช็ค git ทุก 2 นาที → push แล้วขึ้นเว็บเอง (docs/19)"
   echo "  backup      = ทุกคืน 03:00 (docs/13)"
@@ -252,6 +253,7 @@ cmd_cron() {
   echo "  audit       = ตรวจความปลอดภัยทุกจันทร์ 08:00 → Telegram เมื่อมีปัญหา (docs/30)"
   echo "  refresh     = ทุกคืน 05:00 base image (PHP/Node/OS) มีแพตช์ใหม่ → build + deploy ให้เอง (docs/31)"
   echo "  cve-scan    = ทุกเช้า 06:00 สแกน CVE ของ image ที่รันอยู่ → Telegram เฉพาะของใหม่ที่มีแพตช์ (docs/31)"
+  echo "  stack-update= ทุกอาทิตย์ 04:30 image ของ stack (Traefik/Grafana/…) มีแพตช์ใหม่ → อัปเดตเฉพาะตัวที่รันอยู่ ไม่แตะ database (docs/31)"
   echo "  watch       = ทุกชั่วโมง ยามเฝ้า: login IP ใหม่ / ไฟล์สำคัญเปลี่ยน / webshell / container แปลก → Telegram (docs/31)"
   if [ "$yes" = 0 ]; then
     read -r -p "ตั้งที่ยังขาดเลยไหม? [Y/n] " ans || ans=n
@@ -383,7 +385,7 @@ cmd_rollback() {
 cmd_logs() {
   local name="${1:-}"
   case "$name" in
-    auto-deploy|backup|cleanup|audit|refresh|cve-scan|watch)
+    auto-deploy|backup|cleanup|audit|refresh|cve-scan|watch|stack-update)
       [ -f "logs/$name.log" ] || die "ยังไม่มี logs/$name.log — ตั้ง cron ก่อน: infra cron"
       exec tail -n 50 -f "logs/$name.log" ;;
     install)
@@ -565,10 +567,11 @@ usage() {
   up <stack> [service…]         เปิด stack (เช็ค DNS ให้ก่อน) — tools / messaging / storage / mysql …
   stop <stack> [service…]       หยุด stack หรือบาง service
   update [stack|all]            pull image ใหม่ของ stack
+  update --auto [--check]       แพตช์ image ของ stack เฉพาะตัวที่รันอยู่ + ถอยกลับเองถ้าไม่ขึ้น (cron อาทิตย์ 04:30 · ไม่แตะ DB)
   dns [stack|โดเมน…]            เช็ค DNS record ชี้มาเครื่องนี้ (ไม่ใส่ = ทุกอย่างที่เปิดอยู่)
-  logs <container|auto-deploy|backup|cleanup|audit|refresh|cve-scan|watch|install>
+  logs <container|auto-deploy|backup|cleanup|audit|refresh|cve-scan|watch|stack-update|install>
                                 log ของ container หรือของ cron / ติดตั้ง
-  cron [--yes]                  ตั้ง auto-deploy + backup + cleanup + refresh + cve-scan + audit + watch (install.sh ตั้งให้แล้ว)
+  cron [--yes]                  ตั้ง auto-deploy + backup + cleanup + refresh + cve-scan + audit + watch + stack-update (install.sh ตั้งให้แล้ว)
   watch [--report|--setup]      ยามเฝ้า VPS: ตรวจตอนนี้ · --report ส่งสรุปประจำวัน · --setup ต่อ Gemini ผ่าน n8n (docs/31)
   completion                    ติดตั้ง Tab completion (เครื่องที่ติดตั้งก่อน v2.13)
 
@@ -614,7 +617,8 @@ case "$CMD" in
   secrets)          cmd_secrets ;;
   up)               cmd_up "$@" ;;
   stop)             cmd_stop "$@" ;;
-  update)           exec ./scripts/update.sh "$@" ;;
+  update)           if [ "${1:-}" = --auto ]; then shift; exec ./scripts/stack-update.sh "$@"; fi
+                    exec ./scripts/update.sh "$@" ;;
   dns)              cmd_dns "$@" ;;
   cron)             cmd_cron "$@" ;;
   completion)       cmd_completion ;;

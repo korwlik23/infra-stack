@@ -306,7 +306,7 @@ IP_N="$(awk '{print $3}' <<<"$LOGIN24" | sort -u | grep -c .)"
 EV="$(awk -v t="$DAY" '$1 >= t {c[$2]++} END {for (k in c) printf "%s=%d ", k, c[k]}' "$S/events" 2>/dev/null)"
 UNH="$(docker ps --filter health=unhealthy --format '{{.Names}}' | tr '\n' ' ')"
 JOBS=""
-for j in backup cleanup refresh cve-scan; do
+for j in backup cleanup refresh cve-scan stack-update; do
   st="$(grep -E '✅|❌' "logs/$j.log" 2>/dev/null | tail -1 | grep -q '❌' && echo ล้ม || echo ok)"
   [ -f "logs/$j.log" ] || st="ไม่มี log"
   JOBS="$JOBS $j=$st"

@@ -40,7 +40,7 @@ Three layers:
 | Layer | Contents |
 |-------|----------|
 | **Infrastructure** | Ubuntu, Docker, Traefik, PostgreSQL, Redis, Cloudflare, R2, MinIO |
-| **Platform** | Portainer, Netdata, Grafana, Prometheus, Alertmanager, Loki, Uptime Kuma, Dozzle, Watchtower, Beszel, pgAdmin, phpMyAdmin, Redis Insight, RabbitMQ, Backup, CI/CD |
+| **Platform** | Portainer, Netdata, Grafana, Prometheus, Alertmanager, Loki, Uptime Kuma, Dozzle, Beszel, pgAdmin, phpMyAdmin, Redis Insight, RabbitMQ, Backup, CI/CD |
 | **Application** | Laravel, Next.js, n8n, AI Workers and every project under `projects/` |
 
 ## Features
@@ -51,7 +51,7 @@ Three layers:
 - PostgreSQL 16 + Redis 7 (+ postgres/redis exporters)
 - Netdata, Grafana, Prometheus, Alertmanager→Telegram, Uptime Kuma (monitoring)
 - Loki + Promtail (ค้น log ย้อนหลัง) + Dozzle (log สด)
-- Beszel (multi-server monitoring) + Watchtower (auto image updates)
+- Beszel (multi-server monitoring) + อัปเดตแพตช์ image ของ stack อัตโนมัติ (`infra update --auto`)
 - RabbitMQ (message queue) + MinIO (self-hosted S3) — v2.0
 - Backup & restore scripts (PostgreSQL + Docker volumes → R2)
 - Pre-migrate database dump per project + `infra restore db` (undo a bad migration)

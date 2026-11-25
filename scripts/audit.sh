@@ -347,7 +347,7 @@ if command -v rclone >/dev/null 2>&1 && [ -n "$B" ] && [ "$B" != CHANGE_ME ] \
 else
   warn "backup อยู่แค่ในเครื่องนี้ — VPS พัง = backup หายด้วย" "ตั้ง rclone + R2_BUCKET_BACKUP — docs/12, docs/13"
 fi
-for job in refresh cve-scan watch; do
+for job in refresh cve-scan watch stack-update; do
   if grep -q "scripts/$job.sh" <<<"$CRON"; then pass "cron $job ตั้งไว้แล้ว"
   else warn "ไม่มี cron $job — แพตช์ความปลอดภัย / CVE ใหม่ไม่มีใครเห็น" "infra cron — docs/31"; fi
 done
