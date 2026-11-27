@@ -11,6 +11,9 @@
 #   DEPLOY_MIGRATE_CMD        คำสั่ง migrate       (default: php artisan migrate --force)
 #   DEPLOY_SEED_CMD           คำสั่ง seed ข้อมูลพื้นฐาน (default: php artisan db:seed --force · none = ไม่มี)
 #   DEPLOY_SEED_PATHS         ไฟล์/โฟลเดอร์ seeder ไว้จับว่าเปลี่ยน (default: database/seeders)
+#   DEPLOY_MIGRATE_SERVICE    compose service ที่ใช้รัน migrate/seed (default: ROLLOUT_SERVICE)
+#                             เช่น api-migrate ที่ได้รหัสเจ้าของ database — container ที่รับ traffic ไม่ต้องมีรหัสนั้น
+#                             (starter ที่ใช้ runtime role — docs/32) · service อยู่ใน profiles ได้ (compose run เปิดให้เอง)
 #   DEPLOY_TOOLS_TARGET       stage ใน Dockerfile ที่มีเครื่องมือ migrate (เช่น prisma CLI)
 #                             ว่าง = รันใน image ของ app เอง (Laravel / Go)
 #   DEPLOY_AUTO_SEED=0        ปิด seed อัตโนมัติ (default เปิด) — ดูกติกา seed ด้านล่าง
@@ -38,6 +41,9 @@ deploy_db() {
   _DB_SVC="$2"
   _DB_TOOLS_IMAGE=""
   [ "$(_db_env DEPLOY_MIGRATE)" = "1" ] || return 0
+  local migrate_svc
+  migrate_svc="$(_db_env DEPLOY_MIGRATE_SERVICE)"
+  [ -z "$migrate_svc" ] || _DB_SVC="$migrate_svc"
 
   local migrate_cmd seed_cmd seed_paths tools_target auto_seed
   migrate_cmd="$(_db_env DEPLOY_MIGRATE_CMD)"; migrate_cmd="${migrate_cmd:-php artisan migrate --force}"
