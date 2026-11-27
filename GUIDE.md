@@ -128,6 +128,14 @@ infra deploy myapp
 # ต่อจากนี้ push เข้า main → ขึ้นเว็บเองใน 2–4 นาที (seeder เปลี่ยน → seed เอง)
 ```
 
+ระบบสำเร็จรูปทั้งชุด (starter) — repo มีแม่แบบ deploy อยู่แล้ว ไม่ต้อง `infra git` / `infra env`:
+
+```bash
+infra new shop cms-go      # CMS: shop-api (Go) + shop-admin (Vue) + shop.<โดเมน> (Astro) — docs/32
+# เพิ่ม DNS 3 record ตามที่บอก แล้ว
+infra deploy shop          # ทั้งชุดตามลำดับ · ครั้งแรกตอบ y เพื่อสร้างผู้ดูแลคนแรก
+```
+
 ขั้นตอนเต็มทีละข้อ: [docs/26-new-project.md](docs/26-new-project.md)
 
 **deploy ครั้งถัดๆ ไป** ใช้คำสั่งเดียว — ระบบจะเปิดเวอร์ชันใหม่คู่กับตัวเก่า

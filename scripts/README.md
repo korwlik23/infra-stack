@@ -9,9 +9,9 @@
 | `infra …` | เรียก | หมายเหตุ |
 |-----------|-------|----------|
 | `list` | — | project ทั้งหมด: โดเมน · container ที่รัน · commit ที่ขึ้นเว็บ / รอตอบ seed / ล้ม |
-| `new <ชื่อ> <template> [--mysql\|--external-db]` | `create-project.sh` | |
+| `new <ชื่อ> <template\|starter\|suite\|owner/repo> [--mysql\|--external-db]` | `create-project.sh` | starter/suite: docs/32 |
 | `git <p> [owner/repo] [branch]` | `setup-git.sh` | |
-| `deploy <p> [--seed\|--no-seed]` | `deploy.sh` | |
+| `deploy <p\|suite> [--seed\|--no-seed]` | `deploy.sh` · suite → `deploy-suite.sh` | suite = ทุกตัวตามลำดับ หยุดเมื่อล้ม |
 | `env <p>` | — | เปิด `$EDITOR` (nano) แก้ `.env` → ถามแล้ว `restart` ให้ |
 | `restart <p>` | — | recreate ด้วย `.env` ปัจจุบัน ไม่ build: rollout service หลัก (ไม่ดับ) + `--force-recreate` ตัวที่เหลือ (`docker compose restart` ไม่อ่าน `.env` ใหม่) |
 | `rollback <p> [tag]` | `rollback.sh` | tag default `previous` |
@@ -52,9 +52,10 @@
 | `refresh.sh [project…]` | cron รายวัน: `docker pull` base image ของ stage ที่รันจริง (อ่าน `ARG` default + `build.target`/`dockerfile` จาก compose) แล้วดูว่า `APP_IMAGE` build บน base นี้ไหม (เทียบ layer) → ไม่ใช่ = `deploy.sh` (PHP/Node/OS ได้แพตช์แม้ไม่มี commit) · ข้าม project ที่ deploy ล้ม/rollback อยู่/มี commit ค้าง | `DEPLOY_REFRESH=0` ปิดต่อ project (docs/31) |
 | `watch.sh [--notify\|--report\|--setup]` | สัญญาณผู้บุกรุก (login IP ใหม่ · ไฟล์สำคัญเปลี่ยน · webshell · container แปลก · CPU/ข้อมูลขาออก) เทียบ baseline ใน `logs/watch/` → Telegram ทันที · รายงานประจำวันให้ Gemini ผ่าน n8n เรียบเรียง | AI ได้แค่ตัวเลข ไม่มีสิทธิ์บนเครื่อง · AI ล่มยังได้ตัวเลขดิบ |
 | `cve-scan.sh [--notify]` | สแกน CVE (Trivy, `CRITICAL,HIGH`, เฉพาะที่มีแพตช์) ของทุก image ที่รันอยู่ + บอกวิธีแก้ · จำที่แจ้งแล้วใน `logs/cve-state.txt` | pin `TRIVY_IMAGE` — อ่าน release notes ก่อนอัปเกรด |
-| `db-user.sh <project>` | สร้าง Postgres user ของ project + ย้ายเจ้าของ database/ตาราง + แก้ `.env` + ทดสอบ login (รันซ้ำได้) · `create-project.sh` เรียกเอง | container ใช้ user ใหม่หลัง `infra restart` |
+| `db-user.sh <project>` | สร้าง Postgres user ของ project + ย้ายเจ้าของ database/ตาราง + แก้ `.env` + ทดสอบ login (รันซ้ำได้) · `create-project.sh` เรียกเอง · มี `DB_RUNTIME_USER` → สร้าง runtime user ที่อ่าน/เขียนข้อมูลได้อย่างเดียว (docs/32) | container ใช้ user ใหม่หลัง `infra restart` |
 | `audit.sh [--notify]` | ตรวจความปลอดภัย 8 หมวด (SSH, firewall, อัปเดต, ไฟล์ลับ, หน้าแอดมิน/cert, container, app, backup) — อ่านอย่างเดียว | exit 1 เมื่อมี ❌ · checklist เต็ม docs/30 |
-| `create-project.sh <name> <template> [--mysql\|--external-db]` | สร้าง project จาก template (laravel/nextjs/go/n8n/ai-worker) + database (`--external-db` = database อยู่เครื่องอื่น ไม่สร้างในเครื่อง) | — |
+| `create-project.sh <name> <template\|starter\|suite\|owner/repo> [--mysql\|--external-db]` | สร้าง project จาก template (laravel/nextjs/go/n8n/ai-worker) + database (`--external-db` = database อยู่เครื่องอื่น ไม่สร้างในเครื่อง) · starter (`templates/starters.list` หรือ owner/repo) = clone repo แล้วใช้ `deploy/infra-stack/` ของ repo · suite = สร้างทั้งชุด + `projects/<name>.suite` (docs/32) | repo private: วาง deploy key แล้วรันซ้ำ (suite ทำต่อจากตัวที่ค้าง) |
+| `deploy-suite.sh <suite> [args]` | deploy สมาชิกใน `projects/<suite>.suite` ตามลำดับ · ล้ม = หยุด | `infra deploy <suite>` เรียกให้ |
 | `setup-git.sh <project> [<owner/repo> [branch]]` | clone เข้า `src/` (repo private → deploy key) + เปิด build → auto-deploy ใช้ได้ · clone เองแล้วใส่แค่ชื่อ project |  private repo: ต้องวาง key ใน GitHub แล้วรันซ้ำ |
 | `deploy.sh <project> [--seed\|--no-seed]` | **zero-downtime rolling deploy** (build-on-server หรือ pull) + migrate/seed ทุก stack (`lib/deploy-db.sh`) — ของพังไม่ได้รับ traffic | migration ต้อง expand/contract (docs/25) |
 | `smoke.sh <project> [path…]` | smoke test หลัง deploy (อ่านอย่างเดียว): container/healthy, image ค้าง, health 200 ผ่าน Traefik, cert, error ใน log, migration ค้าง | exit 1 เมื่อมี ❌ (docs/28) |

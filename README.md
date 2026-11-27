@@ -70,7 +70,7 @@ Three layers:
 infra-stack/
 ├── prepare.sh       # ช่วง A (root): user deploy + Docker + ล็อกเครื่อง → ต่อช่วง B ให้
 ├── install.sh       # ช่วง B (deploy): ถามโดเมน → database / monitoring / n8n → DNS → HTTPS
-├── docs/            # คู่มือทั้งหมด (00-introduction … 31-security-updates)
+├── docs/            # คู่มือทั้งหมด (00-introduction … 32-starters)
 ├── docker/          # Stack aggregation (core / database / monitoring / tools / messaging / storage)
 ├── services/        # หนึ่ง service = หนึ่งโฟลเดอร์ = หนึ่ง docker-compose.yml
 ├── monitoring/      # Prometheus config, alerts, Grafana dashboards
@@ -120,6 +120,10 @@ infra new myapp laravel
 infra git myapp <github-user>/<repo>   # clone + deploy key → auto-deploy
 infra env myapp            # APP_KEY และ per-project keys
 infra deploy myapp
+
+# ระบบสำเร็จรูปทั้งชุด (docs/32) — CMS: API Go + หลังบ้าน Vue + เว็บ Astro
+infra new shop cms-go      # สร้าง shop-api / shop-admin / shop-site + ต่อ URL ให้
+infra deploy shop          # deploy ทั้งชุดตามลำดับ
 
 # Optional stacks — เช็ค DNS ก่อนเปิดแต่ละตัว: infra dns tools (messaging / storage)
 infra up tools      # pgAdmin, phpMyAdmin, Redis Insight (หรือทีละตัว: infra up tools pgadmin)
