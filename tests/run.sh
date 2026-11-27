@@ -15,7 +15,7 @@ for f in "${files[@]}"; do
   [ -f "$f" ] || continue
   for t in $(bash -c ". ./lib.sh; . ./$f; declare -F" | awk '{print $3}' | grep '^test_'); do
     # ไม่ใส่ subshell ใน if — set -e ถูกปิดในเงื่อนไขของ if (assert ที่ล้มกลางทางจะไม่หยุด test)
-    ( . ./lib.sh; . "./$f"; trap rm_sandbox EXIT; set -e; "$t" ); rc=$?
+    ( . ./lib.sh; . "./$f"; trap rm_sandbox EXIT; set -e; "$t" ) < /dev/null; rc=$?
     if [ "$rc" = 0 ]; then
       pass=$((pass + 1)); echo "  ✓ $f :: $t"
     else

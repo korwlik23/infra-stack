@@ -62,6 +62,17 @@ fi
 [[ "$ROLE" =~ ^[a-z_][a-z0-9_]*$ ]] || {
   echo "ERROR: ชื่อ user '$ROLE' ใช้ไม่ได้ (ต้องเป็น a-z 0-9 _ ขึ้นต้นด้วยตัวอักษร) — แก้ใน infra env $NAME" >&2; exit 1; }
 
+# runtime role (ถ้า .env มี DB_RUNTIME_USER) — ตรวจชื่อก่อนแตะอะไรใน database
+RT_ROLE="$(penv DB_RUNTIME_USER)"
+RT_PASS="$(penv DB_RUNTIME_PASSWORD)"
+if [ -n "$RT_ROLE" ]; then
+  [[ "$RT_ROLE" =~ ^[a-z_][a-z0-9_]*$ ]] || {
+    echo "ERROR: DB_RUNTIME_USER '$RT_ROLE' ใช้ไม่ได้ (ต้องเป็น a-z 0-9 _ ขึ้นต้นด้วยตัวอักษร) — แก้ใน infra env $NAME" >&2; exit 1; }
+  [ "$RT_ROLE" != "$ROLE" ] && [ "$RT_ROLE" != "$SUPER" ] || {
+    echo "ERROR: DB_RUNTIME_USER ต้องไม่ใช่ user เดียวกับเจ้าของ database ($ROLE) หรือ superuser" >&2; exit 1; }
+  [ -n "$RT_PASS" ] || { echo "ERROR: ไม่มี DB_RUNTIME_PASSWORD ใน .env ของ $NAME" >&2; exit 1; }
+fi
+
 ATTR="$(echo "SELECT rolsuper FROM pg_roles WHERE rolname = '$ROLE'" | pg)"
 if [ -n "$NEW_PASS" ]; then
   if [ "$ATTR" = t ]; then
@@ -115,6 +126,21 @@ if [ -n "$NEW_PASS" ]; then
   say "✅ แก้ projects/$NAME/.env ให้ใช้ user $ROLE แล้ว"
 fi
 
+# ── runtime role: แอปใช้ตอนรัน — อ่าน/เขียนข้อมูลได้ แต่สร้าง/ลบ/แก้ตารางไม่ได้ ──
+# owner ($ROLE) = ใช้ตอน migrate เท่านั้น (DEPLOY_MIGRATE_SERVICE) · โดน SQL injection ก็ DROP TABLE ไม่ได้
+# ALTER DEFAULT PRIVILEGES → ตารางที่ owner สร้างตอน migrate ครั้งหน้าได้สิทธิ์เองโดยไม่ต้องรันซ้ำ
+if [ -n "$RT_ROLE" ]; then
+  q="'"
+  RT_ATTR="$(echo "SELECT rolsuper FROM pg_roles WHERE rolname = '$RT_ROLE'" | pg)"
+  [ "$RT_ATTR" != t ] || { echo "ERROR: user $RT_ROLE เป็น superuser — ใช้เป็น runtime user ไม่ได้" >&2; exit 1; }
+  if [ -n "$RT_ATTR" ]; then VERB=ALTER; else VERB=CREATE; fi
+  # รหัสตาม .env เสมอ (ALTER ถ้ามีแล้ว) — .env เป็นที่เดียวที่เก็บรหัสนี้
+  echo "$VERB ROLE \"$RT_ROLE\" WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT PASSWORD '${RT_PASS//$q/$q$q}';" | pg
+  say "ให้ $RT_ROLE อ่าน/เขียนข้อมูลใน '$DB_NAME' (ไม่มีสิทธิ์แก้โครงสร้างตาราง)…"
+  echo "GRANT CONNECT ON DATABASE \"$DB_NAME\" TO \"$RT_ROLE\";" | pg
+  { echo 'BEGIN;'; pg_runtime_grant_sql "$ROLE" "$RT_ROLE"; echo 'COMMIT;'; } | pg "$DB_NAME"
+fi
+
 # ทดสอบ login จริงผ่าน TCP (ใช้รหัส ไม่ใช่ trust ของ local socket) — รหัสส่งทาง stdin
 if printf '%s' "$DB_PASS" | docker exec -i postgres sh -c \
      'PGPASSWORD="$(cat)" psql -h 127.0.0.1 -U "$1" -d "$2" -qtAc "SELECT 1"' sh "$ROLE" "$DB_NAME" >/dev/null 2>&1; then
@@ -123,6 +149,15 @@ else
   echo "❌ [db-user:$NAME] login ด้วย $ROLE ไม่ผ่าน — container ยังใช้ค่าเดิมอยู่ (เว็บไม่กระทบ)" >&2
   echo "   ตรวจรหัสใน infra env $NAME แล้วรันซ้ำ: infra db-user $NAME" >&2
   exit 1
+fi
+if [ -n "$RT_ROLE" ]; then
+  if printf '%s' "$RT_PASS" | docker exec -i postgres sh -c \
+       'PGPASSWORD="$(cat)" psql -h 127.0.0.1 -U "$1" -d "$2" -qtAc "SELECT 1"' sh "$RT_ROLE" "$DB_NAME" >/dev/null 2>&1; then
+    say "✅ ทดสอบ login ด้วย $RT_ROLE (runtime) ผ่าน"
+  else
+    echo "❌ [db-user:$NAME] login ด้วย $RT_ROLE ไม่ผ่าน — ตรวจ DB_RUNTIME_PASSWORD ใน infra env $NAME แล้วรันซ้ำ" >&2
+    exit 1
+  fi
 fi
 
 if [ "$QUIET" = 0 ] && [ -n "$NEW_PASS" ]; then

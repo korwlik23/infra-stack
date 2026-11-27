@@ -72,6 +72,13 @@ if [ "$DB_ENGINE" = postgres ]; then
   REOWN=""
   if [ -n "$DB_USER" ] && [ "$DB_USER" != "${PG_USER:-infra}" ] && [[ "$DB_USER" =~ ^[a-z_][a-z0-9_]*$ ]]; then
     REOWN="$(pg_reown_sql "$DB_USER")"
+    # runtime role (DB_RUNTIME_USER): dump ไม่มี GRANT (--no-privileges) + DROP SCHEMA ลบ default privileges
+    # → ให้สิทธิ์ใหม่ใน transaction เดียวกัน (ไม่งั้นแอปอ่านตารางไม่ได้ "permission denied")
+    RT_USER="$(penv DB_RUNTIME_USER)"
+    if [[ "$RT_USER" =~ ^[a-z_][a-z0-9_]*$ ]] && [ "$RT_USER" != "$DB_USER" ]; then
+      REOWN="$REOWN
+$(pg_runtime_grant_sql "$DB_USER" "$RT_USER")"
+    fi
   fi
   { echo 'DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;'; gunzip -c "$FILE"
     [ -z "$REOWN" ] || printf '%s\n' "$REOWN"; } \
