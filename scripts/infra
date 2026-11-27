@@ -594,7 +594,9 @@ case "$CMD" in
   list|ls)          cmd_list ;;
   new)              exec ./scripts/create-project.sh "$@" ;;
   git)              with_project 0 "$@"; exec ./scripts/setup-git.sh "$PROJECT" "${ARGS[@]}" ;;
-  deploy)           with_project 0 "$@"; exec ./scripts/deploy.sh "$PROJECT" "${ARGS[@]}" ;;
+  deploy)           # suite (projects/<ชื่อ>.suite) → deploy ทั้งชุดตามลำดับ
+                    if [[ "${1:-}" =~ ^[a-z0-9-]+$ ]] && [ -f "projects/$1.suite" ]; then exec ./scripts/deploy-suite.sh "$@"; fi
+                    with_project 0 "$@"; exec ./scripts/deploy.sh "$PROJECT" "${ARGS[@]}" ;;
   env)              cmd_env "$@" ;;
   restart)          cmd_restart "$@" ;;
   pause)            cmd_pause "$@" ;;
