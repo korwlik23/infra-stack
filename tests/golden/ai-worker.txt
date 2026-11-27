@@ -1,0 +1,97 @@
+=== ./.env
+# ── p-ai-worker (AI Worker) ──────────────────────────
+# __ROOT:<ชื่อค่า>__ = create-project.sh เติมค่าจาก .env กลางให้อัตโนมัติ
+APP_IMAGE=ghcr.io/<github-user>/p-ai-worker:latest
+WORKER_COMMAND=python worker.py
+
+# Resource limits — worker AI (FFmpeg/gen image) กันลากทั้งเครื่อง
+WORKER_MEM_LIMIT=2g
+WORKER_CPUS=2
+
+# Queue — เลือกอย่างใดอย่างหนึ่ง
+# ⚠️ รหัสผ่านอยู่ใน URL — ถ้ามีอักขระพิเศษ (@ : / # ? %) ต้อง URL-encode ก่อน
+#    เช่น  p@ss/w0rd → p%40ss%2Fw0rd   (ไม่งั้น connection string จะ parse ผิด)
+REDIS_URL=redis://:r&|\x@redis:6379
+RABBITMQ_URL=amqp://CHANGE_ME:CHANGE_ME@rabbitmq:5672
+
+# AI APIs — ⚠️ ต้องตั้งเอง
+OPENAI_API_KEY=
+
+# Output → R2 (ดึงจาก .env กลาง ถ้าตั้งค่าแล้ว)
+R2_ACCESS_KEY_ID=CHANGE_ME
+R2_SECRET_ACCESS_KEY=CHANGE_ME
+R2_ENDPOINT=https://CHANGE_ME.r2.cloudflarestorage.com
+R2_BUCKET=images
+=== ./.env.example
+# ── p-ai-worker (AI Worker) ──────────────────────────
+# __ROOT:<ชื่อค่า>__ = create-project.sh เติมค่าจาก .env กลางให้อัตโนมัติ
+APP_IMAGE=ghcr.io/<github-user>/p-ai-worker:latest
+WORKER_COMMAND=python worker.py
+
+# Resource limits — worker AI (FFmpeg/gen image) กันลากทั้งเครื่อง
+WORKER_MEM_LIMIT=2g
+WORKER_CPUS=2
+
+# Queue — เลือกอย่างใดอย่างหนึ่ง
+# ⚠️ รหัสผ่านอยู่ใน URL — ถ้ามีอักขระพิเศษ (@ : / # ? %) ต้อง URL-encode ก่อน
+#    เช่น  p@ss/w0rd → p%40ss%2Fw0rd   (ไม่งั้น connection string จะ parse ผิด)
+REDIS_URL=redis://:__ROOT:REDIS_PASSWORD__@redis:6379
+RABBITMQ_URL=amqp://__ROOT:RABBITMQ_USER__:__ROOT:RABBITMQ_PASSWORD__@rabbitmq:5672
+
+# AI APIs — ⚠️ ต้องตั้งเอง
+OPENAI_API_KEY=
+
+# Output → R2 (ดึงจาก .env กลาง ถ้าตั้งค่าแล้ว)
+R2_ACCESS_KEY_ID=__ROOT:R2_ACCESS_KEY_ID__
+R2_SECRET_ACCESS_KEY=__ROOT:R2_SECRET_ACCESS_KEY__
+R2_ENDPOINT=https://__ROOT:R2_ACCOUNT_ID__.r2.cloudflarestorage.com
+R2_BUCKET=images
+=== ./README.md
+# p-ai-worker (AI Worker)
+
+Worker ประมวลผลหลังบ้าน — สร้างรูป/คลิป, AI chatbot flow, งานจาก n8n
+รับงานจาก queue (Redis หรือ RabbitMQ) → ประมวลผล → อัปโหลดผลลัพธ์ขึ้น R2
+
+## Pattern
+
+```text
+n8n / Laravel ──push job──▶ Redis/RabbitMQ ──▶ p-ai-worker ──▶ R2
+                                                (FFmpeg, AI API, …)
+```
+
+## Deploy
+
+```bash
+nano .env          # APP_IMAGE, queue URL, API keys, resource limits
+infra deploy p-ai-worker
+docker logs -f p-ai-worker
+```
+
+## ⚠️ ระวัง
+
+- `mem_limit`/`cpus` ตั้งไว้กัน worker กินทั้งเครื่อง — งาน FFmpeg หนัก ๆ
+  บนเครื่อง 8GB ไม่ควรเกิน 2-3GB ต่อ worker
+- Scale: `docker compose up -d --scale p-ai-worker=2` (ลบ `container_name` ก่อน)
+=== ./docker-compose.yml
+services:
+  p-ai-worker:
+    image: ${APP_IMAGE:?set in .env}
+    container_name: p-ai-worker
+    restart: unless-stopped
+    # กันโปรเซสใน container ยกระดับสิทธิ์ (setuid) ถ้าแอปโดนเจาะ — entrypoint ที่ใช้ sudo/su จะใช้ไม่ได้ (docs/31)
+    security_opt:
+      - no-new-privileges:true
+    # build บนเครื่องแทน registry: clone app ไว้ที่ ./src แล้วเปิดบรรทัดล่าง (ดู docs/19-cicd.md)
+    # build: ./src
+    command: ${WORKER_COMMAND:?set in .env}
+    env_file: .env
+    networks:
+      - backend
+    # Worker AI กิน RAM ได้เยอะ — จำกัดไว้กันลากทั้งเครื่อง (ปรับตามงาน)
+    mem_limit: ${WORKER_MEM_LIMIT:-2g}
+    cpus: ${WORKER_CPUS:-2}
+
+networks:
+  backend:
+    external: true
+    name: backend

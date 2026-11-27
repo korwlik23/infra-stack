@@ -1,0 +1,101 @@
+=== ./.env
+# ── p-n8n (n8n) ────────────────────────────────
+# __ROOT:<ชื่อค่า>__ = create-project.sh เติมค่าจาก .env กลางให้อัตโนมัติ
+APP_DOMAIN=p-n8n.example.com
+TZ=CHANGE_ME
+
+# create-project.sh สุ่มให้ — ⚠️ จดเก็บนอกเครื่อง + ห้ามเปลี่ยนหลังใช้งาน (credentials จะถอดรหัสไม่ได้)
+N8N_ENCRYPTION_KEY=<HEX>
+
+# create-project.sh สร้าง database + user ของ project นี้ (ไม่ใช่ superuser — docs/31)
+# DB_HOST ไม่ได้ส่งเข้า container (compose ตั้ง DB_POSTGRESDB_HOST เอง) — มีไว้ให้ backup / db-user / audit รู้ว่าใช้ postgres กลาง
+DB_HOST=postgres
+DB_DATABASE=p-n8n_db
+DB_USERNAME=p_n8n
+DB_PASSWORD=<HEX>
+
+# อัปเดต n8n เองเมื่อมีเวอร์ชันใหม่ (infra refresh ทุกคืน — docs/31) · image เป็น :latest = อาจข้าม major
+# เปิดเมื่อ pin major ใน docker-compose.yml แล้ว ไม่งั้นอัปเดตเอง: infra deploy p-n8n
+# DEPLOY_REFRESH=1
+=== ./.env.example
+# ── p-n8n (n8n) ────────────────────────────────
+# __ROOT:<ชื่อค่า>__ = create-project.sh เติมค่าจาก .env กลางให้อัตโนมัติ
+APP_DOMAIN=p-n8n.__ROOT:BASE_DOMAIN__
+TZ=__ROOT:TZ__
+
+# create-project.sh สุ่มให้ — ⚠️ จดเก็บนอกเครื่อง + ห้ามเปลี่ยนหลังใช้งาน (credentials จะถอดรหัสไม่ได้)
+N8N_ENCRYPTION_KEY=__GENERATE__
+
+# create-project.sh สร้าง database + user ของ project นี้ (ไม่ใช่ superuser — docs/31)
+# DB_HOST ไม่ได้ส่งเข้า container (compose ตั้ง DB_POSTGRESDB_HOST เอง) — มีไว้ให้ backup / db-user / audit รู้ว่าใช้ postgres กลาง
+DB_HOST=postgres
+DB_DATABASE=p-n8n_db
+DB_USERNAME=__DB_USER__
+DB_PASSWORD=__DB_PASSWORD__
+
+# อัปเดต n8n เองเมื่อมีเวอร์ชันใหม่ (infra refresh ทุกคืน — docs/31) · image เป็น :latest = อาจข้าม major
+# เปิดเมื่อ pin major ใน docker-compose.yml แล้ว ไม่งั้นอัปเดตเอง: infra deploy p-n8n
+# DEPLOY_REFRESH=1
+=== ./README.md
+# p-n8n (n8n)
+
+Automation platform — ใช้ PostgreSQL เป็น database (ไม่ใช่ SQLite) + HTTPS ผ่าน Traefik
+
+## Deploy
+
+```bash
+# database p-n8n_db ถูกสร้างให้แล้วตอน create-project.sh (ถ้า postgres รันอยู่)
+# N8N_ENCRYPTION_KEY สุ่มให้แล้ว — จดเก็บนอกเครื่อง: grep N8N_ENCRYPTION_KEY .env
+infra deploy p-n8n
+```
+
+## ระวัง
+
+- `N8N_ENCRYPTION_KEY` หาย = credentials ใน workflow ทั้งหมดกู้ไม่ได้
+- Workflow data อยู่ทั้งใน PostgreSQL และ volume `p-n8n_p-n8n_data` — `infra backup`
+  เก็บทั้งคู่ + `.env` (มี `N8N_ENCRYPTION_KEY`) แบบเข้ารหัสให้อัตโนมัติ
+- webhook URL ต้องเป็น HTTPS domain จริง (ตั้งผ่าน `WEBHOOK_URL` แล้ว)
+=== ./docker-compose.yml
+services:
+  p-n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: p-n8n
+    restart: unless-stopped
+    # กันโปรเซสใน container ยกระดับสิทธิ์ (setuid) ถ้าแอปโดนเจาะ — entrypoint ที่ใช้ sudo/su จะใช้ไม่ได้ (docs/31)
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - TZ=${TZ:-Asia/Bangkok}
+      - GENERIC_TIMEZONE=${TZ:-Asia/Bangkok}
+      - N8N_HOST=${APP_DOMAIN:?set in .env}
+      - N8N_PROTOCOL=https
+      - WEBHOOK_URL=https://${APP_DOMAIN}/
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:?set in .env}
+      # PostgreSQL แทน SQLite (production)
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=${DB_DATABASE:-n8n_db}
+      - DB_POSTGRESDB_USER=${DB_USERNAME:?set in .env}
+      - DB_POSTGRESDB_PASSWORD=${DB_PASSWORD:?set in .env}
+    volumes:
+      - p-n8n_data:/home/node/.n8n
+    networks:
+      - proxy
+      - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.p-n8n.rule=Host(`${APP_DOMAIN}`)"
+      - "traefik.http.routers.p-n8n.entrypoints=websecure"
+      - "traefik.http.routers.p-n8n.tls.certresolver=letsencrypt"
+      - "traefik.http.services.p-n8n.loadbalancer.server.port=5678"
+
+volumes:
+  p-n8n_data:
+
+networks:
+  proxy:
+    external: true
+  backend:
+    external: true
+    name: backend

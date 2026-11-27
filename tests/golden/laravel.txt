@@ -1,0 +1,213 @@
+=== ./.env
+# ── p-laravel (Laravel) ────────────────────────────
+# __ROOT:<ชื่อค่า>__ = create-project.sh เติมค่าจาก .env กลางให้อัตโนมัติ
+APP_IMAGE=ghcr.io/<github-user>/p-laravel:latest
+APP_DOMAIN=p-laravel.example.com
+
+# Zero-downtime rolling deploy (docs/25-zero-downtime.md)
+ROLLOUT_SERVICE=p-laravel-app
+HEALTHCHECK_PATH=/up
+
+# กันพังหลัง deploy (docs/25): smoke test หลังสลับเวอร์ชัน · ล้ม → ถอยกลับเวอร์ชันก่อนให้เอง (ไม่ย้อน migration)
+DEPLOY_AUTO_ROLLBACK=1
+# path ที่เช็คเพิ่มหลัง deploy (ต้องตอบ < 500):
+# DEPLOY_SMOKE_PATHS=/login /api/ping
+# key ใหม่ใน .env.example ของ app ที่ยังไม่มีใน .env นี้ = หยุด deploy · key ที่เครื่องนี้ไม่ต้องตั้ง:
+# DEPLOY_ENV_IGNORE=SOME_KEY OTHER_KEY
+# รัน migration อัตโนมัติก่อนสลับ traffic ทุก deploy (Laravel = ควรเปิด)
+# migration ต้องเป็น expand/contract เสมอ — ดู docs/25
+DEPLOY_MIGRATE=1
+# seed: deploy ครั้งแรกบนเครื่องถาม "รัน seed ด้วยไหม?" · ต่อจากนั้น push ที่แก้ seeder → seed เอง (DEPLOY_AUTO_SEED=0 = ถามก่อน)
+# seeder ต้องรันซ้ำได้: firstOrCreate / updateOrCreate — ดู docs/25
+
+APP_NAME=p-laravel
+APP_ENV=production
+# ⚠️ ต้องตั้งเอง: echo "base64:$(openssl rand -base64 32)"  (ย้ายเครื่อง = ใช้ key เดิม)
+APP_KEY=
+APP_DEBUG=false
+APP_URL=https://p-laravel.example.com
+
+# Database — ผ่าน network `backend` · create-project.sh สร้าง database + user ของ project นี้เอง
+# (user แยกต่อ project ไม่ใช่ superuser — โดนเจาะไม่ลามไป project อื่น · docs/31)
+DB_CONNECTION=pgsql
+DB_HOST=postgres
+DB_PORT=5432
+DB_DATABASE=p-laravel_db
+DB_USERNAME=p_laravel
+DB_PASSWORD=<HEX>
+
+# Redis
+REDIS_HOST=redis
+REDIS_PASSWORD=r&|\x
+REDIS_PORT=6379
+REDIS_CLIENT=predis                   # ใช้ predis ถ้า image ไม่มี phpredis extension
+CACHE_STORE=redis
+QUEUE_CONNECTION=redis
+SESSION_DRIVER=redis
+
+# Cloudflare R2 (S3-compatible) — ดึงจาก .env กลาง (ถ้าตั้งค่า R2 แล้ว)
+FILESYSTEM_DISK=s3
+AWS_ACCESS_KEY_ID=CHANGE_ME
+AWS_SECRET_ACCESS_KEY=CHANGE_ME
+AWS_DEFAULT_REGION=auto
+AWS_BUCKET=p-laravel
+AWS_ENDPOINT=https://CHANGE_ME.r2.cloudflarestorage.com
+AWS_USE_PATH_STYLE_ENDPOINT=true
+=== ./.env.example
+# ── p-laravel (Laravel) ────────────────────────────
+# __ROOT:<ชื่อค่า>__ = create-project.sh เติมค่าจาก .env กลางให้อัตโนมัติ
+APP_IMAGE=ghcr.io/<github-user>/p-laravel:latest
+APP_DOMAIN=p-laravel.__ROOT:BASE_DOMAIN__
+
+# Zero-downtime rolling deploy (docs/25-zero-downtime.md)
+ROLLOUT_SERVICE=p-laravel-app
+HEALTHCHECK_PATH=/up
+
+# กันพังหลัง deploy (docs/25): smoke test หลังสลับเวอร์ชัน · ล้ม → ถอยกลับเวอร์ชันก่อนให้เอง (ไม่ย้อน migration)
+DEPLOY_AUTO_ROLLBACK=1
+# path ที่เช็คเพิ่มหลัง deploy (ต้องตอบ < 500):
+# DEPLOY_SMOKE_PATHS=/login /api/ping
+# key ใหม่ใน .env.example ของ app ที่ยังไม่มีใน .env นี้ = หยุด deploy · key ที่เครื่องนี้ไม่ต้องตั้ง:
+# DEPLOY_ENV_IGNORE=SOME_KEY OTHER_KEY
+# รัน migration อัตโนมัติก่อนสลับ traffic ทุก deploy (Laravel = ควรเปิด)
+# migration ต้องเป็น expand/contract เสมอ — ดู docs/25
+DEPLOY_MIGRATE=1
+# seed: deploy ครั้งแรกบนเครื่องถาม "รัน seed ด้วยไหม?" · ต่อจากนั้น push ที่แก้ seeder → seed เอง (DEPLOY_AUTO_SEED=0 = ถามก่อน)
+# seeder ต้องรันซ้ำได้: firstOrCreate / updateOrCreate — ดู docs/25
+
+APP_NAME=p-laravel
+APP_ENV=production
+# ⚠️ ต้องตั้งเอง: echo "base64:$(openssl rand -base64 32)"  (ย้ายเครื่อง = ใช้ key เดิม)
+APP_KEY=
+APP_DEBUG=false
+APP_URL=https://p-laravel.__ROOT:BASE_DOMAIN__
+
+# Database — ผ่าน network `backend` · create-project.sh สร้าง database + user ของ project นี้เอง
+# (user แยกต่อ project ไม่ใช่ superuser — โดนเจาะไม่ลามไป project อื่น · docs/31)
+DB_CONNECTION=pgsql
+DB_HOST=postgres
+DB_PORT=5432
+DB_DATABASE=p-laravel_db
+DB_USERNAME=__DB_USER__
+DB_PASSWORD=__DB_PASSWORD__
+
+# Redis
+REDIS_HOST=redis
+REDIS_PASSWORD=__ROOT:REDIS_PASSWORD__
+REDIS_PORT=6379
+REDIS_CLIENT=predis                   # ใช้ predis ถ้า image ไม่มี phpredis extension
+CACHE_STORE=redis
+QUEUE_CONNECTION=redis
+SESSION_DRIVER=redis
+
+# Cloudflare R2 (S3-compatible) — ดึงจาก .env กลาง (ถ้าตั้งค่า R2 แล้ว)
+FILESYSTEM_DISK=s3
+AWS_ACCESS_KEY_ID=__ROOT:R2_ACCESS_KEY_ID__
+AWS_SECRET_ACCESS_KEY=__ROOT:R2_SECRET_ACCESS_KEY__
+AWS_DEFAULT_REGION=auto
+AWS_BUCKET=p-laravel
+AWS_ENDPOINT=https://__ROOT:R2_ACCOUNT_ID__.r2.cloudflarestorage.com
+AWS_USE_PATH_STYLE_ENDPOINT=true
+=== ./README.md
+# p-laravel (Laravel)
+
+3 containers: **app** (HTTP, rolling deploy ได้), **queue** (Redis worker), **scheduler** (cron)
+
+## Deploy
+
+Database `p-laravel_db` ถูกสร้างให้แล้วตอน `create-project.sh` (ถ้า postgres รันอยู่)
+
+```bash
+# รันจาก repo root (/opt/infra-stack)
+# 1. เชื่อม GitHub — clone เข้า src/ + เปิด build + ตั้ง APP_IMAGE (private repo → วาง deploy key แล้วรันซ้ำ)
+infra git p-laravel <github-user>/<repo>
+
+# 2. ตั้ง APP_KEY: echo "base64:$(openssl rand -base64 32)"
+infra env p-laravel
+
+# 3. Deploy ครั้งแรก (build + migrate + start) — project ใหม่ถาม "รัน seed ด้วยไหม? [y/N]"
+#    ตอบ y ถ้าต้องใช้ข้อมูลเริ่มต้น (role, admin, setting) · ต่อจากนี้ push main → deploy + seed เอง
+infra deploy p-laravel
+```
+
+DNS: เพิ่ม record `p-laravel.<domain>` ชี้ server IP ใน Cloudflare (Proxied)
+
+## Zero-downtime deploy
+
+Deploy ครั้งถัดไปใช้ `infra deploy p-laravel` — จะ rolling อัตโนมัติ
+(เปิดตัวใหม่รอ healthy ก่อน ค่อยถอดตัวเก่า — เว็บไม่ดับ) เงื่อนไข:
+
+- image ต้องมี `curl` (ใช้ใน healthcheck)
+- app ต้องมี health route — Laravel 11+ มี `/up` ให้แล้ว
+  (เวอร์ชันเก่ากว่า: สร้าง route เองแล้วแก้ `HEALTHCHECK_PATH` ใน .env)
+- app service ไม่มี `container_name` — ใช้ `docker compose exec p-laravel-app …`
+  แทนการ exec ด้วยชื่อ container ตรง ๆ
+
+รายละเอียด + migration แบบ expand/contract: docs/25-zero-downtime.md
+=== ./docker-compose.yml
+services:
+  p-laravel-app:
+    image: ${APP_IMAGE:?set in .env}
+    # ไม่ใส่ container_name — เพื่อให้ rolling deploy รัน 2 ตัวคู่กันได้ (docs/25)
+    restart: unless-stopped
+    # กันโปรเซสใน container ยกระดับสิทธิ์ (setuid) ถ้าแอปโดนเจาะ — entrypoint ที่ใช้ sudo/su จะใช้ไม่ได้ (docs/31)
+    security_opt:
+      - no-new-privileges:true
+    # build บนเครื่องแทน registry: clone app ไว้ที่ ./src แล้วเปิดบรรทัดล่าง (ดู docs/19-cicd.md)
+    # build: ./src
+    env_file: .env
+    healthcheck:
+      # image ต้องมี curl และ app ต้องมี health route (Laravel 11+: /up)
+      # /tmp/drain = ตัวเก่ากำลังถูกถอดตอน rolling deploy → unhealthy → Traefik เลิกส่ง request ให้ก่อนถูก stop
+      test: ["CMD-SHELL", "test ! -f /tmp/drain && curl -fsS http://localhost:8080${HEALTHCHECK_PATH:-/up} || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    networks:
+      - proxy
+      - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.p-laravel.rule=Host(`${APP_DOMAIN:?set in .env}`)"
+      - "traefik.http.routers.p-laravel.entrypoints=websecure"
+      - "traefik.http.routers.p-laravel.tls.certresolver=letsencrypt"
+      - "traefik.http.services.p-laravel.loadbalancer.server.port=8080"
+      # Traefik ส่ง traffic เฉพาะ replica ที่ health ผ่าน
+      - "traefik.http.services.p-laravel.loadbalancer.healthcheck.path=${HEALTHCHECK_PATH:-/up}"
+      - "traefik.http.services.p-laravel.loadbalancer.healthcheck.interval=10s"
+      # drain ก่อน docker rollout stop ตัวเก่า (ไม่งั้น request ที่วิ่งอยู่หลุด — วัดจริง 1/100 ได้ 000)
+      # 35s = healthcheck interval 10s × retries 3 ให้กลายเป็น unhealthy + 5s ให้ request ที่ค้างจบ
+      # มีผลตั้งแต่ deploy ครั้งที่ 2 — rollout อ่าน label จาก container ตัวเก่า (docs/25)
+      - "docker-rollout.pre-stop-hook=touch /tmp/drain && sleep 35"
+
+  p-laravel-queue:
+    image: ${APP_IMAGE}
+    container_name: p-laravel-queue
+    restart: unless-stopped
+    # กันโปรเซสใน container ยกระดับสิทธิ์ (setuid) ถ้าแอปโดนเจาะ — entrypoint ที่ใช้ sudo/su จะใช้ไม่ได้ (docs/31)
+    security_opt:
+      - no-new-privileges:true
+    command: php artisan queue:work redis --sleep=3 --tries=3 --max-time=3600
+    env_file: .env
+    networks:
+      - backend
+
+  p-laravel-scheduler:
+    image: ${APP_IMAGE}
+    container_name: p-laravel-scheduler
+    restart: unless-stopped
+    # กันโปรเซสใน container ยกระดับสิทธิ์ (setuid) ถ้าแอปโดนเจาะ — entrypoint ที่ใช้ sudo/su จะใช้ไม่ได้ (docs/31)
+    security_opt:
+      - no-new-privileges:true
+    command: sh -c "while true; do php artisan schedule:run --verbose --no-interaction; sleep 60; done"
+    env_file: .env
+    networks:
+      - backend
+
+networks:
+  proxy:
+    external: true
+  backend:
+    external: true
+    name: backend

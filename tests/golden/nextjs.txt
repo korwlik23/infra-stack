@@ -1,0 +1,154 @@
+=== ./.env
+# ── p-nextjs (Next.js) ────────────────────────────
+# __ROOT:<ชื่อค่า>__ = create-project.sh เติมค่าจาก .env กลางให้อัตโนมัติ
+APP_IMAGE=ghcr.io/<github-user>/p-nextjs:latest
+APP_DOMAIN=p-nextjs.example.com
+
+# Zero-downtime rolling deploy (docs/25-zero-downtime.md)
+ROLLOUT_SERVICE=p-nextjs
+# แนะนำสร้าง /api/health ที่ตอบเร็ว แล้วเปลี่ยนค่านี้ (default: หน้าแรก)
+HEALTHCHECK_PATH=/
+
+# กันพังหลัง deploy (docs/25): smoke test หลังสลับเวอร์ชัน · ล้ม → ถอยกลับเวอร์ชันก่อนให้เอง (ไม่ย้อน migration)
+DEPLOY_AUTO_ROLLBACK=1
+# path ที่เช็คเพิ่มหลัง deploy (ต้องตอบ < 500):
+# DEPLOY_SMOKE_PATHS=/login /api/ping
+# key ใหม่ใน .env.example ของ app ที่ยังไม่มีใน .env นี้ = หยุด deploy · key ที่เครื่องนี้ไม่ต้องตั้ง:
+# DEPLOY_ENV_IGNORE=SOME_KEY OTHER_KEY
+
+NODE_ENV=production
+NEXT_PUBLIC_APP_URL=https://p-nextjs.example.com
+
+# Migrate + seed ตอน deploy ด้วยโค้ดใหม่ ก่อนสลับ traffic (Prisma — docs/16-deploy-nextjs.md)
+# standalone image ไม่มี prisma CLI → Dockerfile ต้องมี stage "migrate" (มี node_modules + prisma/)
+# ไม่ใช้ database → ลบ 5 บรรทัดนี้ หรือ DEPLOY_MIGRATE=0
+DEPLOY_MIGRATE=1
+DEPLOY_TOOLS_TARGET=migrate
+DEPLOY_MIGRATE_CMD=npx prisma migrate deploy
+# seed = ข้อมูลพื้นฐานเท่านั้น (ห้ามรหัส/API key ตัวอย่างบน production) ต้องรันซ้ำได้ — none = ไม่มี
+DEPLOY_SEED_CMD=npx prisma db seed
+DEPLOY_SEED_PATHS=prisma/seed.ts prisma/seed.js prisma/seed
+
+# ถ้าใช้ database ตรง (เช่น Prisma) — ผ่าน network `backend`
+# create-project.sh สร้าง database ชื่อ DB_DATABASE + user ของ project ให้ (ต้องตรงกับท้าย DATABASE_URL)
+# user แยกต่อ project ไม่ใช่ superuser — โดนเจาะไม่ลามไป project อื่น (docs/31)
+DB_DATABASE=p-nextjs_db
+# ⚠️ รหัสผ่านอยู่ใน URL — ถ้ามีอักขระพิเศษ (@ : / # ? %) ต้อง URL-encode ก่อน
+#    เช่น  p@ss/w0rd → p%40ss%2Fw0rd   (ไม่งั้น connection string จะ parse ผิด)
+DATABASE_URL=postgresql://p_nextjs:<HEX>@postgres:5432/p-nextjs_db
+
+# Redis (cache / rate limit) — รหัสผ่านใน URL เช่นกัน ต้อง URL-encode ถ้ามีอักขระพิเศษ
+REDIS_URL=redis://:r&|\x@redis:6379
+=== ./.env.example
+# ── p-nextjs (Next.js) ────────────────────────────
+# __ROOT:<ชื่อค่า>__ = create-project.sh เติมค่าจาก .env กลางให้อัตโนมัติ
+APP_IMAGE=ghcr.io/<github-user>/p-nextjs:latest
+APP_DOMAIN=p-nextjs.__ROOT:BASE_DOMAIN__
+
+# Zero-downtime rolling deploy (docs/25-zero-downtime.md)
+ROLLOUT_SERVICE=p-nextjs
+# แนะนำสร้าง /api/health ที่ตอบเร็ว แล้วเปลี่ยนค่านี้ (default: หน้าแรก)
+HEALTHCHECK_PATH=/
+
+# กันพังหลัง deploy (docs/25): smoke test หลังสลับเวอร์ชัน · ล้ม → ถอยกลับเวอร์ชันก่อนให้เอง (ไม่ย้อน migration)
+DEPLOY_AUTO_ROLLBACK=1
+# path ที่เช็คเพิ่มหลัง deploy (ต้องตอบ < 500):
+# DEPLOY_SMOKE_PATHS=/login /api/ping
+# key ใหม่ใน .env.example ของ app ที่ยังไม่มีใน .env นี้ = หยุด deploy · key ที่เครื่องนี้ไม่ต้องตั้ง:
+# DEPLOY_ENV_IGNORE=SOME_KEY OTHER_KEY
+
+NODE_ENV=production
+NEXT_PUBLIC_APP_URL=https://p-nextjs.__ROOT:BASE_DOMAIN__
+
+# Migrate + seed ตอน deploy ด้วยโค้ดใหม่ ก่อนสลับ traffic (Prisma — docs/16-deploy-nextjs.md)
+# standalone image ไม่มี prisma CLI → Dockerfile ต้องมี stage "migrate" (มี node_modules + prisma/)
+# ไม่ใช้ database → ลบ 5 บรรทัดนี้ หรือ DEPLOY_MIGRATE=0
+DEPLOY_MIGRATE=1
+DEPLOY_TOOLS_TARGET=migrate
+DEPLOY_MIGRATE_CMD=npx prisma migrate deploy
+# seed = ข้อมูลพื้นฐานเท่านั้น (ห้ามรหัส/API key ตัวอย่างบน production) ต้องรันซ้ำได้ — none = ไม่มี
+DEPLOY_SEED_CMD=npx prisma db seed
+DEPLOY_SEED_PATHS=prisma/seed.ts prisma/seed.js prisma/seed
+
+# ถ้าใช้ database ตรง (เช่น Prisma) — ผ่าน network `backend`
+# create-project.sh สร้าง database ชื่อ DB_DATABASE + user ของ project ให้ (ต้องตรงกับท้าย DATABASE_URL)
+# user แยกต่อ project ไม่ใช่ superuser — โดนเจาะไม่ลามไป project อื่น (docs/31)
+DB_DATABASE=p-nextjs_db
+# ⚠️ รหัสผ่านอยู่ใน URL — ถ้ามีอักขระพิเศษ (@ : / # ? %) ต้อง URL-encode ก่อน
+#    เช่น  p@ss/w0rd → p%40ss%2Fw0rd   (ไม่งั้น connection string จะ parse ผิด)
+DATABASE_URL=postgresql://__DB_USER__:__DB_PASSWORD__@postgres:5432/p-nextjs_db
+
+# Redis (cache / rate limit) — รหัสผ่านใน URL เช่นกัน ต้อง URL-encode ถ้ามีอักขระพิเศษ
+REDIS_URL=redis://:__ROOT:REDIS_PASSWORD__@redis:6379
+=== ./README.md
+# p-nextjs (Next.js)
+
+Next.js standalone container ต่อ Traefik (HTTPS อัตโนมัติ) — image ควร build
+ด้วย `output: "standalone"` ใน `next.config.js` แล้ว expose port 3000
+
+## Deploy
+
+```bash
+# รันจาก repo root (/opt/infra-stack)
+infra git p-nextjs <github-user>/<repo>   # clone + เปิด build + APP_IMAGE (private → วาง deploy key แล้วรันซ้ำ)
+infra env p-nextjs              # API keys / NEXT_PUBLIC_* — DATABASE_URL เติมให้แล้ว
+infra deploy p-nextjs             # build → prisma migrate deploy → project ใหม่ถาม seed → rolling
+docker compose --project-directory projects/p-nextjs logs -f p-nextjs
+```
+
+Prisma: Dockerfile ต้องมี stage `migrate` (docs/16-deploy-nextjs.md) · ไม่ใช้ DB → `DEPLOY_MIGRATE=0` ใน .env
+ต่อจากนี้ push เข้า main → auto-deploy ขึ้นเอง (docs/19-cicd.md)
+
+DNS: เพิ่ม record `p-nextjs.<domain>` ชี้ server IP ใน Cloudflare (Proxied)
+
+## Zero-downtime deploy
+
+Deploy ครั้งถัดไปใช้ `infra deploy p-nextjs` — rolling อัตโนมัติ
+
+- healthcheck ใช้ `fetch` ของ Node 18+ (ไม่ต้องมี curl ใน image)
+- default เช็คหน้าแรก `/` — แนะนำสร้าง `/api/health` ที่ตอบเร็วและเบา
+  แล้วแก้ `HEALTHCHECK_PATH` ใน .env
+- ไม่มี `container_name` — ดู log ด้วย `docker compose logs` แทนชื่อ container
+
+รายละเอียด: docs/25-zero-downtime.md
+=== ./docker-compose.yml
+services:
+  p-nextjs:
+    image: ${APP_IMAGE:?set in .env}
+    # ไม่ใส่ container_name — เพื่อให้ rolling deploy รัน 2 ตัวคู่กันได้ (docs/25)
+    restart: unless-stopped
+    # กันโปรเซสใน container ยกระดับสิทธิ์ (setuid) ถ้าแอปโดนเจาะ — entrypoint ที่ใช้ sudo/su จะใช้ไม่ได้ (docs/31)
+    security_opt:
+      - no-new-privileges:true
+    # build บนเครื่องแทน registry: clone app ไว้ที่ ./src แล้วเปิดบรรทัดล่าง (ดู docs/19-cicd.md)
+    # build: ./src
+    env_file: .env
+    healthcheck:
+      # ใช้ fetch ของ Node 18+ — ไม่ต้องพึ่ง curl/wget ใน image
+      # /tmp/drain = ตัวเก่ากำลังถูกถอดตอน rolling deploy → unhealthy → Traefik เลิกส่ง request ให้ก่อนถูก stop
+      test: ["CMD-SHELL", "test ! -f /tmp/drain && node -e \"fetch('http://localhost:3000${HEALTHCHECK_PATH:-/}').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - proxy
+      - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.p-nextjs.rule=Host(`${APP_DOMAIN:?set in .env}`)"
+      - "traefik.http.routers.p-nextjs.entrypoints=websecure"
+      - "traefik.http.routers.p-nextjs.tls.certresolver=letsencrypt"
+      - "traefik.http.services.p-nextjs.loadbalancer.server.port=3000"
+      # Traefik ส่ง traffic เฉพาะ replica ที่ health ผ่าน
+      - "traefik.http.services.p-nextjs.loadbalancer.healthcheck.path=${HEALTHCHECK_PATH:-/}"
+      - "traefik.http.services.p-nextjs.loadbalancer.healthcheck.interval=10s"
+      # drain ก่อน docker rollout stop ตัวเก่า — 35s = interval 10s × retries 3 + 5s ให้ request ที่ค้างจบ (docs/25)
+      - "docker-rollout.pre-stop-hook=touch /tmp/drain && sleep 35"
+
+networks:
+  proxy:
+    external: true
+  backend:
+    external: true
+    name: backend

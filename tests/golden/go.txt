@@ -1,0 +1,154 @@
+=== ./.env
+# ── p-go (Go) ─────────────────────────────────
+# __ROOT:<ชื่อค่า>__ = create-project.sh เติมค่าจาก .env กลางให้อัตโนมัติ
+APP_IMAGE=p-go:latest
+APP_DOMAIN=p-go.example.com
+
+# Zero-downtime rolling deploy (docs/25-zero-downtime.md)
+ROLLOUT_SERVICE=p-go
+# app ต้องมี route นี้ ตอบ 200 เมื่อพร้อม (แนะนำ ping DB ด้วย)
+HEALTHCHECK_PATH=/healthz
+
+# กันพังหลัง deploy (docs/25): smoke test หลังสลับเวอร์ชัน · ล้ม → ถอยกลับเวอร์ชันก่อนให้เอง (ไม่ย้อน migration)
+DEPLOY_AUTO_ROLLBACK=1
+# path ที่เช็คเพิ่มหลัง deploy (ต้องตอบ < 500):
+# DEPLOY_SMOKE_PATHS=/login /api/ping
+# key ใหม่ใน .env.example ของ app ที่ยังไม่มีใน .env นี้ = หยุด deploy · key ที่เครื่องนี้ไม่ต้องตั้ง:
+# DEPLOY_ENV_IGNORE=SOME_KEY OTHER_KEY
+
+# Migrate + seed ตอน deploy ด้วยโค้ดใหม่ ก่อนสลับ traffic (docs/29-deploy-go.md)
+# ข้อตกลง: binary รับ subcommand `migrate` และ `seed` (ตัวอย่าง: examples/go-app/)
+# ใช้ golang-migrate / goose ก็ได้ — เปลี่ยนคำสั่งด้านล่างให้ตรง (ต้องอยู่ใน image)
+DEPLOY_MIGRATE=1
+DEPLOY_MIGRATE_CMD=/app/server migrate
+# seed = ข้อมูลพื้นฐาน (role / ค่าตั้งต้น) ต้องรันซ้ำได้ — none = ไม่มี seed
+DEPLOY_SEED_CMD=/app/server seed
+# ไฟล์ seed ใน image (relative กับ WORKDIR) — เปลี่ยนเมื่อไหร่ deploy จะถามว่า seed ไหม
+DEPLOY_SEED_PATHS=seeds
+# deploy ครั้งแรกบนเครื่องจะถามว่า seed ไหม · ต่อจากนั้น push ที่แก้ seed → seed เอง (seed ต้องรันซ้ำได้)
+# 0 = ถามก่อนทุกครั้งที่ seed เปลี่ยน (auto-deploy จะพักรอคนตอบ)
+# DEPLOY_AUTO_SEED=0
+
+APP_ENV=production
+PORT=8080
+
+# Database — ผ่าน network `backend` · create-project.sh สร้าง database ชื่อ DB_DATABASE + user ของ project ให้
+# (user แยกต่อ project ไม่ใช่ superuser — docs/31)
+# ⚠️ รหัสผ่านอยู่ใน URL — ถ้ามีอักขระพิเศษ (@ : / # ? %) ต้อง URL-encode ก่อน
+DB_DATABASE=p-go_db
+DATABASE_URL=postgres://p_go:<HEX>@postgres:5432/p-go_db?sslmode=disable
+
+# Redis (cache / queue)
+REDIS_URL=redis://:r&|\x@redis:6379
+=== ./.env.example
+# ── p-go (Go) ─────────────────────────────────
+# __ROOT:<ชื่อค่า>__ = create-project.sh เติมค่าจาก .env กลางให้อัตโนมัติ
+APP_IMAGE=p-go:latest
+APP_DOMAIN=p-go.__ROOT:BASE_DOMAIN__
+
+# Zero-downtime rolling deploy (docs/25-zero-downtime.md)
+ROLLOUT_SERVICE=p-go
+# app ต้องมี route นี้ ตอบ 200 เมื่อพร้อม (แนะนำ ping DB ด้วย)
+HEALTHCHECK_PATH=/healthz
+
+# กันพังหลัง deploy (docs/25): smoke test หลังสลับเวอร์ชัน · ล้ม → ถอยกลับเวอร์ชันก่อนให้เอง (ไม่ย้อน migration)
+DEPLOY_AUTO_ROLLBACK=1
+# path ที่เช็คเพิ่มหลัง deploy (ต้องตอบ < 500):
+# DEPLOY_SMOKE_PATHS=/login /api/ping
+# key ใหม่ใน .env.example ของ app ที่ยังไม่มีใน .env นี้ = หยุด deploy · key ที่เครื่องนี้ไม่ต้องตั้ง:
+# DEPLOY_ENV_IGNORE=SOME_KEY OTHER_KEY
+
+# Migrate + seed ตอน deploy ด้วยโค้ดใหม่ ก่อนสลับ traffic (docs/29-deploy-go.md)
+# ข้อตกลง: binary รับ subcommand `migrate` และ `seed` (ตัวอย่าง: examples/go-app/)
+# ใช้ golang-migrate / goose ก็ได้ — เปลี่ยนคำสั่งด้านล่างให้ตรง (ต้องอยู่ใน image)
+DEPLOY_MIGRATE=1
+DEPLOY_MIGRATE_CMD=/app/server migrate
+# seed = ข้อมูลพื้นฐาน (role / ค่าตั้งต้น) ต้องรันซ้ำได้ — none = ไม่มี seed
+DEPLOY_SEED_CMD=/app/server seed
+# ไฟล์ seed ใน image (relative กับ WORKDIR) — เปลี่ยนเมื่อไหร่ deploy จะถามว่า seed ไหม
+DEPLOY_SEED_PATHS=seeds
+# deploy ครั้งแรกบนเครื่องจะถามว่า seed ไหม · ต่อจากนั้น push ที่แก้ seed → seed เอง (seed ต้องรันซ้ำได้)
+# 0 = ถามก่อนทุกครั้งที่ seed เปลี่ยน (auto-deploy จะพักรอคนตอบ)
+# DEPLOY_AUTO_SEED=0
+
+APP_ENV=production
+PORT=8080
+
+# Database — ผ่าน network `backend` · create-project.sh สร้าง database ชื่อ DB_DATABASE + user ของ project ให้
+# (user แยกต่อ project ไม่ใช่ superuser — docs/31)
+# ⚠️ รหัสผ่านอยู่ใน URL — ถ้ามีอักขระพิเศษ (@ : / # ? %) ต้อง URL-encode ก่อน
+DB_DATABASE=p-go_db
+DATABASE_URL=postgres://__DB_USER__:__DB_PASSWORD__@postgres:5432/p-go_db?sslmode=disable
+
+# Redis (cache / queue)
+REDIS_URL=redis://:__ROOT:REDIS_PASSWORD__@redis:6379
+=== ./README.md
+# p-go (Go)
+
+Go HTTP service ต่อ Traefik (HTTPS อัตโนมัติ) — image ต้อง expose port 8080
+และเป็น **alpine** (มี `sh` + `wget` ให้ healthcheck และ drain ใช้)
+
+## ข้อตกลงฝั่ง app (ตัวอย่างครบ: `examples/go-app/` ใน infra-stack)
+
+| ต้องมี | ทำไม |
+|--------|------|
+| ฟัง `:8080` | Traefik ส่ง traffic มาที่ port นี้ |
+| `GET /healthz` ตอบ 200 เมื่อพร้อม (ping DB) | rolling deploy รอตัวใหม่ healthy ก่อนสลับ |
+| `/app/server migrate` | `deploy.sh` รันก่อนสลับ traffic ทุกครั้ง |
+| `/app/server seed` (รันซ้ำได้) | ข้อมูลพื้นฐาน — ถามก่อน seed เมื่อไฟล์ใน `seeds/` เปลี่ยน |
+
+ใช้ golang-migrate / goose แทน subcommand ได้ — แก้ `DEPLOY_MIGRATE_CMD` / `DEPLOY_SEED_CMD` ใน .env
+
+## Deploy
+
+```bash
+cd /opt/infra-stack
+infra git p-go <owner>/<repo>    # clone + เปิด build (private repo จะได้ deploy key ไปวางใน GitHub)
+infra deploy p-go                      # build + migrate + project ใหม่ถาม seed + rolling
+infra check p-go
+```
+
+DNS: เพิ่ม record `p-go.<domain>` ชี้ server IP ใน Cloudflare (Proxied)
+
+รายละเอียด: docs/29-deploy-go.md · zero-downtime: docs/25-zero-downtime.md
+=== ./docker-compose.yml
+services:
+  p-go:
+    image: ${APP_IMAGE:?set in .env}
+    # ไม่ใส่ container_name — เพื่อให้ rolling deploy รัน 2 ตัวคู่กันได้ (docs/25)
+    restart: unless-stopped
+    # กันโปรเซสใน container ยกระดับสิทธิ์ (setuid) ถ้าแอปโดนเจาะ — entrypoint ที่ใช้ sudo/su จะใช้ไม่ได้ (docs/31)
+    security_opt:
+      - no-new-privileges:true
+    # build บนเครื่องแทน registry: ./scripts/setup-git.sh เปิดบรรทัดล่างให้ (docs/19-cicd.md)
+    # build: ./src
+    env_file: .env
+    healthcheck:
+      # image ต้องเป็น alpine (มี sh + wget) — scratch/distroless ไม่มี shell ให้ healthcheck/drain ใช้ (docs/29)
+      # /tmp/drain = ตัวเก่ากำลังถูกถอดตอน rolling deploy → unhealthy → Traefik เลิกส่ง request ให้ก่อนถูก stop
+      test: ["CMD-SHELL", "test ! -f /tmp/drain && wget -qO /dev/null http://localhost:8080${HEALTHCHECK_PATH:-/healthz} || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - proxy
+      - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.p-go.rule=Host(`${APP_DOMAIN:?set in .env}`)"
+      - "traefik.http.routers.p-go.entrypoints=websecure"
+      - "traefik.http.routers.p-go.tls.certresolver=letsencrypt"
+      - "traefik.http.services.p-go.loadbalancer.server.port=8080"
+      # Traefik ส่ง traffic เฉพาะ replica ที่ health ผ่าน
+      - "traefik.http.services.p-go.loadbalancer.healthcheck.path=${HEALTHCHECK_PATH:-/healthz}"
+      - "traefik.http.services.p-go.loadbalancer.healthcheck.interval=10s"
+      # drain ก่อน docker rollout stop ตัวเก่า — 35s = interval 10s × retries 3 + 5s ให้ request ที่ค้างจบ (docs/25)
+      - "docker-rollout.pre-stop-hook=touch /tmp/drain && sleep 35"
+
+networks:
+  proxy:
+    external: true
+  backend:
+    external: true
+    name: backend
