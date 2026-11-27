@@ -2,26 +2,6 @@
 # clone repo ของ project (scripts/lib/git-clone.sh ผ่าน setup-git.sh)
 # repo ปลอมเป็น bare repo ในเครื่อง — INFRA_REPO_BASE_URL ชี้ไปที่โฟลเดอร์ของมัน
 
-# mk_fake_repo <owner/repo> [deploy-template-dir] → bare repo ที่ $REPOS/<owner>/<repo>.git
-# มี Dockerfile เสมอ · ถ้าให้ dir มา คัดลอกเข้า deploy/infra-stack/
-mk_fake_repo() {
-  local repo="$1" tpl="${2:-}" work
-  REPOS="${REPOS:-$SANDBOX/repos}"
-  work="$(mktemp -d)"
-  git -C "$work" init -q -b main
-  printf 'FROM alpine\n' > "$work/Dockerfile"
-  if [ -n "$tpl" ]; then
-    mkdir -p "$work/deploy/infra-stack"
-    cp -r "$tpl/." "$work/deploy/infra-stack/"
-  fi
-  git -C "$work" add -A
-  git -C "$work" -c user.email=t@t -c user.name=t commit -q -m init
-  mkdir -p "$REPOS/${repo%/*}"
-  git clone -q --bare "$work" "$REPOS/$repo.git"
-  rm -rf "$work"
-  export INFRA_REPO_BASE_URL="file://$REPOS"
-}
-
 test_setup_git_clones_from_base_url() {
   mk_sandbox
   (cd "$SANDBOX" && bash scripts/create-project.sh blog go >/dev/null 2>&1)

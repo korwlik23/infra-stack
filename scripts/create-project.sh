@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
-# สร้าง project ใหม่จาก template
-# ใช้: ./scripts/create-project.sh <name> <laravel|nextjs|go|n8n|ai-worker> [--mysql|--external-db]
+# สร้าง project ใหม่จาก template ในตัว หรือจาก starter (repo ที่มี deploy/infra-stack/)
+# ใช้: ./scripts/create-project.sh <name> <template|starter|suite|owner/repo> [--mysql|--external-db]
+#   template ในตัว   laravel | nextjs | go | n8n | ai-worker   (templates/<ชื่อ>/)
+#   starter          ชื่อสั้นใน templates/starters.list (เช่น cms-api-go) หรือ owner/repo ตรง ๆ
+#                    → clone เข้า projects/<name>/src แล้วใช้ src/deploy/infra-stack/ เป็น template (docs/32)
+#   suite            ชุด starter (เช่น cms-go) → สร้าง <name>-api, <name>-admin, <name>-site
+#                    + ต่อ URL ข้ามกันให้ + projects/<name>.suite (infra deploy <name> = deploy ทั้งชุด)
 #   --mysql        ใช้ MySQL แทน PostgreSQL (laravel/nextjs/go) — เปิด MySQL stack ให้ถ้ายังไม่เปิด
 #                  แล้วสร้าง database + user ของ project (สิทธิ์เฉพาะ database ตัวเอง)
 #   --external-db  database อยู่เครื่องอื่น (ต่อผ่าน IP / managed DB) — ไม่สร้าง database ในเครื่อง
@@ -9,7 +14,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-USAGE="usage: create-project.sh <name> <laravel|nextjs|go|n8n|ai-worker> [--mysql|--external-db]"
+USAGE="usage: create-project.sh <name> <template|starter|suite|owner/repo> [--mysql|--external-db]"
 NAME="${1:?$USAGE}"
 TEMPLATE="${2:?$USAGE}"
 USE_MYSQL=0
@@ -23,7 +28,32 @@ esac
 [ -z "${4:-}" ] || { echo "$USAGE" >&2; echo "(--mysql กับ --external-db ใช้พร้อมกันไม่ได้)" >&2; exit 1; }
 
 [[ "$NAME" =~ ^[a-z0-9-]+$ ]] || { echo "ERROR: name must be lowercase [a-z0-9-]" >&2; exit 1; }
-[ -d "templates/$TEMPLATE" ] || { echo "ERROR: unknown template '$TEMPLATE' (have: $(ls templates))" >&2; exit 1; }
+
+# shellcheck source=scripts/lib/starters.sh
+. scripts/lib/starters.sh
+
+# ── template มาจากไหน: ในตัว / suite / starter (alias หรือ owner/repo) ──
+REPO=""
+if [ -d "templates/$TEMPLATE" ]; then
+  TPL_DIR="templates/$TEMPLATE"
+elif SUITE_MEMBERS="$(starter_suite "$TEMPLATE" 2>/dev/null)"; then
+  # shellcheck source=scripts/lib/create-suite.sh
+  . scripts/lib/create-suite.sh
+  create_suite "$NAME" "$TEMPLATE" "$SUITE_MEMBERS" "${3:-}"
+  exit 0
+elif REPO="$(starter_repo "$TEMPLATE")" || [[ "$TEMPLATE" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
+  REPO="${REPO:-$TEMPLATE}"
+  TPL_DIR="projects/$NAME/src/deploy/infra-stack"
+else
+  echo "ERROR: ไม่รู้จัก '$TEMPLATE'" >&2
+  echo "  template ในตัว: $(find templates -mindepth 1 -maxdepth 1 -type d -printf '%f ' | xargs -n1 | sort | xargs)" >&2
+  echo "  starter / suite: $(starter_names | xargs)" >&2
+  echo "  หรือ repo ตรง ๆ: owner/repo (ต้องมี deploy/infra-stack/ — docs/32-starters.md)" >&2
+  exit 1
+fi
+if [ -n "$REPO" ] && [ "$USE_MYSQL$EXTERNAL_DB" != 00 ]; then
+  echo "ERROR: ${3} ใช้กับ starter ไม่ได้ — ตั้ง database ใน deploy/infra-stack/.env.example ของ repo แทน" >&2; exit 1
+fi
 if [ "$USE_MYSQL$EXTERNAL_DB" != 00 ] && ! [[ "$TEMPLATE" =~ ^(laravel|nextjs|go)$ ]]; then
   echo "ERROR: ${3} ใช้ได้กับ template laravel / nextjs / go เท่านั้น" >&2; exit 1
 fi
@@ -31,12 +61,21 @@ fi
 if [ -f "projects/$NAME/docker-compose.yml" ]; then
   echo "ERROR: projects/$NAME ถูก setup ไปแล้ว (มี docker-compose.yml)" >&2; exit 1
 fi
+if [ -f "projects/$NAME.suite" ]; then
+  echo "ERROR: มี suite ชื่อ $NAME อยู่แล้ว (projects/$NAME.suite) — ใช้ชื่ออื่น" >&2; exit 1
+fi
 if [ -d "projects/$NAME" ]; then
   echo "ℹ️  projects/$NAME มีอยู่แล้ว — เติมไฟล์จาก template โดยไม่แตะของเดิม (เช่น src/)"
 fi
 
+if [ -n "$REPO" ]; then
+  # shellcheck source=scripts/lib/starter-repo.sh
+  . scripts/lib/starter-repo.sh
+  fetch_starter "$NAME" "$REPO" "$TEMPLATE"
+fi
+
 mkdir -p "projects/$NAME"
-cp -r "templates/$TEMPLATE/." "projects/$NAME/"
+cp -r "$TPL_DIR/." "projects/$NAME/"
 
 # แทนที่ placeholder __PROJECT__ ทุกไฟล์ — ยกเว้น src/ (โค้ดแอปของจริง ห้ามแตะ)
 find "projects/$NAME" -type d -name src -prune -o -type f -exec sed -i "s/__PROJECT__/$NAME/g" {} +
@@ -54,6 +93,8 @@ fi
 tokens_resolve_root "projects/$NAME/.env"
 tokens_db_user "$NAME" "projects/$NAME/.env"
 tokens_generate "projects/$NAME/.env"
+tokens_suite "projects/$NAME/.env" "${INFRA_SUITE:-}"
+tokens_proxy_cidr "projects/$NAME/.env"
 
 # สร้าง database ของ project ใน postgres กลาง (ถ้า template ใช้ DB_DATABASE)
 # init SQL ของ postgres รันแค่ครั้งแรก — ไม่สร้างให้ project ใหม่
@@ -154,6 +195,18 @@ elif [ "$EXTERNAL_DB" = 1 ]; then
   setup_external_db
 else
   ensure_project_db "projects/$NAME/.env"
+fi
+
+if [ -n "$REPO" ]; then
+  enable_local_build "projects/$NAME" "$NAME"
+  echo "✅ created projects/$NAME from $REPO (template: src/deploy/infra-stack/)"
+  # สมาชิกของ suite — create-suite.sh พิมพ์ขั้นต่อไปของทั้งชุดเอง
+  [ -z "${INFRA_SUITE:-}" ] || exit 0
+  echo "next:"
+  echo "  1. infra env $NAME                  # ตรวจค่าที่ยังเป็น CHANGE_ME (URL ของ api/admin/site ถ้าไม่ได้สร้างเป็น suite)"
+  echo "  2. เพิ่ม DNS record: $(grep -E '^APP_DOMAIN=' "projects/$NAME/.env" 2>/dev/null | head -1 | cut -d= -f2- || echo "$NAME.<BASE_DOMAIN>") → server IP (Cloudflare)"
+  echo "  3. infra deploy $NAME               # build + migrate + start"
+  exit 0
 fi
 
 echo "✅ created projects/$NAME from template '$TEMPLATE'"
