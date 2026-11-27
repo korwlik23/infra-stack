@@ -9,6 +9,20 @@ _infra_projects() {
   done
 }
 
+# suite (projects/<ชื่อ>.suite) — infra deploy <suite>
+_infra_suites() {
+  local f
+  for f in "$1"/projects/*.suite; do
+    if [ -f "$f" ]; then f="${f%.suite}"; echo "${f##*/}"; fi
+  done
+}
+
+# alias + suite ใน templates/starters.list
+_infra_starters() {
+  [ -f "$1/templates/starters.list" ] || return 0
+  sed -E -e 's/(^|[[:space:]])#.*$//' -e 's/[[:space:]]*=.*$//' "$1/templates/starters.list" | awk 'NF {print $1}'
+}
+
 _infra_stacks() {
   local f
   for f in "$1"/docker/docker-compose.*.yml; do
@@ -32,6 +46,7 @@ _infra() {
     git|deploy|env|restart|rollback|check|artisan|shell|load|pause|resume)
       if [ "$n" = 2 ]; then
         words="$(_infra_projects "$root")"
+        [ "$cmd" != deploy ] || words="$words $(_infra_suites "$root")"
       elif [ "$cmd" = deploy ] && [ "$n" = 3 ]; then
         words="--seed --no-seed"
       elif [ "$cmd" = rollback ] && [ "$n" = 3 ]; then
@@ -58,6 +73,7 @@ _infra() {
     new)
       if [ "$n" = 3 ]; then
         for d in "$root"/templates/*/; do d="${d%/}"; words="$words ${d##*/}"; done
+        words="$words $(_infra_starters "$root")"
       elif [ "$n" = 4 ]; then
         words="--mysql --external-db"
       fi ;;
