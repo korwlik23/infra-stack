@@ -1,0 +1,11 @@
+# Starter = repo ที่มี template ของตัวเองใน deploy/infra-stack/ (docs/32-starters.md)
+#   infra new <ชื่อ> <alias>   → clone repo + ใช้ template ใน repo นั้น
+#   infra new <ชื่อ> <suite>   → สร้างทุกตัวใน suite เป็น <ชื่อ>-<ส่วนต่อท้าย> + ต่อ URL ข้ามกันให้
+#
+# alias          owner/repo
+cms-api-go       korwlik23/go-api-starter
+cms-admin        korwlik23/vue-vite-admin-starter
+cms-site         korwlik23/astro-site-starter
+
+# suite = <ส่วนต่อท้าย>:<alias> …  (เรียงตามลำดับ deploy — api ก่อนเสมอ)
+cms-go = api:cms-api-go admin:cms-admin site:cms-site
