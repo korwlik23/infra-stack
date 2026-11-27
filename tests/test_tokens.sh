@@ -3,7 +3,7 @@
 
 _tokens_setup() {
   mk_sandbox
-  cd "$SANDBOX"
+  cd "$SANDBOX" || return 1
   # shellcheck source=scripts/lib/project-tokens.sh
   . scripts/lib/project-tokens.sh
   PENV="$SANDBOX/projects/t.env"

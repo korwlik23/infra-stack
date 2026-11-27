@@ -3,7 +3,7 @@
 
 _starters_setup() {
   mk_sandbox
-  cd "$SANDBOX"
+  cd "$SANDBOX" || return 1
   # shellcheck source=scripts/lib/starters.sh
   . scripts/lib/starters.sh
 }

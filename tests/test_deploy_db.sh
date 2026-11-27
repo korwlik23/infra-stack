@@ -9,7 +9,7 @@ _deploydb_setup() {
     "$DOCKER_LOG" > "$SANDBOX/bin/docker"
   chmod +x "$SANDBOX/bin/docker"
   mkdir -p "$SANDBOX/projects/p"
-  cd "$SANDBOX/projects/p"
+  cd "$SANDBOX/projects/p" || return 1
   # shellcheck source=scripts/lib/deploy-db.sh
   . "$SANDBOX/scripts/lib/deploy-db.sh"
 }
