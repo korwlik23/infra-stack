@@ -48,6 +48,12 @@ REDIS_PASSWORD=r&|\x
 EOF
   stub_docker_absent
   export PATH="$SANDBOX/bin:$PATH"
+  # HOME แยก — script ที่สร้าง deploy key / แก้ ~/.ssh/config ต้องไม่แตะเครื่องจริง
+  mkdir -p "$SANDBOX/home"
+  export HOME="$SANDBOX/home"
+  # ไม่มีเน็ตใน test — curl ล้มเสมอ (กันการดึง host key ของ GitHub จริง)
+  printf '#!/usr/bin/env bash\nexit 1\n' > "$SANDBOX/bin/curl"
+  chmod +x "$SANDBOX/bin/curl"
 }
 
 # docker ไม่มี daemon — ทุกคำสั่งล้ม
