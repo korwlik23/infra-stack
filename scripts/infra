@@ -273,9 +273,9 @@ cmd_completion() {
 
 # ── project ────────────────────────────────────────────
 cmd_list() {
-  local list p dom total up state src
+  local list p dom total up state src shown=""
   mapfile -t list < <(projects)
-  [ ${#list[@]} -gt 0 ] || { echo "ยังไม่มี project — สร้าง: infra new <ชื่อ> <laravel|nextjs|go|n8n|ai-worker>"; return 0; }
+  [ ${#list[@]} -gt 0 ] || { echo "ยังไม่มี project — สร้าง: infra new <ชื่อ> <laravel|nextjs|go|n8n|ai-worker|cms-go>"; return 0; }
   printf '  %-16s %-32s %-9s %s\n' PROJECT DOMAIN RUNNING DEPLOYED
   for p in "${list[@]}"; do
     dom="$(penv "$p" APP_DOMAIN)"
@@ -301,6 +301,13 @@ cmd_list() {
       state="ยังไม่เคย deploy จาก git"
     fi
     printf '  %-16s %-32s %-9s %s\n' "$p" "${dom:--}" "$up/$total" "$state"
+  done
+  # suite (infra new <ชื่อ> <ชุด starter>) — infra deploy <suite> = deploy ทั้งชุดตามลำดับ
+  local f
+  for f in projects/*.suite; do
+    [ -f "$f" ] || continue
+    [ -n "$shown" ] || { echo; echo "  SUITE (infra deploy <suite> = ทั้งชุด)"; shown=1; }
+    printf '  %-16s → %s\n' "$(basename "$f" .suite)" "$(tr -d '\r' < "$f" | xargs)"
   done
 }
 
@@ -543,10 +550,13 @@ usage() {
 
 เว็บของคุณ (project)
   list                          ทุก project: โดเมน · container ที่รัน · commit ที่ขึ้นเว็บ
-  new <ชื่อ> <template> [--mysql|--external-db]
+  new <ชื่อ> <template|starter|suite|owner/repo> [--mysql|--external-db]
                                 สร้าง project (laravel / nextjs / go / n8n / ai-worker)
+                                starter/suite (templates/starters.list เช่น cms-go) → clone repo + template ของ repo
+                                suite = ทั้งชุด <ชื่อ>-api/-admin/-site + ต่อ URL ข้ามกันให้ (docs/32)
   git <p> [owner/repo] [branch] ต่อ GitHub → push แล้วขึ้นเว็บเอง (ไม่ใส่ repo = clone เข้า src/ เองแล้ว)
-  deploy <p> [--seed|--no-seed] build + migrate + ขึ้นเว็บ (เว็บไม่ดับ)
+  deploy <p|suite> [--seed|--no-seed]
+                                build + migrate + ขึ้นเว็บ (เว็บไม่ดับ) · suite = ทุกตัวตามลำดับ หยุดเมื่อล้ม
   env <p>                       แก้ .env แล้วใช้ค่าใหม่ให้เลย
   restart <p>                   สร้าง container ใหม่ด้วย .env ปัจจุบัน (ไม่ build)
   pause <p> / resume <p>        ปิด project ชั่วคราว (ข้อมูลอยู่ครบ · auto-deploy/refresh ข้าม) / เปิดกลับ
@@ -597,7 +607,9 @@ case "$CMD" in
   list|ls)          cmd_list ;;
   new)              exec ./scripts/create-project.sh "$@" ;;
   git)              with_project 0 "$@"; exec ./scripts/setup-git.sh "$PROJECT" "${ARGS[@]}" ;;
-  deploy)           with_project 0 "$@"; exec ./scripts/deploy.sh "$PROJECT" "${ARGS[@]}" ;;
+  deploy)           # suite (projects/<ชื่อ>.suite) → deploy ทั้งชุดตามลำดับ
+                    if [[ "${1:-}" =~ ^[a-z0-9-]+$ ]] && [ -f "projects/$1.suite" ]; then exec ./scripts/deploy-suite.sh "$@"; fi
+                    with_project 0 "$@"; exec ./scripts/deploy.sh "$PROJECT" "${ARGS[@]}" ;;
   env)              cmd_env "$@" ;;
   restart)          cmd_restart "$@" ;;
   pause)            cmd_pause "$@" ;;

@@ -30,6 +30,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/) and [SemVer](http
 - Grafana pin `grafana/grafana:13.3` (เดิม `:latest` ข้าม major ได้เองตอนอัปเดต)
 - cAdvisor ย้ายไป `ghcr.io/google/cadvisor:0.61` — `gcr.io/cadvisor/cadvisor` หยุดที่ v0.55.1 (CVE ค้าง 86 รายการ)
 
+### Added — Starter: ระบบสำเร็จรูปทั้งชุด (docs/32)
+- `infra new <ชื่อ> <starter|owner/repo>` — clone repo แล้วใช้แม่แบบใน `deploy/infra-stack/` ของ repo
+  (ไม่ต้อง `infra git` ต่อ) · ชื่อสั้นอยู่ใน `templates/starters.list` · compose ที่ mount `docker.sock` /
+  `privileged` / host namespace / โฟลเดอร์ระบบ ถูกปฏิเสธ
+- `infra new <ชื่อ> <suite>` เช่น `infra new shop cms-go` — สร้าง `shop-api` / `shop-admin` / `shop-site` พร้อม URL
+  ข้ามกัน (`shop-api.<โดเมน>` …) · ค้างกลางทาง (รอ deploy key) → รันซ้ำทำต่อ · `infra deploy shop` = ทั้งชุดตามลำดับ
+  หยุดเมื่อตัวใดล้ม · `infra list` / Tab completion รู้จัก suite
+- Token ใหม่ใน `.env.example`: `__GENERATE_B64__`, `__DB_RUNTIME_USER__` / `__DB_RUNTIME_PASSWORD__`,
+  `__SUITE_ORIGIN:<role>__`, `__SUITE_HOST:<role>__`, `__PROXY_CIDR__`
+- Runtime user ของ database: `.env` มี `DB_RUNTIME_USER` → `infra db-user` สร้าง user ที่อ่าน/เขียนข้อมูลได้อย่างเดียว
+  (สร้าง/ลบ/แก้ตารางไม่ได้) · ตารางที่ migrate สร้างทีหลังได้สิทธิ์เอง · `infra restore db` ให้สิทธิ์คืนหลัง restore
+- `DEPLOY_MIGRATE_SERVICE` — migrate/seed รันใน service แยก (เช่น `api-migrate` ที่ถือรหัสเจ้าของ database)
+  container ที่รับ traffic ไม่ต้องมีรหัสนั้น
+- `INFRA_REPO_BASE_URL` — clone จาก mirror / GitHub Enterprise แทน github.com
+- `tests/` — test ของ script (`bash tests/run.sh`) รวม snapshot ของ template ในตัวทุกตัว (ต้องไม่เปลี่ยน)
+
 ### Added — ปิด project ชั่วคราว
 - `infra pause <p>` / `infra resume <p>` — หยุด container แต่เก็บโค้ด / database / volume / backup ไว้ครบ ·
   auto-deploy, refresh (05:00) และ deploy ข้าม project ที่ปิด (เดิมหยุดด้วยมือแล้ว refresh / push เปิดกลับมาเอง) ·

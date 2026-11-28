@@ -117,3 +117,17 @@ END
 \$reown\$;
 SQL
 }
+
+# SQL: สิทธิ์ของ runtime role (DB_RUNTIME_USER — scripts/db-user.sh) — อ่าน/เขียนข้อมูล ไม่แก้โครงสร้าง
+# รันใน database ของ project · default privileges ผูกกับ schema public → หลัง DROP SCHEMA (restore) ต้องรันใหม่
+# ทั้งสอง role ต้องผ่าน ^[a-z_][a-z0-9_]*$ ก่อนเรียก (ต่อเข้า SQL ตรง ๆ)
+pg_runtime_grant_sql() {
+  local owner="$1" rt="$2"
+  cat <<SQL
+GRANT USAGE ON SCHEMA public TO "$rt";
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO "$rt";
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO "$rt";
+ALTER DEFAULT PRIVILEGES FOR ROLE "$owner" IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO "$rt";
+ALTER DEFAULT PRIVILEGES FOR ROLE "$owner" IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO "$rt";
+SQL
+}
